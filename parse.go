@@ -273,6 +273,8 @@ func (p *parser) parseFQN() string {
 	return id.String()
 }
 
+var world = make(map[string]*Class)
+
 func (p *parser) parseMember(doc string) {
 	p.next()
 	def := p.tok
@@ -291,19 +293,54 @@ func (p *parser) parseMember(doc string) {
 			break
 		}
 	}
-	log.Printf("DEF %v %v %T", p.thisClass, def, typ)
+
+	c := world[p.thisClass]
+	if c == nil {
+		c = &Class{Name: p.thisClass, Members: make(map[string]*VarMember)}
+		world[p.thisClass] = c
+	}
+
+	name := strings.TrimPrefix(def.Text, "$")
+	if _, ok := c.Members[name]; ok {
+		p.errorf("member %v already defined for %v", name, c.Name)
+	}
+	c.Members[name] = &VarMember{Name: name, Type: typ}
+	log.Printf("DEF %v %v %T", c.Name, def, typ)
 }
 
 func (p *parser) parseExpr() {
-	x := p.tok
+	x := p.tok.Text
 	p.next()
 
-	if !p.got(token.Arrow) {
-		return
+	if x == "$this" {
+		x = p.thisClass
 	}
 
-	if tok := p.tok; p.got(token.Ident) {
-		log.Println(x, token.Arrow, tok)
-		return
+	for p.got(token.Arrow) {
+		if tok := p.tok; p.got(token.Ident) {
+			c, ok := world[x]
+			if !ok {
+				log.Printf("class `%v` not found", x)
+				return
+			}
+			m, ok := c.Members[tok.Text]
+			if !ok {
+				// TODO: log.Printf("member `%v` not found", tok.Text)
+				return
+			}
+
+			x = getClass(m.Type)
+		}
+	}
+}
+
+func getClass(typ phptype.Type) string {
+	switch typ := typ.(type) {
+	case *phptype.Generic:
+		return getClass(typ.Base)
+	case *phptype.Named:
+		return strings.Join(typ.Parts, "\\")
+	default:
+		return fmt.Sprintf("%T", typ)
 	}
 }
