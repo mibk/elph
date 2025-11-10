@@ -277,26 +277,45 @@ var world = make(map[string]*Class)
 
 func (p *parser) parseMember(doc string) {
 	p.next()
+
+	p.consume(token.Static)
+	searchFn := p.got(token.Function)
+	if searchFn {
+		p.consume(token.BitAnd)
+	}
+
 	def := p.tok
-	if !p.got(token.Var) {
+	if searchFn && !p.got(token.Ident) {
+		return
+	} else if !searchFn && !p.got(token.Var) {
 		return
 	}
-	b, err := phpdoc.Parse(strings.NewReader(doc))
-	if err != nil {
-		p.errorf("parsing doc: %v", err)
-		return
-	}
+
 	var typ phptype.Type
-	for _, line := range b.Lines {
-		if tag, ok := line.(*phpdoc.VarTag); ok {
-			typ = tag.Type
-			break
+	if doc != "" {
+		b, err := phpdoc.Parse(strings.NewReader(doc))
+		if err != nil {
+			p.errorf("parsing doc %q: %v", doc, err)
+			return
 		}
+		for _, line := range b.Lines {
+			if tag, ok := line.(*phpdoc.ReturnTag); ok && searchFn {
+				typ = tag.Type
+				break
+			} else if tag, ok := line.(*phpdoc.VarTag); ok {
+				typ = tag.Type
+				break
+			}
+		}
+	}
+	if typ == nil {
+		// log.Printf("cannot deduce type for member `%v`", def.Text)
+		return
 	}
 
 	c := world[p.thisClass]
 	if c == nil {
-		c = &Class{Name: p.thisClass, Members: make(map[string]*VarMember)}
+		c = &Class{Name: p.thisClass, Members: make(map[string]*Member)}
 		world[p.thisClass] = c
 	}
 
@@ -304,7 +323,7 @@ func (p *parser) parseMember(doc string) {
 	if _, ok := c.Members[name]; ok {
 		p.errorf("member %v already defined for %v", name, c.Name)
 	}
-	c.Members[name] = &VarMember{Name: name, Type: typ}
+	c.Members[name] = &Member{Name: name, Type: typ}
 	log.Printf("DEF %v %v %T", c.Name, def, typ)
 }
 
@@ -325,7 +344,7 @@ func (p *parser) parseExpr() {
 			}
 			m, ok := c.Members[tok.Text]
 			if !ok {
-				// TODO: log.Printf("member `%v` not found", tok.Text)
+				log.Printf("member `%v` not found", tok.Text)
 				return
 			}
 

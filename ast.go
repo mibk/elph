@@ -23,10 +23,10 @@ type stmt struct {
 
 type Class struct {
 	Name    string
-	Members map[string]*VarMember
+	Members map[string]*Member
 }
 
-type VarMember struct {
+type Member struct {
 	Name string
 	Type phptype.Type
 }
