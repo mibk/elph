@@ -29,6 +29,9 @@ type parser struct {
 	err error
 	tok token.Token
 	alt *token.Token // TODO: rm?
+
+	namespace string
+	thisClass string
 }
 
 func Parse(r io.Reader, php74Compat bool) (*File, error) {
@@ -182,13 +185,26 @@ func (p *parser) parseStmt(separators ...token.Type) (s *stmt) {
 			return s
 		case token.DocComment:
 			docComment = p.tok.Text
-			log.Println(docComment)
+			// log.Println(docComment)
 			p.next()
+		case token.Namespace:
+			p.next()
+			p.namespace = p.parseFQN()
+			log.Println("NAMESPACE", p.namespace)
+		case token.Class:
+			p.next()
+			if name := p.tok; p.got(token.Ident) {
+				p.thisClass = name.Text
+				if p.namespace != "" {
+					p.thisClass = p.namespace + "\\" + p.thisClass
+				}
+				log.Println("CLASS", p.thisClass)
+			}
+			fallthrough
 		case token.Private, token.Protected, token.Public:
 			p.parseMember(docComment)
 		case token.Declare,
-			token.Namespace,
-			token.Class, token.Interface, token.Trait, token.Enum,
+			token.Interface, token.Trait, token.Enum,
 			token.Function, token.Fn,
 			token.If, token.Else, token.Switch, token.Match,
 			token.For, token.Foreach, token.Do, token.While,
@@ -246,6 +262,17 @@ func (p *parser) parseStmt(separators ...token.Type) (s *stmt) {
 	}
 }
 
+func (p *parser) parseFQN() string {
+	var id strings.Builder
+	id.WriteString(p.tok.Text)
+	p.expect(token.Ident)
+	for p.got(token.Backslash) {
+		id.WriteString("\\" + p.tok.Text)
+		p.expect(token.Ident)
+	}
+	return id.String()
+}
+
 func (p *parser) parseMember(doc string) {
 	p.next()
 	def := p.tok
@@ -264,7 +291,7 @@ func (p *parser) parseMember(doc string) {
 			break
 		}
 	}
-	log.Printf("DEF %v %T", def, typ)
+	log.Printf("DEF %v %v %T", p.thisClass, def, typ)
 }
 
 func (p *parser) parseExpr() {
