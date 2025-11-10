@@ -13,6 +13,8 @@ import (
 	"mibk.dev/phpfmt/token"
 )
 
+var CHECKING bool
+
 // SyntaxError records an error and the position it occurred on.
 type SyntaxError struct {
 	Line, Column int
@@ -200,7 +202,6 @@ func (p *parser) parseStmt(separators ...token.Type) (s *stmt) {
 				}
 				log.Println("CLASS", p.thisClass)
 			}
-			fallthrough
 		case token.Private, token.Protected, token.Public:
 			p.parseMember(docComment)
 		case token.Declare,
@@ -246,7 +247,7 @@ func (p *parser) parseStmt(separators ...token.Type) (s *stmt) {
 				return s
 			}
 		case token.Var:
-			if p.tok.Text == "$this" {
+			if CHECKING && p.tok.Text == "$this" {
 				p.parseExpr()
 				break
 			}
@@ -310,6 +311,10 @@ func (p *parser) parseMember(doc string) {
 	}
 	if typ == nil {
 		// log.Printf("cannot deduce type for member `%v`", def.Text)
+		return
+	}
+
+	if CHECKING {
 		return
 	}
 
