@@ -221,7 +221,10 @@ func (p *parser) parseStmt(separators ...token.Type) (s *stmt) {
 				return s
 			}
 		case token.Var:
-			log.Println(p.tok, p.tok.Pos)
+			if p.tok.Text == "$this" {
+				p.parseExpr()
+				break
+			}
 			fallthrough
 		default:
 			if slices.Contains(separators, typ) {
@@ -230,5 +233,19 @@ func (p *parser) parseStmt(separators ...token.Type) (s *stmt) {
 			s.nodes = append(s.nodes, p.tok)
 			p.next()
 		}
+	}
+}
+
+func (p *parser) parseExpr() {
+	x := p.tok
+	p.next()
+
+	if !p.got(token.Arrow) {
+		return
+	}
+
+	if tok := p.tok; p.got(token.Ident) {
+		log.Println(x, token.Arrow, tok)
+		return
 	}
 }
