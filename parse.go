@@ -198,7 +198,7 @@ func (p *parser) parseStmt(separators ...token.Type) (s *stmt) {
 		case token.Use:
 			p.next()
 			use := p.parseFQN()
-			log.Println("USE", use)
+			// log.Println("USE", use)
 			last := use
 			if i := strings.LastIndexByte(last, '\\'); i >= 0 {
 				last = last[i+1:]
@@ -304,6 +304,7 @@ func (p *parser) parseMember(doc string) {
 	}
 
 	var typ phptype.Type
+
 	if doc != "" {
 		b, err := phpdoc.Parse(strings.NewReader(doc))
 		if err != nil {
@@ -321,8 +322,8 @@ func (p *parser) parseMember(doc string) {
 		}
 	}
 	if typ == nil {
-		// log.Printf("cannot deduce type for member `%v`", def.Text)
-		return
+		// TODO: not true
+		typ = &phptype.Named{Parts: []string{"void"}}
 	}
 
 	if CHECKING {
