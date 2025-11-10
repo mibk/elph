@@ -8,6 +8,8 @@ import (
 	"slices"
 	"strings"
 
+	"mibk.dev/phpfmt/phpdoc"
+	"mibk.dev/phpfmt/phpdoc/phptype"
 	"mibk.dev/phpfmt/token"
 )
 
@@ -163,6 +165,7 @@ func (p *parser) parseScope(kind, open token.Type) (s *scope) {
 func (p *parser) parseStmt(separators ...token.Type) (s *stmt) {
 	s = new(stmt)
 	nextScope := token.OpenTag
+	var docComment string
 	for {
 		// TODO: make these keywords indents: token.Arrow, token.DoubleColon
 		switch typ := p.tok.Type; typ {
@@ -177,6 +180,12 @@ func (p *parser) parseStmt(separators ...token.Type) (s *stmt) {
 			s.nodes = append(s.nodes, p.tok)
 			p.next()
 			return s
+		case token.DocComment:
+			docComment = p.tok.Text
+			log.Println(docComment)
+			p.next()
+		case token.Private, token.Protected, token.Public:
+			p.parseMember(docComment)
 		case token.Declare,
 			token.Namespace,
 			token.Class, token.Interface, token.Trait, token.Enum,
@@ -232,8 +241,30 @@ func (p *parser) parseStmt(separators ...token.Type) (s *stmt) {
 			}
 			s.nodes = append(s.nodes, p.tok)
 			p.next()
+			docComment = ""
 		}
 	}
+}
+
+func (p *parser) parseMember(doc string) {
+	p.next()
+	def := p.tok
+	if !p.got(token.Var) {
+		return
+	}
+	b, err := phpdoc.Parse(strings.NewReader(doc))
+	if err != nil {
+		p.errorf("parsing doc: %v", err)
+		return
+	}
+	var typ phptype.Type
+	for _, line := range b.Lines {
+		if tag, ok := line.(*phpdoc.VarTag); ok {
+			typ = tag.Type
+			break
+		}
+	}
+	log.Printf("DEF %v %T", def, typ)
 }
 
 func (p *parser) parseExpr() {
