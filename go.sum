@@ -1,0 +1,4 @@
+github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
+github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=
+mibk.dev/phpfmt v0.1.1 h1:a2G1AoJsLVO4w36KDlAqu1DtRX1xYoII89FzGriIZIU=
+mibk.dev/phpfmt v0.1.1/go.mod h1:BMIcNPemNoYlpp4icbh3M1kI516KXxP0RKu5axHl8z0=
