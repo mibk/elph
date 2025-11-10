@@ -177,9 +177,6 @@ func (p *parser) parseStmt(separators ...token.Type) (s *stmt) {
 			s.nodes = append(s.nodes, p.tok)
 			p.next()
 			return s
-		case token.Arrow:
-			log.Println(s.kind, typ)
-			fallthrough
 		case token.Declare,
 			token.Namespace,
 			token.Class, token.Interface, token.Trait, token.Enum,
@@ -187,7 +184,7 @@ func (p *parser) parseStmt(separators ...token.Type) (s *stmt) {
 			token.If, token.Else, token.Switch, token.Match,
 			token.For, token.Foreach, token.Do, token.While,
 			token.Try, token.Catch, token.Finally,
-			token.Hash, token.DoubleColon:
+			token.Hash, token.Arrow, token.DoubleColon:
 			nextScope = typ
 			s.kind = cmp.Or(s.kind, typ)
 			s.nodes = append(s.nodes, p.tok)
@@ -223,6 +220,9 @@ func (p *parser) parseStmt(separators ...token.Type) (s *stmt) {
 			} else if typ == token.Lbrack && s.kind == token.Hash {
 				return s
 			}
+		case token.Var:
+			log.Println(p.tok, p.tok.Pos)
+			fallthrough
 		default:
 			if slices.Contains(separators, typ) {
 				return s
