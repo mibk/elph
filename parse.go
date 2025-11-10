@@ -33,11 +33,13 @@ type parser struct {
 	alt *token.Token // TODO: rm?
 
 	namespace string
+	use       map[string]string
 	thisClass string
 }
 
 func Parse(r io.Reader, php74Compat bool) (*File, error) {
 	p := &parser{scan: token.NewScanner(r, php74Compat)}
+	p.use = make(map[string]string)
 	p.next() // init
 	doc := p.parseFile()
 	if p.err != nil {
@@ -193,6 +195,15 @@ func (p *parser) parseStmt(separators ...token.Type) (s *stmt) {
 			p.next()
 			p.namespace = p.parseFQN()
 			log.Println("NAMESPACE", p.namespace)
+		case token.Use:
+			p.next()
+			use := p.parseFQN()
+			log.Println("USE", use)
+			last := use
+			if i := strings.LastIndexByte(last, '\\'); i >= 0 {
+				last = last[i+1:]
+			}
+			p.use[last] = use
 		case token.Class:
 			p.next()
 			if name := p.tok; p.got(token.Ident) {
@@ -329,7 +340,7 @@ func (p *parser) parseMember(doc string) {
 		p.errorf("member %v already defined for %v", name, c.Name)
 	}
 	c.Members[name] = &Member{Name: name, Type: typ}
-	log.Printf("DEF %v %v %T", c.Name, def, typ)
+	// log.Printf("DEF %v %v %T", c.Name, def, typ)
 }
 
 func (p *parser) parseExpr() {
@@ -342,6 +353,12 @@ func (p *parser) parseExpr() {
 
 	for p.got(token.Arrow) {
 		if tok := p.tok; p.got(token.Ident) {
+			if ns, rest, ok := strings.Cut(x, "\\"); ok {
+				if tr, ok := p.use[ns]; ok {
+					x = tr + "\\" + rest
+				}
+			}
+
 			c, ok := world[x]
 			if !ok {
 				log.Printf("class `%v` not found", x)
