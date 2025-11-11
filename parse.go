@@ -205,14 +205,7 @@ func (p *parser) parseStmt(separators ...token.Type) (s *stmt) {
 			}
 			p.use[last] = use
 		case token.Class:
-			p.next()
-			if name := p.tok; p.got(token.Ident) {
-				p.thisClass = name.Text
-				if p.namespace != "" {
-					p.thisClass = p.namespace + "\\" + p.thisClass
-				}
-				log.Println("CLASS", p.thisClass)
-			}
+			p.parseClass()
 		case token.Private, token.Protected, token.Public:
 			p.parseMember(docComment)
 		case token.Declare,
@@ -287,6 +280,44 @@ func (p *parser) parseFQN() string {
 
 var world = make(map[string]*Class)
 
+func (p *parser) parseClass() {
+	p.expect(token.Class)
+	name := p.tok
+	if !p.got(token.Ident) {
+		// TODO: anonymous class
+		return
+	}
+	p.thisClass = name.Text
+	if p.namespace != "" {
+		p.thisClass = p.namespace + "\\" + p.thisClass
+	}
+	log.Println("CLASS", p.thisClass)
+
+	c := world[p.thisClass]
+	if c != nil {
+		// TODO: it is parsed twice
+		// p.errorf("class %v already defined", p.thisClass)
+		return
+	}
+	c = &Class{Name: p.thisClass, Members: make(map[string]*Member)}
+	world[p.thisClass] = c
+
+	if p.got(token.Extends) {
+		e := p.parseFQN()
+		// TODO: dedup
+		if ns, rest, ok := strings.Cut(e, "\\"); ok {
+			if tr, ok := p.use[ns]; ok {
+				e = tr + "\\" + rest
+			}
+		} else {
+			e = p.namespace + `\` + e
+		}
+
+		c.Extends = e
+		log.Println("EXTENDS", c.Extends)
+	}
+}
+
 func (p *parser) parseMember(doc string) {
 	p.next()
 
@@ -332,8 +363,8 @@ func (p *parser) parseMember(doc string) {
 
 	c := world[p.thisClass]
 	if c == nil {
-		c = &Class{Name: p.thisClass, Members: make(map[string]*Member)}
-		world[p.thisClass] = c
+		p.errorf("unknown class %v", p.thisClass)
+		return
 	}
 
 	name := strings.TrimPrefix(def.Text, "$")
@@ -366,6 +397,15 @@ func (p *parser) parseExpr() {
 				return
 			}
 			m, ok := c.Members[tok.Text]
+			for !ok && c.Extends != "" {
+				p := c.Extends
+				c, ok = world[p]
+				if !ok {
+					log.Printf("parent `%v` not found; searching for %v", p, tok.Text)
+					return
+				}
+				m, ok = c.Members[tok.Text]
+			}
 			if !ok {
 				log.Printf("member `%v` not found", tok.Text)
 				return

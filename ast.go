@@ -23,6 +23,7 @@ type stmt struct {
 
 type Class struct {
 	Name    string
+	Extends string // or empty
 	Members map[string]*Member
 }
 
