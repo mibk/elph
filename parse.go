@@ -291,7 +291,7 @@ func (p *parser) parseClass() {
 	if p.namespace != "" {
 		p.thisClass = p.namespace + "\\" + p.thisClass
 	}
-	log.Println("CLASS", p.thisClass)
+	// log.Println("CLASS", p.thisClass)
 
 	c := world[p.thisClass]
 	if c != nil {
@@ -383,8 +383,14 @@ func (p *parser) parseExpr() {
 		x = p.thisClass
 	}
 
+	allAllowed := false
 	for p.got(token.Arrow) {
 		if tok := p.tok; p.got(token.Ident) {
+			if allAllowed || x == "stdClass" {
+				allAllowed = true
+				continue
+			}
+
 			if ns, rest, ok := strings.Cut(x, "\\"); ok {
 				if tr, ok := p.use[ns]; ok {
 					x = tr + "\\" + rest
