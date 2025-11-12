@@ -325,7 +325,7 @@ func (p *parser) parseExpr() Expr {
 }
 
 func (p *parser) parseMemberAccess(x Expr) Expr {
-	a := &MemberAccess{Rcvr: x, Name: p.tok.Text}
+	a := &MemberAccess{Rcvr: x, Name: p.tok.Text, Pos: p.tok.Pos}
 	if p.got(token.Ident) {
 		return a
 	}

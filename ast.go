@@ -6,6 +6,7 @@ import (
 )
 
 type File struct {
+	Path  string
 	Scope *scope
 }
 
@@ -39,4 +40,5 @@ type VarExpr struct {
 type MemberAccess struct {
 	Rcvr Expr
 	Name string
+	Pos  token.Pos
 }

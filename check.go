@@ -3,9 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 )
+
+// TODO: Fix this.
+var fileBeingChecked = "<line>"
 
 func check(x any) {
 	dump := json.NewEncoder(os.Stdout)
@@ -14,6 +16,7 @@ func check(x any) {
 	default:
 		panic(fmt.Sprintf("unsupported type: %T", x))
 	case *File:
+		fileBeingChecked = x.Path
 		check(x.Scope)
 	case *scope:
 		for _, stmt := range x.Nodes {
@@ -52,9 +55,16 @@ func checkMemberAccess(a *MemberAccess) string {
 		return x
 	}
 
+	report := func(format string, args ...any) {
+		fmt.Printf("%s:%d:%d: %s\n",
+			fileBeingChecked, a.Pos.Line, a.Pos.Column,
+			fmt.Sprintf(format, args...),
+		)
+	}
+
 	c, ok := world[x]
 	if !ok {
-		log.Printf("class `%v` not found", x)
+		report("class `%v` not found", x)
 		return "<unknown-class>"
 	}
 	m, ok := c.Members[a.Name]
@@ -62,13 +72,13 @@ func checkMemberAccess(a *MemberAccess) string {
 		p := c.Extends
 		c, ok = world[p]
 		if !ok {
-			log.Printf("parent `%v` not found; searching for %v", p, a.Name)
+			report("parent `%v` not found; searching for %v", p, a.Name)
 			return "<unknown-parent>"
 		}
 		m, ok = c.Members[a.Name]
 	}
 	if !ok {
-		log.Printf("member `%v::%v` not found", c.Name, a.Name)
+		report("class member `%v::%v` does not exist", c.Name, a.Name)
 		return "<unknown-member>"
 	}
 	return m.Class
