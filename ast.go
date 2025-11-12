@@ -10,7 +10,6 @@ type File struct {
 }
 
 type scope struct {
-	Kind        token.Type
 	Open, close token.Type
 	Nodes       []*stmt
 }

@@ -105,12 +105,12 @@ func (p *parser) parseFile() *File {
 	p.consume(token.InlineHTML)
 	p.expect(token.OpenTag)
 
-	file.Scope = p.parseScope(token.Illegal, token.OpenTag)
+	file.Scope = p.parseScope(token.OpenTag)
 	return file
 }
 
-func (p *parser) parseScope(kind, open token.Type) (s *scope) {
-	s = &scope{Kind: kind, Open: open}
+func (p *parser) parseScope(open token.Type) (s *scope) {
+	s = &scope{Open: open}
 
 	sep := token.Semicolon
 
@@ -121,18 +121,8 @@ func (p *parser) parseScope(kind, open token.Type) (s *scope) {
 		s.close = token.EOF
 	case token.Lbrace:
 		s.close = token.Rbrace
-		if kind == token.Match {
-			sep = token.Comma
-		}
 	case token.Lparen:
 		s.close = token.Rparen
-		switch kind {
-		case token.Ident, token.Var:
-			kind = token.Illegal
-			fallthrough
-		case token.Function:
-			sep = token.Comma
-		}
 	case token.Lbrack:
 		s.close = token.Rbrack
 		sep = token.Comma
@@ -142,9 +132,6 @@ func (p *parser) parseScope(kind, open token.Type) (s *scope) {
 		stmt := p.parseStmt(sep)
 		p.got(sep)
 		if len(stmt.Nodes) > 0 {
-			if p.tok.Type == token.Whitespace && !strings.Contains(p.tok.Text, "\n") {
-				p.next()
-			}
 			s.Nodes = append(s.Nodes, stmt)
 		}
 
@@ -162,7 +149,6 @@ func (p *parser) parseScope(kind, open token.Type) (s *scope) {
 
 func (p *parser) parseStmt(separators ...token.Type) (s *stmt) {
 	s = new(stmt)
-	nextScope := token.OpenTag
 	var docComment string
 	for {
 		// TODO: make these keywords indents: token.Arrow, token.DoubleColon
@@ -193,43 +179,15 @@ func (p *parser) parseStmt(separators ...token.Type) (s *stmt) {
 			p.parseClass()
 		case token.Private, token.Protected, token.Public:
 			p.parseMember(docComment)
-		case token.Declare,
-			token.Interface, token.Trait, token.Enum,
-			token.Function, token.Fn,
-			token.If, token.Else, token.Switch, token.Match,
-			token.For, token.Foreach, token.Do, token.While,
-			token.Try, token.Catch, token.Finally,
-			token.Hash, token.Arrow, token.DoubleColon:
-			nextScope = typ
-			p.next()
 		case token.Lparen:
-			scope := nextScope
-			for _, v := range slices.Backward(s.Nodes) {
-				switch tok, _ := v.(token.Token); tok.Type {
-				case token.Whitespace:
-					continue
-				case token.Echo, token.Print, token.Static:
-					scope = token.Ident
-				case token.Ident, token.Var:
-					if nextScope != token.Function {
-						scope = tok.Type
-					}
-				case token.Class, token.Function:
-					// Let's use something that always places { on the same line.
-					nextScope = token.Fn
-				}
-				break
-			}
 			p.next()
-			sub := p.parseScope(scope, typ)
+			sub := p.parseScope(typ)
 			s.Nodes = append(s.Nodes, sub)
 		case token.Lbrace, token.Lbrack:
 			p.next()
-			sub := p.parseScope(nextScope, typ)
+			sub := p.parseScope(typ)
 			s.Nodes = append(s.Nodes, sub)
 			if typ == token.Lbrace {
-				return s
-			} else if typ == token.Lbrack {
 				return s
 			}
 		case token.Var:
