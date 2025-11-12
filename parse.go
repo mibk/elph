@@ -232,7 +232,7 @@ func (p *parser) parseClass() {
 	c := world[p.thisClass]
 	if c != nil {
 		// TODO: it is parsed twice
-		// p.errorf("class %v already defined", p.thisClass)
+		p.errorf("class %v already defined", p.thisClass)
 		return
 	}
 	c = &Class{Name: p.thisClass, Members: make(map[string]*Member)}
@@ -314,8 +314,19 @@ func (p *parser) parseMember(doc string) {
 }
 
 func (p *parser) parseExpr() Expr {
+	e := p.parseVarExpr()
+	if p.got(token.Assign) {
+		r := p.parseExpr()
+		e = &AssignExpr{e, r}
+	}
+	return e
+}
+
+func (p *parser) parseVarExpr() Expr {
 	var x Expr = &VarExpr{Name: p.tok.Text}
-	p.next()
+	if !p.got(token.Var) {
+		return &VarExpr{Name: "<not-a-class>"}
+	}
 
 	for p.got(token.Arrow) {
 		x = p.parseMemberAccess(x)

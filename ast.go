@@ -42,3 +42,8 @@ type MemberAccess struct {
 	Name string
 	Pos  token.Pos
 }
+
+type AssignExpr struct {
+	Left  Expr
+	Right Expr
+}

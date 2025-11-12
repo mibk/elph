@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -26,12 +27,35 @@ func check(x any) {
 		for _, n := range x.Nodes {
 			check(n)
 		}
+	case *AssignExpr:
+		findVarType(x)
+		check(x.Left)
+		check(x.Right)
 	case *MemberAccess:
 		// dump.Encode(x)
 		checkMemberAccess(x)
 	case *VarExpr:
 		// dump.Encode(x)
 	}
+}
+
+var varScope = make(map[string]string)
+
+func findVarType(a *AssignExpr) {
+	v, ok := a.Left.(*VarExpr)
+	if !ok {
+		return
+	}
+
+	class := "<unknown-val>"
+	switch val := a.Right.(type) {
+	case *VarExpr:
+		class = cmp.Or(varScope[val.Name], class)
+	case *MemberAccess:
+		// TODO: Don't check twice.
+		class = checkMemberAccess(val)
+	}
+	varScope[v.Name] = class
 }
 
 func checkMemberAccess(a *MemberAccess) string {
@@ -43,8 +67,7 @@ func checkMemberAccess(a *MemberAccess) string {
 		if r.Name == "$this" {
 			x = lastClass
 		} else {
-			// TODO: Fix this.
-			x = "stdClass"
+			x = cmp.Or(varScope[r.Name], "<unknown-type-of-"+r.Name+">")
 		}
 	case *MemberAccess:
 		x = checkMemberAccess(r)
