@@ -19,10 +19,10 @@ func check(x any) {
 		fileBeingChecked = x.Path
 		check(x.Scope)
 	case *scope:
-		for _, stmt := range x.Nodes {
+		for _, stmt := range x.Stmts {
 			check(stmt)
 		}
-	case *stmt:
+	case *Stmt:
 		for _, n := range x.Nodes {
 			check(n)
 		}

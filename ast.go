@@ -12,10 +12,10 @@ type File struct {
 
 type scope struct {
 	Open, close token.Type
-	Nodes       []*stmt
+	Stmts       []*Stmt
 }
 
-type stmt struct {
+type Stmt struct {
 	Nodes []any
 }
 

@@ -88,7 +88,7 @@ func (p *parser) consume(types ...token.Type) {
 	}
 }
 
-func (p *parser) errorf(format string, args ...interface{}) {
+func (p *parser) errorf(format string, args ...any) {
 	if p.err == nil {
 		p.tok.Type = token.EOF
 		se := &SyntaxError{Err: fmt.Errorf(format, args...)}
@@ -106,9 +106,8 @@ func (p *parser) parseFile() *File {
 	return file
 }
 
-func (p *parser) parseScope(open token.Type) (s *scope) {
-	s = &scope{Open: open}
-
+func (p *parser) parseScope(open token.Type) *scope {
+	s := &scope{Open: open}
 	sep := token.Semicolon
 
 	switch open {
@@ -129,7 +128,7 @@ func (p *parser) parseScope(open token.Type) (s *scope) {
 		stmt := p.parseStmt(sep)
 		p.got(sep)
 		if len(stmt.Nodes) > 0 {
-			s.Nodes = append(s.Nodes, stmt)
+			s.Stmts = append(s.Stmts, stmt)
 		}
 
 		switch typ := p.tok.Type; typ {
@@ -144,8 +143,8 @@ func (p *parser) parseScope(open token.Type) (s *scope) {
 	return s
 }
 
-func (p *parser) parseStmt(separators ...token.Type) (s *stmt) {
-	s = new(stmt)
+func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
+	s = new(Stmt)
 	var docComment string
 	for {
 		// TODO: make these keywords indents: token.Arrow, token.DoubleColon
