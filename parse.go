@@ -1,7 +1,6 @@
 package main
 
 import (
-	"cmp"
 	"fmt"
 	"io"
 	"log"
@@ -151,12 +150,6 @@ func (p *parser) parseScope(kind, open token.Type) (s *scope) {
 			s.Nodes = append(s.Nodes, stmt)
 		}
 
-		if s.Open == token.Lparen && s.Kind == token.Function {
-			stmt.Kind = token.Function
-		} else if s.Open == token.Lbrace && s.Kind == token.Class {
-			stmt.Kind = token.Class
-		}
-
 		switch typ := p.tok.Type; typ {
 		case s.close:
 			p.next()
@@ -216,7 +209,6 @@ func (p *parser) parseStmt(separators ...token.Type) (s *stmt) {
 			token.Try, token.Catch, token.Finally,
 			token.Hash, token.Arrow, token.DoubleColon:
 			nextScope = typ
-			s.Kind = cmp.Or(s.Kind, typ)
 			s.Nodes = append(s.Nodes, p.tok)
 			p.next()
 		case token.Lparen:
@@ -241,13 +233,12 @@ func (p *parser) parseStmt(separators ...token.Type) (s *stmt) {
 			sub := p.parseScope(scope, typ)
 			s.Nodes = append(s.Nodes, sub)
 		case token.Lbrace, token.Lbrack:
-			s.Kind = cmp.Or(s.Kind, typ)
 			p.next()
 			sub := p.parseScope(nextScope, typ)
 			s.Nodes = append(s.Nodes, sub)
 			if typ == token.Lbrace {
 				return s
-			} else if typ == token.Lbrack && s.Kind == token.Hash {
+			} else if typ == token.Lbrack {
 				return s
 			}
 		case token.Var:

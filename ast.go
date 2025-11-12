@@ -16,7 +16,6 @@ type scope struct {
 }
 
 type stmt struct {
-	Kind  token.Type
 	Nodes []any
 }
 
