@@ -25,8 +25,9 @@ type Class struct {
 }
 
 type Member struct {
-	Name string
-	Type phptype.Type
+	Name  string
+	Type  phptype.Type
+	Class string
 }
 
 type Expr interface{}

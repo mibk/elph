@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
 	"slices"
 	"strings"
 
@@ -163,7 +162,7 @@ func (p *parser) parseStmt(separators ...token.Type) (s *stmt) {
 		case token.Namespace:
 			p.next()
 			p.namespace = p.parseFQN()
-			log.Println("NAMESPACE", p.namespace)
+			// log.Println("NAMESPACE", p.namespace)
 		case token.Use:
 			p.next()
 			use := p.parseFQN()
@@ -212,7 +211,10 @@ func (p *parser) parseFQN() string {
 	return id.String()
 }
 
-var world = make(map[string]*Class)
+var (
+	world     = make(map[string]*Class)
+	lastClass string
+)
 
 func (p *parser) parseClass() {
 	p.expect(token.Class)
@@ -225,6 +227,7 @@ func (p *parser) parseClass() {
 	if p.namespace != "" {
 		p.thisClass = p.namespace + "\\" + p.thisClass
 	}
+	lastClass = p.thisClass
 	// log.Println("CLASS", p.thisClass)
 
 	c := world[p.thisClass]
@@ -248,7 +251,7 @@ func (p *parser) parseClass() {
 		}
 
 		c.Extends = e
-		log.Println("EXTENDS", c.Extends)
+		// log.Println("EXTENDS", c.Extends)
 	}
 }
 
@@ -301,7 +304,13 @@ func (p *parser) parseMember(doc string) {
 	if _, ok := c.Members[name]; ok {
 		p.errorf("member %v already defined for %v", name, c.Name)
 	}
-	c.Members[name] = &Member{Name: name, Type: typ}
+	class := getClass(typ)
+	if ns, rest, ok := strings.Cut(class, "\\"); ok {
+		if tr, ok := p.use[ns]; ok {
+			class = tr + "\\" + rest
+		}
+	}
+	c.Members[name] = &Member{Name: name, Type: typ, Class: class}
 	// log.Printf("DEF %v %v %T", c.Name, def, typ)
 }
 

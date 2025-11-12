@@ -3,11 +3,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 )
 
 func check(x any) {
 	dump := json.NewEncoder(os.Stdout)
+	_ = dump
 	switch x := x.(type) {
 	default:
 		panic(fmt.Sprintf("unsupported type: %T", x))
@@ -22,54 +24,52 @@ func check(x any) {
 			check(n)
 		}
 	case *MemberAccess:
-		dump.Encode(x)
+		// dump.Encode(x)
+		checkMemberAccess(x)
 	case *VarExpr:
 		// dump.Encode(x)
 	}
 }
 
-/*
-func (p *parser) parseMemberAccess() (_ Expr) {
-	if x == "$this" {
-		x = p.thisClass
-	}
-
-	allAllowed := false
-	for p.got(token.Arrow) {
-		if tok := p.tok; p.got(token.Ident) {
-			if allAllowed || x == "stdClass" {
-				allAllowed = true
-				continue
-			}
-
-			if ns, rest, ok := strings.Cut(x, "\\"); ok {
-				if tr, ok := p.use[ns]; ok {
-					x = tr + "\\" + rest
-				}
-			}
-
-			c, ok := world[x]
-			if !ok {
-				log.Printf("class `%v` not found", x)
-				return
-			}
-			m, ok := c.Members[tok.Text]
-			for !ok && c.Extends != "" {
-				p := c.Extends
-				c, ok = world[p]
-				if !ok {
-					log.Printf("parent `%v` not found; searching for %v", p, tok.Text)
-					return
-				}
-				m, ok = c.Members[tok.Text]
-			}
-			if !ok {
-				log.Printf("member `%v` not found", tok.Text)
-				return
-			}
-
-			x = getClass(m.Type)
+func checkMemberAccess(a *MemberAccess) string {
+	var x string
+	switch r := a.Rcvr.(type) {
+	default:
+		panic(fmt.Sprintf("unsupported type: %T", r))
+	case *VarExpr:
+		if r.Name == "$this" {
+			x = lastClass
+		} else {
+			// TODO: Fix this.
+			x = "stdClass"
 		}
+	case *MemberAccess:
+		x = checkMemberAccess(r)
 	}
+
+	if x == "stdClass" {
+		// All member access allowed.
+		return x
+	}
+
+	c, ok := world[x]
+	if !ok {
+		log.Printf("class `%v` not found", x)
+		return "<unknown-class>"
+	}
+	m, ok := c.Members[a.Name]
+	for !ok && c.Extends != "" {
+		p := c.Extends
+		c, ok = world[p]
+		if !ok {
+			log.Printf("parent `%v` not found; searching for %v", p, a.Name)
+			return "<unknown-parent>"
+		}
+		m, ok = c.Members[a.Name]
+	}
+	if !ok {
+		log.Printf("member `%v::%v` not found", c.Name, a.Name)
+		return "<unknown-member>"
+	}
+	return m.Class
 }
-*/
