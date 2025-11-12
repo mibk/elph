@@ -6,19 +6,18 @@ import (
 )
 
 type File struct {
-	htmlPreamble *token.Token
-	scope        *scope
+	Scope *scope
 }
 
 type scope struct {
-	kind        token.Type
-	open, close token.Type
-	nodes       []*stmt
+	Kind        token.Type
+	Open, close token.Type
+	Nodes       []*stmt
 }
 
 type stmt struct {
-	kind  token.Type
-	nodes []any
+	Kind  token.Type
+	Nodes []any
 }
 
 type Class struct {
