@@ -28,3 +28,14 @@ type Member struct {
 	Name string
 	Type phptype.Type
 }
+
+type Expr interface{}
+
+type VarExpr struct {
+	Name string
+}
+
+type MemberAccess struct {
+	Rcvr Expr
+	Name string
+}

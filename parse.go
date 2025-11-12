@@ -12,8 +12,6 @@ import (
 	"mibk.dev/phpfmt/token"
 )
 
-var CHECKING bool
-
 // SyntaxError records an error and the position it occurred on.
 type SyntaxError struct {
 	Line, Column int
@@ -191,11 +189,8 @@ func (p *parser) parseStmt(separators ...token.Type) (s *stmt) {
 				return s
 			}
 		case token.Var:
-			if CHECKING && p.tok.Text == "$this" {
-				p.parseExpr()
-				break
-			}
-			fallthrough
+			e := p.parseExpr()
+			s.Nodes = append(s.Nodes, e)
 		default:
 			if slices.Contains(separators, typ) {
 				return s
@@ -296,10 +291,6 @@ func (p *parser) parseMember(doc string) {
 		typ = &phptype.Named{Parts: []string{"void"}}
 	}
 
-	if CHECKING {
-		return
-	}
-
 	c := world[p.thisClass]
 	if c == nil {
 		p.errorf("unknown class %v", p.thisClass)
@@ -314,51 +305,22 @@ func (p *parser) parseMember(doc string) {
 	// log.Printf("DEF %v %v %T", c.Name, def, typ)
 }
 
-func (p *parser) parseExpr() {
-	x := p.tok.Text
+func (p *parser) parseExpr() Expr {
+	var x Expr = &VarExpr{Name: p.tok.Text}
 	p.next()
 
-	if x == "$this" {
-		x = p.thisClass
-	}
-
-	allAllowed := false
 	for p.got(token.Arrow) {
-		if tok := p.tok; p.got(token.Ident) {
-			if allAllowed || x == "stdClass" {
-				allAllowed = true
-				continue
-			}
-
-			if ns, rest, ok := strings.Cut(x, "\\"); ok {
-				if tr, ok := p.use[ns]; ok {
-					x = tr + "\\" + rest
-				}
-			}
-
-			c, ok := world[x]
-			if !ok {
-				log.Printf("class `%v` not found", x)
-				return
-			}
-			m, ok := c.Members[tok.Text]
-			for !ok && c.Extends != "" {
-				p := c.Extends
-				c, ok = world[p]
-				if !ok {
-					log.Printf("parent `%v` not found; searching for %v", p, tok.Text)
-					return
-				}
-				m, ok = c.Members[tok.Text]
-			}
-			if !ok {
-				log.Printf("member `%v` not found", tok.Text)
-				return
-			}
-
-			x = getClass(m.Type)
-		}
+		x = p.parseMemberAccess(x)
 	}
+	return x
+}
+
+func (p *parser) parseMemberAccess(x Expr) Expr {
+	a := &MemberAccess{Rcvr: x, Name: p.tok.Text}
+	if p.got(token.Ident) {
+		return a
+	}
+	return x
 }
 
 func getClass(typ phptype.Type) string {
