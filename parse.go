@@ -316,6 +316,10 @@ func (p *parser) parseMember(doc string) {
 		if tr, ok := p.use[ns]; ok {
 			class = tr + "\\" + rest
 		}
+	} else if p.namespace != "" && !isBasicType(class) {
+		// TODO: Even if class has \,
+		// it still should belong under namespace.
+		class = p.namespace + `\` + class
 	}
 	c.Members[name] = &Member{Name: name, Type: typ, Class: class}
 	// log.Printf("DEF %v %v %T", c.Name, def, typ)
@@ -358,5 +362,14 @@ func getClass(typ phptype.Type) string {
 		return strings.Join(typ.Parts, "\\")
 	default:
 		return fmt.Sprintf("%T", typ)
+	}
+}
+
+func isBasicType(typ string) bool {
+	switch typ {
+	case "void", "never":
+		return true
+	default:
+		return false
 	}
 }
