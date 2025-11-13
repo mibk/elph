@@ -23,6 +23,20 @@ func check(x any) {
 		for _, stmt := range x.Stmts {
 			check(stmt)
 		}
+	case *Debug:
+		report := func(format string, args ...any) {
+			fmt.Printf("%s:%d:%d: %s (DEBUG)\n",
+				fileBeingChecked, x.Pos.Line, x.Pos.Column,
+				fmt.Sprintf(format, args...),
+			)
+		}
+
+		class := varScope[x.Var]
+		if class != "" {
+			report("%v is of type: %v", x.Var, class)
+		} else {
+			report("unknown var: %v", x.Var)
+		}
 	case *Stmt:
 		for _, n := range x.Nodes {
 			check(n)

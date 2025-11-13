@@ -15,6 +15,11 @@ type scope struct {
 	Stmts       []*Stmt
 }
 
+type Debug struct {
+	Var string
+	Pos token.Pos
+}
+
 type Stmt struct {
 	Nodes []any
 }

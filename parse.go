@@ -154,6 +154,14 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 		case token.OpenTag:
 			p.next()
 			return s
+		case token.Comment:
+			pos := p.tok.Pos
+			v, ok := strings.CutPrefix(p.tok.Text, "#debugType")
+			p.next()
+			if !ok {
+				break
+			}
+			s.Nodes = append(s.Nodes, &Debug{Var: strings.TrimSpace(v), Pos: pos})
 		case token.DocComment:
 			docComment = p.tok.Text
 			// log.Println(docComment)
