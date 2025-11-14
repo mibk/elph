@@ -2,6 +2,7 @@
 b.php:15:3: $name is of type: string (DEBUG)
 b.php:17:10: class member `Foo\Service::userx` does not exist
 b.php:18:16: class member `Another\Bar\User::namex` does not exist
+b.php:28:3: $p is of type: Another\Bar\Group (DEBUG)
 
 -- a.php --
 <?php
@@ -40,6 +41,9 @@ class Service
 	private function hi()
 	{
 		$this->group->name;
+		$p = $this->group->parent;
+		#debugType $p
+		$p->name;
 	}
 }
 -- c.php --
@@ -47,6 +51,9 @@ class Service
 
 namespace Another\Bar;
 
+/**
+ * @property ?self $parent
+ */
 class Group
 {
 	/** @var string */

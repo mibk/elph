@@ -180,7 +180,7 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 			}
 			p.use[last] = use
 		case token.Class:
-			if c := p.parseClass(); c != nil {
+			if c := p.parseClass(docComment); c != nil {
 				s.Nodes = append(s.Nodes, c)
 			}
 		case token.Private, token.Protected, token.Public:
@@ -223,7 +223,7 @@ func (p *parser) parseFQN() string {
 // TODO: Is this global var necessary/convenient?
 var world = make(map[string]*Class)
 
-func (p *parser) parseClass() *Class {
+func (p *parser) parseClass(doc string) *Class {
 	p.expect(token.Class)
 	name := p.tok
 	if !p.got(token.Ident) {
@@ -259,6 +259,25 @@ func (p *parser) parseClass() *Class {
 		c.Extends = e
 		// log.Println("EXTENDS", c.Extends)
 	}
+
+	if doc != "" {
+		b, err := phpdoc.Parse(strings.NewReader(doc))
+		if err != nil {
+			p.errorf("parsing doc %q: %v", doc, err)
+			return nil
+		}
+		for _, line := range b.Lines {
+			if tag, ok := line.(*phpdoc.PropertyTag); ok {
+				m := &Member{
+					Name:  strings.TrimPrefix(tag.Var, "$"),
+					Type:  tag.Type,
+					Class: p.getClass(tag.Type),
+				}
+				c.Members[m.Name] = m
+			}
+		}
+	}
+
 	return c
 }
 
@@ -311,16 +330,7 @@ func (p *parser) parseMember(doc string) {
 	if _, ok := c.Members[name]; ok {
 		p.errorf("member %v already defined for %v", name, c.Name)
 	}
-	class := getClass(typ)
-	if ns, rest, ok := strings.Cut(class, "\\"); ok {
-		if tr, ok := p.use[ns]; ok {
-			class = tr + "\\" + rest
-		}
-	} else if p.namespace != "" && !isBasicType(class) {
-		// TODO: Even if class has \,
-		// it still should belong under namespace.
-		class = p.namespace + `\` + class
-	}
+	class := p.getClass(typ)
 	c.Members[name] = &Member{Name: name, Type: typ, Class: class}
 	// log.Printf("DEF %v %v %T", c.Name, def, typ)
 }
@@ -354,10 +364,29 @@ func (p *parser) parseMemberAccess(x Expr) Expr {
 	return x
 }
 
+func (p *parser) getClass(typ phptype.Type) string {
+	class := getClass(typ)
+	if class == "self" {
+		return p.thisClass
+	}
+	if ns, rest, ok := strings.Cut(class, "\\"); ok {
+		if tr, ok := p.use[ns]; ok {
+			class = tr + "\\" + rest
+		}
+	} else if p.namespace != "" && !isBasicType(class) {
+		// TODO: Even if class has \,
+		// it still should belong under namespace.
+		class = p.namespace + `\` + class
+	}
+	return class
+}
+
 func getClass(typ phptype.Type) string {
 	switch typ := typ.(type) {
 	case *phptype.Generic:
 		return getClass(typ.Base)
+	case *phptype.Nullable:
+		return getClass(typ.Type)
 	case *phptype.Named:
 		return strings.Join(typ.Parts, "\\")
 	default:
