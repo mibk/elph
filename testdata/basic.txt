@@ -1,0 +1,38 @@
+# TODO: Right now the files are order-dependent.
+# Fix that.
+% check b.php
+b.php:15:3: $name is of type: string (DEBUG)
+b.php:17:10: class member `Foo\Service::userx` does not exist
+b.php:18:16: class member `Another\Bar\User::namex` does not exist
+
+-- a.php --
+<?php
+
+namespace Another\Bar;
+
+class User
+{
+	/** @var string */
+	public $name;
+}
+-- b.php --
+<?php
+
+namespace Foo;
+
+use Another\Bar;
+
+class Service
+{
+	/** @var Bar\User */
+	public $user;
+
+	public function greet()
+	{
+		$name = $this->user->name;
+		#debugType $name
+		echo $name;
+		$this->userx;
+		$this->user->namex;
+	}
+}

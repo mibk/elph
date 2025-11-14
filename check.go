@@ -4,58 +4,73 @@ import (
 	"cmp"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
+
+	"mibk.dev/phpfmt/token"
 )
 
-// TODO: Fix this.
-var fileBeingChecked = "<line>"
+func Check(x any) {
+	l := linter{
+		stdout:           os.Stdout,
+		scope:            make(map[string]string),
+		fileBeingChecked: "<line>",
+	}
+	l.check(x)
+}
 
-func check(x any) {
+type linter struct {
+	stdout io.Writer
+	scope  map[string]string
+
+	// TODO: Fix this.
+	fileBeingChecked string
+}
+
+func (l *linter) reportf(pos token.Pos, format string, args ...any) {
+	fmt.Fprintf(l.stdout, "%s:%d:%d: %s\n",
+		l.fileBeingChecked, pos.Line, pos.Column,
+		fmt.Sprintf(format, args...),
+	)
+}
+
+func (l *linter) check(x any) {
 	dump := json.NewEncoder(os.Stdout)
 	_ = dump
 	switch x := x.(type) {
 	default:
 		panic(fmt.Sprintf("unsupported type: %T", x))
 	case *File:
-		fileBeingChecked = x.Path
-		check(x.Scope)
+		l.fileBeingChecked = x.Path
+		l.check(x.Scope)
 	case *scope:
 		for _, stmt := range x.Stmts {
-			check(stmt)
+			l.check(stmt)
 		}
 	case *Debug:
-		report := func(format string, args ...any) {
-			fmt.Printf("%s:%d:%d: %s (DEBUG)\n",
-				fileBeingChecked, x.Pos.Line, x.Pos.Column,
-				fmt.Sprintf(format, args...),
-			)
-		}
-
-		class := varScope[x.Var]
+		class := l.scope[x.Var]
 		if class != "" {
-			report("%v is of type: %v", x.Var, class)
+			l.reportf(x.Pos, "%v is of type: %v (DEBUG)", x.Var, class)
 		} else {
-			report("unknown var: %v", x.Var)
+			l.reportf(x.Pos, "unknown var: %v (DEBUG)", x.Var)
 		}
 	case *Stmt:
 		for _, n := range x.Nodes {
-			check(n)
+			l.check(n)
 		}
 	case *AssignExpr:
-		findVarType(x)
-		check(x.Left)
-		check(x.Right)
+		l.findVarType(x)
+		l.check(x.Left)
+		l.check(x.Right)
 	case *MemberAccess:
 		// dump.Encode(x)
-		checkMemberAccess(x)
+		l.checkMemberAccess(x)
 	case *VarExpr:
 		// dump.Encode(x)
 	}
 }
 
-var varScope = make(map[string]string)
-
-func findVarType(a *AssignExpr) {
+func (l *linter) findVarType(a *AssignExpr) {
 	v, ok := a.Left.(*VarExpr)
 	if !ok {
 		return
@@ -64,15 +79,15 @@ func findVarType(a *AssignExpr) {
 	class := "<unknown-val>"
 	switch val := a.Right.(type) {
 	case *VarExpr:
-		class = cmp.Or(varScope[val.Name], class)
+		class = cmp.Or(l.scope[val.Name], class)
 	case *MemberAccess:
 		// TODO: Don't check twice.
-		class = checkMemberAccess(val)
+		class = l.checkMemberAccess(val)
 	}
-	varScope[v.Name] = class
+	l.scope[v.Name] = class
 }
 
-func checkMemberAccess(a *MemberAccess) string {
+func (l *linter) checkMemberAccess(a *MemberAccess) string {
 	var x string
 	switch r := a.Rcvr.(type) {
 	default:
@@ -81,10 +96,10 @@ func checkMemberAccess(a *MemberAccess) string {
 		if r.Name == "$this" {
 			x = lastClass
 		} else {
-			x = cmp.Or(varScope[r.Name], "<unknown-type-of-"+r.Name+">")
+			x = cmp.Or(l.scope[r.Name], "<unknown-type-of-"+r.Name+">")
 		}
 	case *MemberAccess:
-		x = checkMemberAccess(r)
+		x = l.checkMemberAccess(r)
 	}
 
 	if x == "stdClass" {
@@ -92,16 +107,9 @@ func checkMemberAccess(a *MemberAccess) string {
 		return x
 	}
 
-	report := func(format string, args ...any) {
-		fmt.Printf("%s:%d:%d: %s\n",
-			fileBeingChecked, a.Pos.Line, a.Pos.Column,
-			fmt.Sprintf(format, args...),
-		)
-	}
-
 	c, ok := world[x]
 	if !ok {
-		report("class `%v` not found", x)
+		l.reportf(a.Pos, "class `%v` not found", x)
 		return "<unknown-class>"
 	}
 	m, ok := c.Members[a.Name]
@@ -109,13 +117,13 @@ func checkMemberAccess(a *MemberAccess) string {
 		p := c.Extends
 		c, ok = world[p]
 		if !ok {
-			report("parent `%v` not found; searching for %v", p, a.Name)
+			l.reportf(a.Pos, "parent `%v` not found; searching for %v", p, a.Name)
 			return "<unknown-parent>"
 		}
 		m, ok = c.Members[a.Name]
 	}
 	if !ok {
-		report("class member `%v::%v` does not exist", c.Name, a.Name)
+		l.reportf(a.Pos, "class member `%v::%v` does not exist", c.Name, a.Name)
 		return "<unknown-member>"
 	}
 	return m.Class

@@ -367,7 +367,7 @@ func getClass(typ phptype.Type) string {
 
 func isBasicType(typ string) bool {
 	switch typ {
-	case "void", "never":
+	case "void", "never", "string":
 		return true
 	default:
 		return false
