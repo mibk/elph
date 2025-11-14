@@ -25,6 +25,8 @@ type linter struct {
 
 	// TODO: Fix this.
 	fileBeingChecked string
+
+	thisClass *Class
 }
 
 func (l *linter) reportf(pos token.Pos, format string, args ...any) {
@@ -43,6 +45,8 @@ func (l *linter) check(x any) {
 	case *File:
 		l.fileBeingChecked = x.Path
 		l.check(x.Scope)
+	case *Class:
+		l.thisClass = x
 	case *scope:
 		for _, stmt := range x.Stmts {
 			l.check(stmt)
@@ -93,8 +97,8 @@ func (l *linter) checkMemberAccess(a *MemberAccess) string {
 	default:
 		panic(fmt.Sprintf("unsupported type: %T", r))
 	case *VarExpr:
-		if r.Name == "$this" {
-			x = lastClass
+		if r.Name == "$this" && l.thisClass != nil {
+			x = l.thisClass.Name
 		} else {
 			x = cmp.Or(l.scope[r.Name], "<unknown-type-of-"+r.Name+">")
 		}

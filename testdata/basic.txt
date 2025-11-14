@@ -1,5 +1,3 @@
-# TODO: Right now the files are order-dependent.
-# Fix that.
 % check b.php
 b.php:15:3: $name is of type: string (DEBUG)
 b.php:17:10: class member `Foo\Service::userx` does not exist
@@ -35,4 +33,22 @@ class Service
 		$this->userx;
 		$this->user->namex;
 	}
+
+	/** @var Bar\Group */
+	protected $group;
+
+	private function hi()
+	{
+		$this->group->name;
+	}
+}
+-- c.php --
+<?php
+
+namespace Another\Bar;
+
+class Group
+{
+	/** @var string */
+	public $name;
 }

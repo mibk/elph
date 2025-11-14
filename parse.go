@@ -180,7 +180,9 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 			}
 			p.use[last] = use
 		case token.Class:
-			p.parseClass()
+			if c := p.parseClass(); c != nil {
+				s.Nodes = append(s.Nodes, c)
+			}
 		case token.Private, token.Protected, token.Public:
 			p.parseMember(docComment)
 		case token.Lparen:
@@ -218,30 +220,27 @@ func (p *parser) parseFQN() string {
 	return id.String()
 }
 
-var (
-	world     = make(map[string]*Class)
-	lastClass string
-)
+// TODO: Is this global var necessary/convenient?
+var world = make(map[string]*Class)
 
-func (p *parser) parseClass() {
+func (p *parser) parseClass() *Class {
 	p.expect(token.Class)
 	name := p.tok
 	if !p.got(token.Ident) {
 		// TODO: anonymous class
-		return
+		return nil
 	}
 	p.thisClass = name.Text
 	if p.namespace != "" {
 		p.thisClass = p.namespace + "\\" + p.thisClass
 	}
-	lastClass = p.thisClass
 	// log.Println("CLASS", p.thisClass)
 
 	c := world[p.thisClass]
 	if c != nil {
 		// TODO: it is parsed twice
 		p.errorf("class %v already defined", p.thisClass)
-		return
+		return nil
 	}
 	c = &Class{Name: p.thisClass, Members: make(map[string]*Member)}
 	world[p.thisClass] = c
@@ -260,6 +259,7 @@ func (p *parser) parseClass() {
 		c.Extends = e
 		// log.Println("EXTENDS", c.Extends)
 	}
+	return c
 }
 
 func (p *parser) parseMember(doc string) {
