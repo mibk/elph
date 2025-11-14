@@ -217,7 +217,7 @@ func (p *parser) parseQualifedBame() string {
 	id.WriteString(p.tok.Text)
 	p.expect(token.Ident)
 	for p.got(token.Backslash) {
-		id.WriteString("\\" + p.tok.Text)
+		id.WriteString(`\` + p.tok.Text)
 		p.expect(token.Ident)
 	}
 	return id.String()
@@ -235,7 +235,7 @@ func (p *parser) parseClass(doc string) *Class {
 	}
 	p.thisClass = name.Text
 	if p.namespace != "" {
-		p.thisClass = p.namespace + "\\" + p.thisClass
+		p.thisClass = p.namespace + `\` + p.thisClass
 	}
 	// log.Println("CLASS", p.thisClass)
 
@@ -386,9 +386,9 @@ func (p *parser) fullyQualify(name string) string {
 	if strings.HasPrefix(name, `\`) {
 		return name
 	}
-	if ns, rest, ok := strings.Cut(name, "\\"); ok {
+	if ns, rest, ok := strings.Cut(name, `\`); ok {
 		if tr, ok := p.use[ns]; ok {
-			name = tr + "\\" + rest
+			name = tr + `\` + rest
 		}
 	} else if p.namespace != "" && !isBasicType(name) {
 		// TODO: Even if name has \,
@@ -405,7 +405,7 @@ func getClass(typ phptype.Type) string {
 	case *phptype.Nullable:
 		return getClass(typ.Type)
 	case *phptype.Named:
-		return strings.Join(typ.Parts, "\\")
+		return strings.Join(typ.Parts, `\`)
 	default:
 		return fmt.Sprintf("%T", typ)
 	}
