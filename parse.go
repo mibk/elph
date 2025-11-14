@@ -211,6 +211,9 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 
 func (p *parser) parseQualifedBame() string {
 	var id strings.Builder
+	if p.got(token.Backslash) {
+		id.WriteRune('\\')
+	}
 	id.WriteString(p.tok.Text)
 	p.expect(token.Ident)
 	for p.got(token.Backslash) {
@@ -380,6 +383,9 @@ func (p *parser) getClass(typ phptype.Type) string {
 }
 
 func (p *parser) fullyQualify(name string) string {
+	if strings.HasPrefix(name, `\`) {
+		return name
+	}
 	if ns, rest, ok := strings.Cut(name, "\\"); ok {
 		if tr, ok := p.use[ns]; ok {
 			name = tr + "\\" + rest
