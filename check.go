@@ -58,6 +58,8 @@ func (l *linter) check(x any) {
 		} else {
 			l.reportf(x.Pos, "unknown var: %v (DEBUG)", x.Var)
 		}
+	case *NewInstance:
+		// no check
 	case *Stmt:
 		for _, n := range x.Nodes {
 			l.check(n)
@@ -82,6 +84,8 @@ func (l *linter) findVarType(a *AssignExpr) {
 
 	class := "<unknown-val>"
 	switch val := a.Right.(type) {
+	case *NewInstance:
+		class = val.Class
 	case *VarExpr:
 		class = cmp.Or(l.scope[val.Name], class)
 	case *MemberAccess:

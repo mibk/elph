@@ -168,11 +168,11 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 			p.next()
 		case token.Namespace:
 			p.next()
-			p.namespace = p.parseFQN()
+			p.namespace = p.parseQualifedBame()
 			// log.Println("NAMESPACE", p.namespace)
 		case token.Use:
 			p.next()
-			use := p.parseFQN()
+			use := p.parseQualifedBame()
 			// log.Println("USE", use)
 			last := use
 			if i := strings.LastIndexByte(last, '\\'); i >= 0 {
@@ -209,7 +209,7 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 	}
 }
 
-func (p *parser) parseFQN() string {
+func (p *parser) parseQualifedBame() string {
 	var id strings.Builder
 	id.WriteString(p.tok.Text)
 	p.expect(token.Ident)
@@ -246,17 +246,8 @@ func (p *parser) parseClass(doc string) *Class {
 	world[p.thisClass] = c
 
 	if p.got(token.Extends) {
-		e := p.parseFQN()
-		// TODO: dedup
-		if ns, rest, ok := strings.Cut(e, "\\"); ok {
-			if tr, ok := p.use[ns]; ok {
-				e = tr + "\\" + rest
-			}
-		} else {
-			e = p.namespace + `\` + e
-		}
-
-		c.Extends = e
+		e := p.parseQualifedBame()
+		c.Extends = p.fullyQualify(e)
 		// log.Println("EXTENDS", c.Extends)
 	}
 
@@ -338,10 +329,25 @@ func (p *parser) parseMember(doc string) {
 func (p *parser) parseExpr() Expr {
 	e := p.parseVarExpr()
 	if p.got(token.Assign) {
-		r := p.parseExpr()
-		e = &AssignExpr{e, r}
+		var v Expr
+		if p.got(token.New) {
+			v = p.parseNewInstance()
+		} else {
+			v = p.parseExpr()
+		}
+		e = &AssignExpr{e, v}
 	}
 	return e
+}
+
+func (p *parser) parseNewInstance() Expr {
+	name := p.parseQualifedBame()
+	if name == "" {
+		p.expect(token.Ident)
+		return nil
+	}
+	name = p.fullyQualify(name)
+	return &NewInstance{Class: name}
 }
 
 func (p *parser) parseVarExpr() Expr {
@@ -369,16 +375,21 @@ func (p *parser) getClass(typ phptype.Type) string {
 	if class == "self" {
 		return p.thisClass
 	}
-	if ns, rest, ok := strings.Cut(class, "\\"); ok {
-		if tr, ok := p.use[ns]; ok {
-			class = tr + "\\" + rest
-		}
-	} else if p.namespace != "" && !isBasicType(class) {
-		// TODO: Even if class has \,
-		// it still should belong under namespace.
-		class = p.namespace + `\` + class
-	}
+	class = p.fullyQualify(class)
 	return class
+}
+
+func (p *parser) fullyQualify(name string) string {
+	if ns, rest, ok := strings.Cut(name, "\\"); ok {
+		if tr, ok := p.use[ns]; ok {
+			name = tr + "\\" + rest
+		}
+	} else if p.namespace != "" && !isBasicType(name) {
+		// TODO: Even if name has \,
+		// it still should belong under namespace.
+		name = p.namespace + `\` + name
+	}
+	return name
 }
 
 func getClass(typ phptype.Type) string {

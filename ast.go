@@ -38,6 +38,10 @@ type Member struct {
 
 type Expr interface{}
 
+type NewInstance struct {
+	Class string
+}
+
 type VarExpr struct {
 	Name string
 }
