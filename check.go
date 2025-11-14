@@ -111,6 +111,11 @@ func (l *linter) checkMemberAccess(a *MemberAccess) string {
 		x = l.checkMemberAccess(r)
 	}
 
+	if isBasicType(x) {
+		l.reportf(a.Pos, "cannot call method on '%s'", x)
+		return "<not-a-class>"
+	}
+
 	if x = strings.TrimPrefix(x, `\`); x == "stdClass" {
 		// All member access allowed.
 		return x
