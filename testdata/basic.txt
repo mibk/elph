@@ -35,13 +35,13 @@ class Service
 		$this->user->namex;
 	}
 
-	/** @var Bar\Group */
+	/** @var ?Bar\Group */
 	protected $group;
 
 	private function hi()
 	{
 		$this->group->name;
-		$p = $this->group->parent;
+		$p = $this?->group->parent;
 		#debugType $p
 		$p->name;
 	}

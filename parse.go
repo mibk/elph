@@ -350,7 +350,7 @@ func (p *parser) parseVarExpr() Expr {
 		return &VarExpr{Name: "<not-a-class>"}
 	}
 
-	for p.got(token.Arrow) {
+	for p.got(token.Arrow) || p.got(token.QmarkArrow) {
 		x = p.parseMemberAccess(x)
 	}
 	return x
