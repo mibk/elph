@@ -209,20 +209,6 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 	}
 }
 
-func (p *parser) parseQualifedBame() string {
-	var id strings.Builder
-	if p.got(token.Backslash) {
-		id.WriteRune('\\')
-	}
-	id.WriteString(p.tok.Text)
-	p.expect(token.Ident)
-	for p.got(token.Backslash) {
-		id.WriteString(`\` + p.tok.Text)
-		p.expect(token.Ident)
-	}
-	return id.String()
-}
-
 // TODO: Is this global var necessary/convenient?
 var world = make(map[string]*Class)
 
@@ -380,6 +366,20 @@ func (p *parser) getClass(typ phptype.Type) string {
 	}
 	class = p.fullyQualify(class)
 	return class
+}
+
+func (p *parser) parseQualifedBame() string {
+	var id strings.Builder
+	if p.got(token.Backslash) {
+		id.WriteRune('\\')
+	}
+	id.WriteString(p.tok.Text)
+	p.expect(token.Ident)
+	for p.got(token.Backslash) {
+		id.WriteString(`\` + p.tok.Text)
+		p.expect(token.Ident)
+	}
+	return id.String()
 }
 
 func (p *parser) fullyQualify(name string) string {
