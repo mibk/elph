@@ -1,0 +1,22 @@
+% check a.php
+a.php:4:13: cannot assign 'void' to $x
+
+-- a.php --
+<?php
+
+$repo = new Repo;
+$x = $repo->get();
+
+$x->foo;
+$x->bar;
+$x->name;
+$x->baz;
+-- d.php --
+<?php
+
+class Repo
+{
+	public function get()
+	{
+	}
+}

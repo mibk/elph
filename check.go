@@ -93,6 +93,12 @@ func (l *linter) findVarType(a *AssignExpr) {
 		// TODO: Don't check twice.
 		class = l.checkMemberAccess(val)
 	}
+
+	if class == "void" {
+		l.reportf(a.Right.Pos(), "cannot assign '%s' to %s", class, v.Name)
+		class = "stdClass"
+	}
+
 	l.scope[v.Name] = class
 }
 
@@ -112,7 +118,7 @@ func (l *linter) checkMemberAccess(a *MemberAccess) string {
 	}
 
 	if isBasicType(x) {
-		l.reportf(a.Pos, "cannot call method on '%s'", x)
+		l.reportf(a.Pos(), "cannot call method on '%s'", x)
 		return "<not-a-class>"
 	}
 
@@ -123,7 +129,7 @@ func (l *linter) checkMemberAccess(a *MemberAccess) string {
 
 	c, ok := world[x]
 	if !ok {
-		l.reportf(a.Pos, "class `%v` not found", x)
+		l.reportf(a.Pos(), "class `%v` not found", x)
 		return "<unknown-class>"
 	}
 	m, ok := c.Members[a.Name]
@@ -131,13 +137,13 @@ func (l *linter) checkMemberAccess(a *MemberAccess) string {
 		p := strings.TrimPrefix(c.Extends, `\`)
 		c, ok = world[p]
 		if !ok {
-			l.reportf(a.Pos, "parent `%v` not found; searching for %v", p, a.Name)
+			l.reportf(a.Pos(), "parent `%v` not found; searching for %v", p, a.Name)
 			return "<unknown-parent>"
 		}
 		m, ok = c.Members[a.Name]
 	}
 	if !ok {
-		l.reportf(a.Pos, "class member `%v::%v` does not exist", c.Name, a.Name)
+		l.reportf(a.Pos(), "class member `%v::%v` does not exist", c.Name, a.Name)
 		return "<unknown-member>"
 	}
 	return m.Class

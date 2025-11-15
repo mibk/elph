@@ -36,23 +36,35 @@ type Member struct {
 	Class string
 }
 
-type Expr interface{}
+type Expr interface {
+	Pos() token.Pos
+}
 
 type NewInstance struct {
+	New   token.Pos
 	Class string
 }
 
+func (e *NewInstance) Pos() token.Pos { return e.New }
+
 type VarExpr struct {
-	Name string
+	Dollar token.Pos
+	Name   string
 }
 
+func (e *VarExpr) Pos() token.Pos { return e.Dollar }
+
 type MemberAccess struct {
-	Rcvr Expr
-	Name string
-	Pos  token.Pos
+	Rcvr    Expr
+	NamePos token.Pos
+	Name    string
 }
+
+func (e *MemberAccess) Pos() token.Pos { return e.NamePos }
 
 type AssignExpr struct {
 	Left  Expr
 	Right Expr
 }
+
+func (e *AssignExpr) Pos() token.Pos { return e.Left.Pos() }
