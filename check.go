@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"mibk.dev/phpfmt/token"
 )
@@ -110,7 +111,7 @@ func (l *linter) checkMemberAccess(a *MemberAccess) string {
 		x = l.checkMemberAccess(r)
 	}
 
-	if x == "stdClass" {
+	if x = strings.TrimPrefix(x, `\`); x == "stdClass" {
 		// All member access allowed.
 		return x
 	}
@@ -122,7 +123,7 @@ func (l *linter) checkMemberAccess(a *MemberAccess) string {
 	}
 	m, ok := c.Members[a.Name]
 	for !ok && c.Extends != "" {
-		p := c.Extends
+		p := strings.TrimPrefix(c.Extends, `\`)
 		c, ok = world[p]
 		if !ok {
 			l.reportf(a.Pos, "parent `%v` not found; searching for %v", p, a.Name)
