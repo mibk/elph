@@ -168,11 +168,11 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 			p.next()
 		case token.Namespace:
 			p.next()
-			p.namespace = p.parseQualifedBame()
+			p.namespace = p.parseQualifiedName()
 			// log.Println("NAMESPACE", p.namespace)
 		case token.Use:
 			p.next()
-			use := p.parseQualifedBame()
+			use := p.parseQualifiedName()
 			// log.Println("USE", use)
 			last := use
 			if i := strings.LastIndexByte(last, '\\'); i >= 0 {
@@ -235,7 +235,7 @@ func (p *parser) parseClass(doc string) *Class {
 	world[p.thisClass] = c
 
 	if p.got(token.Extends) {
-		e := p.parseQualifedBame()
+		e := p.parseQualifiedName()
 		c.Extends = p.fullyQualify(e)
 		// log.Println("EXTENDS", c.Extends)
 	}
@@ -330,7 +330,7 @@ func (p *parser) parseExpr() Expr {
 }
 
 func (p *parser) parseNewInstance() Expr {
-	name := p.parseQualifedBame()
+	name := p.parseQualifiedName()
 	if name == "" {
 		p.expect(token.Ident)
 		return nil
@@ -368,7 +368,7 @@ func (p *parser) getClass(typ phptype.Type) string {
 	return class
 }
 
-func (p *parser) parseQualifedBame() string {
+func (p *parser) parseQualifiedName() string {
 	var id strings.Builder
 	if p.got(token.Backslash) {
 		id.WriteRune('\\')
