@@ -182,6 +182,12 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 		case token.Class:
 			if c := p.parseClass(docComment); c != nil {
 				s.Nodes = append(s.Nodes, c)
+				sub := p.parseScope(token.Lbrace)
+				s.Nodes = append(s.Nodes, sub)
+			}
+		case token.Trait:
+			if c := p.parseTrait(docComment); c != nil {
+				s.Nodes = append(s.Nodes, c)
 			}
 		case token.Private, token.Protected, token.Public:
 			p.parseMember(docComment)
@@ -210,7 +216,7 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 }
 
 // TODO: Is this global var necessary/convenient?
-var world = make(map[string]*Class)
+var universe = make(map[string]typeDecl)
 
 func (p *parser) parseClass(doc string) *Class {
 	p.expect(token.Class)
@@ -225,14 +231,12 @@ func (p *parser) parseClass(doc string) *Class {
 	}
 	// log.Println("CLASS", p.thisClass)
 
-	c := world[p.thisClass]
-	if c != nil {
-		// TODO: it is parsed twice
-		p.errorf("class %v already defined", p.thisClass)
+	if _, ok := universe[p.thisClass]; ok {
+		p.errorf("type %v already defined", p.thisClass)
 		return nil
 	}
-	c = &Class{Name: p.thisClass, Members: make(map[string]*Member)}
-	world[p.thisClass] = c
+	c := &Class{Name: p.thisClass, Members: make(map[string]*Member)}
+	universe[p.thisClass] = c
 
 	if p.got(token.Extends) {
 		e := p.parseQualifiedName()
@@ -240,6 +244,7 @@ func (p *parser) parseClass(doc string) *Class {
 		// log.Println("EXTENDS", c.Extends)
 	}
 
+	// TODO: Put somewhere else?
 	if doc != "" {
 		b, err := phpdoc.Parse(strings.NewReader(doc))
 		if err != nil {
@@ -258,7 +263,46 @@ func (p *parser) parseClass(doc string) *Class {
 		}
 	}
 
+	// TODO: Choose a different aproach to skip tokens unil '{'?
+	if p.got(token.Implements) {
+		for {
+			p.parseQualifiedName() // ignore these
+			if !p.got(token.Comma) {
+				break
+			}
+		}
+	}
+
+	p.expect(token.Lbrace)
+	for p.got(token.Use) {
+		use := p.parseQualifiedName()
+		use = p.fullyQualify(use)
+		c.Traits = append(c.Traits, use)
+		p.expect(token.Semicolon)
+	}
+
 	return c
+}
+
+func (p *parser) parseTrait(doc string) *Trait {
+	p.expect(token.Trait)
+	name := p.tok
+	p.expect(token.Ident)
+	p.thisClass = name.Text
+	if p.namespace != "" {
+		p.thisClass = p.namespace + `\` + p.thisClass
+	}
+	// log.Println("TRAIT", p.thisClass)
+
+	if _, ok := universe[p.thisClass]; ok {
+		p.errorf("type %v already defined", p.thisClass)
+		return nil
+	}
+	t := &Trait{Name: p.thisClass, Members: make(map[string]*Member)}
+	universe[p.thisClass] = t
+
+	// TODO: Doc comment.
+	return t
 }
 
 func (p *parser) parseMember(doc string) {
@@ -300,19 +344,18 @@ func (p *parser) parseMember(doc string) {
 		typ = &phptype.Named{Parts: []string{"void"}}
 	}
 
-	c := world[p.thisClass]
+	c, _ := universe[p.thisClass]
 	if c == nil {
 		p.errorf("unknown class %v", p.thisClass)
 		return
 	}
 
 	name := strings.TrimPrefix(def.Text, "$")
-	if _, ok := c.Members[name]; ok {
-		p.errorf("member %v already defined for %v", name, c.Name)
-	}
 	class := p.getClass(typ)
-	c.Members[name] = &Member{Name: name, Type: typ, Class: class}
-	// log.Printf("DEF %v %v %T", c.Name, def, typ)
+	m := Member{Name: name, Type: typ, Class: class}
+	if err := c.addMember(&m); err != nil {
+		p.errorf("%v", err)
+	}
 }
 
 func (p *parser) parseExpr() Expr {

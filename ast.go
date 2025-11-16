@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"mibk.dev/phpfmt/phpdoc/phptype"
 	"mibk.dev/phpfmt/token"
 )
@@ -24,10 +26,36 @@ type Stmt struct {
 	Nodes []any
 }
 
+type typeDecl interface {
+	addMember(m *Member) error
+}
+
 type Class struct {
 	Name    string
 	Extends string // or empty
+	Traits  []string
 	Members map[string]*Member
+}
+
+func (c *Class) addMember(m *Member) error {
+	if _, ok := c.Members[m.Name]; ok {
+		return fmt.Errorf("class %s already has %s", c.Name, m.Name)
+	}
+	c.Members[m.Name] = m
+	return nil
+}
+
+type Trait struct {
+	Name    string
+	Members map[string]*Member
+}
+
+func (t *Trait) addMember(m *Member) error {
+	if _, ok := t.Members[m.Name]; ok {
+		return fmt.Errorf("trait %s already has %s", t.Name, m.Name)
+	}
+	t.Members[m.Name] = m
+	return nil
 }
 
 type Member struct {

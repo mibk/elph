@@ -1,0 +1,24 @@
+% check a.php
+a.php:10:1: $name is of type: string (DEBUG)
+
+-- a.php --
+<?php
+
+class Foo
+{
+	use Traits\Name;
+}
+
+$foo = new Foo;
+$name = $foo->name;
+#debugType $name
+-- t.php --
+<?php
+
+namespace Traits;
+
+trait Name
+{
+	/** @var string */
+	public $name;
+}

@@ -127,17 +127,32 @@ func (l *linter) checkMemberAccess(a *MemberAccess) string {
 		return x
 	}
 
-	c, ok := world[x]
+	// TODO: Different error if entity exists but is not a class?
+	c, ok := universe[x].(*Class)
 	if !ok {
 		l.reportf(a.Pos(), "class `%v` not found", x)
 		return "<unknown-class>"
 	}
+
+	for _, name := range c.Traits {
+		t, ok := universe[name].(*Trait)
+		if !ok {
+			l.reportf(a.Pos(), "trait `%v` not found", name)
+			continue
+		}
+		for _, m := range t.Members {
+			// TODO: Check whether member not defined?
+			c.addMember(m)
+		}
+	}
+	c.Traits = nil // Mark as process.
+
 	m, ok := c.Members[a.Name]
 	for !ok && c.Extends != "" {
 		p := strings.TrimPrefix(c.Extends, `\`)
-		c, ok = world[p]
+		c, ok = universe[p].(*Class)
 		if !ok {
-			l.reportf(a.Pos(), "parent `%v` not found; searching for %v", p, a.Name)
+			l.reportf(a.Pos(), "parent class `%v` not found; searching for %v", p, a.Name)
 			return "<unknown-parent>"
 		}
 		m, ok = c.Members[a.Name]
