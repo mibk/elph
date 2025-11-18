@@ -50,14 +50,29 @@ func (p *parser) fullyQualify(name string) string {
 
 func getClass(typ phptype.Type) string {
 	switch typ := typ.(type) {
+	case *phptype.Union:
+		var opts []string
+		for _, s := range typ.Types {
+			c := getClass(s)
+			// TODO: Fix this. The namespace isn't taken into account.
+			if c == "\\stdClass" {
+				return c
+			}
+			opts = append(opts, c)
+		}
+		return opts[0]
 	case *phptype.Generic:
 		return getClass(typ.Base)
 	case *phptype.Nullable:
 		return getClass(typ.Type)
 	case *phptype.Named:
-		return strings.Join(typ.Parts, `\`)
+		name := strings.Join(typ.Parts, `\`)
+		if typ.Global {
+			return `\` + name
+		}
+		return name
 	default:
-		return fmt.Sprintf("%T", typ)
+		return fmt.Sprintf("<unsupported-%T>", typ)
 	}
 }
 

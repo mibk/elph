@@ -186,6 +186,8 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 				last = last[i+1:]
 			}
 			p.use[last] = use
+		case token.Abstract:
+			p.next()
 		case token.Class:
 			doc := docComment
 			if c := p.parseClass(); c != nil {
