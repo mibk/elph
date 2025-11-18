@@ -160,7 +160,7 @@ func (l *linter) checkClassMember(pos token.Pos, class, member string) string {
 	}
 	if !ok {
 		l.reportf(pos, "class member `%v::%v` does not exist", c.Name, member)
-		return "<unknown-member>"
+		return "\\stdClass"
 	}
 	return m.Class
 }
