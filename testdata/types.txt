@@ -50,4 +50,6 @@ class Bar
 	{
 		#debugType $a
 	}
+
+	private function switch($msg = Foo\Bar::BAZ_CONST);
 }

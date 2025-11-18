@@ -335,6 +335,9 @@ func (p *parser) parseFunction(doc string) {
 	// We don't care whether the function returns a reference, or not.
 	p.consume(token.BitAnd)
 
+	if p.tok.Type.IsKeyword() {
+		p.tok.Type = token.Ident
+	}
 	def := p.tok
 	p.expect(token.Ident)
 
@@ -398,9 +401,16 @@ func (p *parser) parseParamList() {
 		class := p.getClass(typ)
 		p.params = append(p.params, Param{Name: name, Class: class})
 		if p.got(token.Assign) {
+		Skip:
 			// TODO: Do not ignore the value.
-			p.next()
-			p.consume(token.Rbrack)
+			for {
+				switch p.tok.Type {
+				case token.EOF, token.Comma, token.Rparen:
+					break Skip
+				default:
+					p.next()
+				}
+			}
 		}
 		if !p.got(token.Comma) {
 			p.expect(token.Rparen)
