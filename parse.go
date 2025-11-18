@@ -146,6 +146,7 @@ func (p *parser) parseScope(open token.Type) *scope {
 func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 	s = new(Stmt)
 	var docComment string
+	afterFunc := false
 	for {
 		// TODO: make these keywords indents: token.Arrow, token.DoubleColon
 		switch typ := p.tok.Type; typ {
@@ -172,6 +173,9 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 			// log.Println("NAMESPACE", p.namespace)
 		case token.Use:
 			p.next()
+			if afterFunc {
+				continue
+			}
 			use := p.parseQualifiedName()
 			// log.Println("USE", use)
 			last := use
@@ -210,6 +214,10 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 			}
 		case token.Private, token.Protected, token.Public:
 			p.parseMember(docComment)
+		case token.Function:
+			// Disarm parsing 'use' stmt after 'function' for now.
+			afterFunc = true
+			p.next()
 		case token.Lparen:
 			p.next()
 			sub := p.parseScope(typ)

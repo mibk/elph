@@ -24,5 +24,9 @@ class Foo
 	{
 		$x = $this->number;
 		#debugType $x
+
+		$this->do(function() use ($x) {
+			echo $x;
+		});
 	}
 }
