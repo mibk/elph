@@ -1,6 +1,9 @@
 % check a.php
 a.php:10:1: $name is of type: string (DEBUG)
 
+% check b.php
+b.php:14:1: $name is of type: string (DEBUG)
+
 -- a.php --
 <?php
 
@@ -10,6 +13,21 @@ class Foo
 }
 
 $foo = new Foo;
+$name = $foo->name;
+#debugType $name
+-- b.php --
+<?php
+
+class FooParent
+{
+	use Traits\Name;
+}
+
+class FooChild extends FooParent
+{
+}
+
+$foo = new FooChild;
 $name = $foo->name;
 #debugType $name
 -- t.php --

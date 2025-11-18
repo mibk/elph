@@ -129,18 +129,21 @@ func (l *linter) checkMemberAccess(a *MemberAccess) string {
 		// All member access allowed.
 		return x
 	}
+	return l.checkClassMember(a.Pos(), x, a.Name)
+}
 
+func (l *linter) checkClassMember(pos token.Pos, class, member string) string {
 	// TODO: Different error if entity exists but is not a class?
-	c, ok := universe[x].(*Class)
+	c, ok := universe[class].(*Class)
 	if !ok {
-		l.reportf(a.Pos(), "class `%v` not found", x)
+		l.reportf(pos, "class `%v` not found", class)
 		return "<unknown-class>"
 	}
 
 	for _, name := range c.Traits {
 		t, ok := universe[name].(*Trait)
 		if !ok {
-			l.reportf(a.Pos(), "trait `%v` not found", name)
+			l.reportf(pos, "trait `%v` not found", name)
 			continue
 		}
 		for _, m := range t.Members {
@@ -150,18 +153,13 @@ func (l *linter) checkMemberAccess(a *MemberAccess) string {
 	}
 	c.Traits = nil // Mark as process.
 
-	m, ok := c.Members[a.Name]
+	m, ok := c.Members[member]
 	for !ok && c.Extends != "" {
-		p := strings.TrimPrefix(c.Extends, `\`)
-		c, ok = universe[p].(*Class)
-		if !ok {
-			l.reportf(a.Pos(), "parent class `%v` not found; searching for %v", p, a.Name)
-			return "<unknown-parent>"
-		}
-		m, ok = c.Members[a.Name]
+		parent := strings.TrimPrefix(c.Extends, `\`)
+		return l.checkClassMember(pos, parent, member)
 	}
 	if !ok {
-		l.reportf(a.Pos(), "class member `%v::%v` does not exist", c.Name, a.Name)
+		l.reportf(pos, "class member `%v::%v` does not exist", c.Name, member)
 		return "<unknown-member>"
 	}
 	return m.Class
