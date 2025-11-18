@@ -180,10 +180,29 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 			}
 			p.use[last] = use
 		case token.Class:
-			if c := p.parseClass(docComment); c != nil {
+			doc := docComment
+			if c := p.parseClass(); c != nil {
 				s.Nodes = append(s.Nodes, c)
 				sub := p.parseScope(token.Lbrace)
 				s.Nodes = append(s.Nodes, sub)
+
+				if doc != "" {
+					b, err := phpdoc.Parse(strings.NewReader(doc))
+					if err != nil {
+						p.errorf("parsing doc %q: %v", doc, err)
+						return nil
+					}
+					for _, line := range b.Lines {
+						if tag, ok := line.(*phpdoc.PropertyTag); ok {
+							m := &Member{
+								Name:  strings.TrimPrefix(tag.Var, "$"),
+								Type:  tag.Type,
+								Class: p.getClass(tag.Type),
+							}
+							c.Members[m.Name] = m
+						}
+					}
+				}
 			}
 		case token.Trait:
 			if c := p.parseTrait(docComment); c != nil {
@@ -218,7 +237,7 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 // TODO: Is this global var necessary/convenient?
 var universe = make(map[string]typeDecl)
 
-func (p *parser) parseClass(doc string) *Class {
+func (p *parser) parseClass() *Class {
 	p.expect(token.Class)
 	name := p.tok
 	if !p.got(token.Ident) {
@@ -242,25 +261,6 @@ func (p *parser) parseClass(doc string) *Class {
 		e := p.parseQualifiedName()
 		c.Extends = p.fullyQualify(e)
 		// log.Println("EXTENDS", c.Extends)
-	}
-
-	// TODO: Put somewhere else?
-	if doc != "" {
-		b, err := phpdoc.Parse(strings.NewReader(doc))
-		if err != nil {
-			p.errorf("parsing doc %q: %v", doc, err)
-			return nil
-		}
-		for _, line := range b.Lines {
-			if tag, ok := line.(*phpdoc.PropertyTag); ok {
-				m := &Member{
-					Name:  strings.TrimPrefix(tag.Var, "$"),
-					Type:  tag.Type,
-					Class: p.getClass(tag.Type),
-				}
-				c.Members[m.Name] = m
-			}
-		}
 	}
 
 	// TODO: Choose a different aproach to skip tokens unil '{'?
