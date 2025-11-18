@@ -11,7 +11,6 @@ import (
 func (p *parser) tryParseType() phptype.Type {
 	if p.tok.Type == token.Backslash || p.tok.Type == token.Ident {
 		name := p.parseQualifiedName()
-		name = p.fullyQualify(name)
 		typ := phptype.Named{Parts: strings.Split(name, `\`)}
 		return &typ
 	}
@@ -33,16 +32,16 @@ func (p *parser) parseQualifiedName() string {
 }
 
 func (p *parser) fullyQualify(name string) string {
-	if strings.HasPrefix(name, `\`) {
+	if strings.HasPrefix(name, `\`) || isBasicType(name) {
 		return name
 	}
+
 	if ns, rest, ok := strings.Cut(name, `\`); ok {
 		if tr, ok := p.use[ns]; ok {
-			name = tr + `\` + rest
+			return tr + `\` + rest
 		}
-	} else if p.namespace != "" && !isBasicType(name) {
-		// TODO: Even if name has \,
-		// it still should belong under namespace.
+	}
+	if p.namespace != "" {
 		name = p.namespace + `\` + name
 	}
 	return name

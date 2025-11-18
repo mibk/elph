@@ -1,0 +1,24 @@
+% check a.php
+a.php:12:1: $bar is of type: Path\To\Module\Bar (DEBUG)
+
+-- a.php --
+<?php
+
+namespace Path\To;
+
+class View
+{
+	public function getInstance(): Module\Bar;
+}
+
+$v = new View;
+$bar = $v->getInstance();
+#debugType $bar
+-- util.php --
+<?php
+
+namespace Path\To\Module;
+
+class Bar
+{
+}
