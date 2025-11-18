@@ -526,6 +526,10 @@ func (p *parser) parseVarExpr() Expr {
 func (p *parser) parseMemberAccess(x Expr) Expr {
 	a := &MemberAccess{Rcvr: x, NamePos: p.tok.Pos, Name: p.tok.Text}
 	if p.got(token.Ident) {
+		// Skip params.
+		if p.got(token.Lparen) {
+			p.parseScope(token.Lparen)
+		}
 		return a
 	}
 	return x

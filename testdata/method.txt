@@ -1,0 +1,19 @@
+% check a.php
+a.php:4:8: class member `Repo::notExist` does not exist
+a.php:5:15: cannot call method on 'void'
+
+-- a.php --
+<?php
+
+$repo = new Repo;
+$repo->notExist()->doesNotExistEither();
+$repo->get()->doesNotExistEither();
+-- d.php --
+<?php
+
+class Repo
+{
+	public function get()
+	{
+	}
+}
