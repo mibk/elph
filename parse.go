@@ -335,7 +335,14 @@ func (p *parser) parseFunction(doc string) {
 	def := p.tok
 	p.expect(token.Ident)
 
+	// Skip params for now.
+	p.expect(token.Lparen)
+	p.parseScope(token.Lparen)
+
 	var typ phptype.Type
+	if p.got(token.Colon) {
+		typ = p.tryParseType()
+	}
 	if doc != "" {
 		b, err := phpdoc.Parse(strings.NewReader(doc))
 		if err != nil {
@@ -349,6 +356,7 @@ func (p *parser) parseFunction(doc string) {
 			}
 		}
 	}
+
 	if typ == nil {
 		// TODO: not true
 		typ = &phptype.Named{Parts: []string{"void"}}

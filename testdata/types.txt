@@ -1,6 +1,7 @@
 % check a.php
 a.php:13:3: $n is of type: string (DEBUG)
 a.php:21:3: $x is of type: int (DEBUG)
+a.php:28:3: $val is of type: string (DEBUG)
 
 -- a.php --
 <?php
@@ -12,7 +13,7 @@ class Foo
 {
 	private string $name;
 
-	protected function process(string $another)
+	protected function process(string $another): string
 	{
 		$n = $this->name;
 		#debugType $n
@@ -28,5 +29,8 @@ class Foo
 		$this->do(function() use ($x) {
 			echo $x;
 		});
+
+		$val = $this->process($x);
+		#debugType $val
 	}
 }
