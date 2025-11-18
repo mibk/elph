@@ -29,6 +29,8 @@ func Test(t *testing.T) {
 				t.Fatal(err)
 			}
 
+			clear(universe)
+
 			parsed := make(map[string]*File)
 			for _, f := range a.Files {
 				parsed[f.Name] = parseTestFile(t, f)

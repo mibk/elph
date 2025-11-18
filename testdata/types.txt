@@ -1,0 +1,16 @@
+% check a.php
+a.php:10:3: $n is of type: string (DEBUG)
+
+-- a.php --
+<?php
+
+class Foo
+{
+	private string $name;
+
+	protected function process(string $another)
+	{
+		$n = $this->name;
+		#debugType $n
+	}
+}

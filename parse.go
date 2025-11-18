@@ -308,21 +308,26 @@ func (p *parser) parseTrait(doc string) *Trait {
 func (p *parser) parseMember(doc string) {
 	p.next()
 
-	p.consume(token.Static)
-	searchFn := p.got(token.Function)
-	if searchFn {
-		p.consume(token.BitAnd)
+	if p.got(token.Static) {
+		// TODO: Skip these for now.
+		return
 	}
+
+	if p.got(token.Function) {
+		p.parseFunction(doc)
+	} else {
+		p.parseProperty(doc)
+	}
+}
+
+func (p *parser) parseFunction(doc string) {
+	// We don't care whether the function returns a reference, or not.
+	p.consume(token.BitAnd)
 
 	def := p.tok
-	if searchFn && !p.got(token.Ident) {
-		return
-	} else if !searchFn && !p.got(token.Var) {
-		return
-	}
+	p.expect(token.Ident)
 
 	var typ phptype.Type
-
 	if doc != "" {
 		b, err := phpdoc.Parse(strings.NewReader(doc))
 		if err != nil {
@@ -330,10 +335,7 @@ func (p *parser) parseMember(doc string) {
 			return
 		}
 		for _, line := range b.Lines {
-			if tag, ok := line.(*phpdoc.ReturnTag); ok && searchFn {
-				typ = tag.Type
-				break
-			} else if tag, ok := line.(*phpdoc.VarTag); ok {
+			if tag, ok := line.(*phpdoc.ReturnTag); ok {
 				typ = tag.Type
 				break
 			}
@@ -342,6 +344,45 @@ func (p *parser) parseMember(doc string) {
 	if typ == nil {
 		// TODO: not true
 		typ = &phptype.Named{Parts: []string{"void"}}
+	}
+
+	c, _ := universe[p.thisClass]
+	if c == nil {
+		p.errorf("unknown class %v", p.thisClass)
+		return
+	}
+
+	class := p.getClass(typ)
+	m := Member{Name: def.Text, Type: typ, Class: class}
+	if err := c.addMember(&m); err != nil {
+		p.errorf("%v", err)
+	}
+}
+
+func (p *parser) parseProperty(doc string) {
+	typ := p.tryParseType()
+
+	def := p.tok
+	if !p.got(token.Var) {
+		return
+	}
+
+	if doc != "" {
+		b, err := phpdoc.Parse(strings.NewReader(doc))
+		if err != nil {
+			p.errorf("parsing doc %q: %v", doc, err)
+			return
+		}
+		for _, line := range b.Lines {
+			if tag, ok := line.(*phpdoc.VarTag); ok {
+				typ = tag.Type
+				break
+			}
+		}
+	}
+	if typ == nil {
+		// TODO: again, not true
+		typ = &phptype.Named{Parts: []string{"mixed"}}
 	}
 
 	c, _ := universe[p.thisClass]
@@ -409,56 +450,4 @@ func (p *parser) getClass(typ phptype.Type) string {
 	}
 	class = p.fullyQualify(class)
 	return class
-}
-
-func (p *parser) parseQualifiedName() string {
-	var id strings.Builder
-	if p.got(token.Backslash) {
-		id.WriteRune('\\')
-	}
-	id.WriteString(p.tok.Text)
-	p.expect(token.Ident)
-	for p.got(token.Backslash) {
-		id.WriteString(`\` + p.tok.Text)
-		p.expect(token.Ident)
-	}
-	return id.String()
-}
-
-func (p *parser) fullyQualify(name string) string {
-	if strings.HasPrefix(name, `\`) {
-		return name
-	}
-	if ns, rest, ok := strings.Cut(name, `\`); ok {
-		if tr, ok := p.use[ns]; ok {
-			name = tr + `\` + rest
-		}
-	} else if p.namespace != "" && !isBasicType(name) {
-		// TODO: Even if name has \,
-		// it still should belong under namespace.
-		name = p.namespace + `\` + name
-	}
-	return name
-}
-
-func getClass(typ phptype.Type) string {
-	switch typ := typ.(type) {
-	case *phptype.Generic:
-		return getClass(typ.Base)
-	case *phptype.Nullable:
-		return getClass(typ.Type)
-	case *phptype.Named:
-		return strings.Join(typ.Parts, `\`)
-	default:
-		return fmt.Sprintf("%T", typ)
-	}
-}
-
-func isBasicType(typ string) bool {
-	switch typ {
-	case "void", "never", "string":
-		return true
-	default:
-		return false
-	}
 }
