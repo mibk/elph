@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"os"
 	"slices"
 	"strings"
 
@@ -24,6 +25,9 @@ func (e *SyntaxError) Error() string {
 type parser struct {
 	scan *token.Scanner
 
+	filename string
+	warnOut  io.Writer
+
 	err error
 	tok token.Token
 	alt *token.Token // TODO: rm?
@@ -34,8 +38,12 @@ type parser struct {
 	params    []Param
 }
 
-func Parse(r io.Reader, php74Compat bool) (*File, error) {
-	p := &parser{scan: token.NewScanner(r, php74Compat)}
+func Parse(r io.Reader, filename string, php74Compat bool) (*File, error) {
+	return parsePHP(r, filename, php74Compat, os.Stderr)
+}
+
+func parsePHP(r io.Reader, filename string, php74Compat bool, warnOut io.Writer) (*File, error) {
+	p := &parser{scan: token.NewScanner(r, php74Compat), filename: filename, warnOut: warnOut}
 	p.use = make(map[string]string)
 	p.next() // init
 	doc := p.parseFile()
@@ -148,7 +156,7 @@ func (p *parser) parseScope(open token.Type) *scope {
 
 func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 	s = new(Stmt)
-	var docComment string
+	var docComment token.Token
 	afterFunc := false
 	for {
 		// TODO: make these keywords indents: token.Arrow, token.DoubleColon
@@ -167,8 +175,7 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 			}
 			s.Nodes = append(s.Nodes, &Debug{Var: strings.TrimSpace(v), Pos: pos})
 		case token.DocComment:
-			docComment = p.tok.Text
-			// log.Println(docComment)
+			docComment = p.tok
 			p.next()
 		case token.Namespace:
 			p.next()
@@ -195,12 +202,7 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 				sub := p.parseScope(token.Lbrace)
 				s.Nodes = append(s.Nodes, sub)
 
-				if doc != "" {
-					b, err := phpdoc.Parse(strings.NewReader(doc))
-					if err != nil {
-						p.errorf("parsing doc %q: %v", doc, err)
-						return nil
-					}
+				if b := p.parsePHPDoc(doc); b != nil {
 					for _, line := range b.Lines {
 						if tag, ok := line.(*phpdoc.PropertyTag); ok {
 							m := &Member{
@@ -247,13 +249,39 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 				return s
 			}
 			p.next()
-			docComment = ""
+			docComment = token.Token{Type: token.Illegal}
 		}
 	}
 }
 
 // TODO: Is this global var necessary/convenient?
 var universe = make(map[string]typeDecl)
+
+func (p *parser) parsePHPDoc(doc token.Token) *phpdoc.Block {
+	if doc.Type != token.DocComment {
+		return nil
+	}
+
+	b, err := phpdoc.Parse(strings.NewReader(doc.Text))
+	if err != nil {
+		pos := doc.Pos
+		if se, ok := err.(*phpdoc.SyntaxError); ok {
+
+			if se.Line == 1 {
+				pos.Column += se.Column - 1
+			} else {
+				pos.Line += se.Line - 1
+				pos.Column = se.Column
+			}
+
+			err = se.Err
+
+		}
+		fmt.Fprintf(p.warnOut, "%s:%s: [WARN] %v\n", p.filename, pos, err)
+		return nil
+	}
+	return b
+}
 
 func (p *parser) parseClass() *Class {
 	p.expect(token.Class)
@@ -302,7 +330,7 @@ func (p *parser) parseClass() *Class {
 	return c
 }
 
-func (p *parser) parseTrait(doc string) *Trait {
+func (p *parser) parseTrait(doc token.Token) *Trait {
 	p.expect(token.Trait)
 	name := p.tok
 	p.expect(token.Ident)
@@ -342,7 +370,7 @@ func (p *parser) parseInterface() *Class {
 	return i
 }
 
-func (p *parser) parseMember(doc string) {
+func (p *parser) parseMember(doc token.Token) {
 	p.next()
 
 	if p.got(token.Static) {
@@ -357,7 +385,7 @@ func (p *parser) parseMember(doc string) {
 	}
 }
 
-func (p *parser) parseFunction(doc string) {
+func (p *parser) parseFunction(doc token.Token) {
 	// We don't care whether the function returns a reference, or not.
 	p.consume(token.BitAnd)
 
@@ -375,12 +403,7 @@ func (p *parser) parseFunction(doc string) {
 	if p.got(token.Colon) {
 		typ = p.tryParseType()
 	}
-	if doc != "" {
-		b, err := phpdoc.Parse(strings.NewReader(doc))
-		if err != nil {
-			p.errorf("parsing doc %q: %v", doc, err)
-			return
-		}
+	if b := p.parsePHPDoc(doc); b != nil {
 		for _, line := range b.Lines {
 			if tag, ok := line.(*phpdoc.ReturnTag); ok {
 				typ = tag.Type
@@ -447,7 +470,7 @@ func (p *parser) parseParamList() {
 	}
 }
 
-func (p *parser) parseProperty(doc string) {
+func (p *parser) parseProperty(doc token.Token) {
 	typ := p.tryParseType()
 
 	def := p.tok
@@ -455,12 +478,7 @@ func (p *parser) parseProperty(doc string) {
 		return
 	}
 
-	if doc != "" {
-		b, err := phpdoc.Parse(strings.NewReader(doc))
-		if err != nil {
-			p.errorf("parsing doc %q: %v", doc, err)
-			return
-		}
+	if b := p.parsePHPDoc(doc); b != nil {
 		for _, line := range b.Lines {
 			if tag, ok := line.(*phpdoc.VarTag); ok {
 				typ = tag.Type

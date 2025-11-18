@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"io"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -31,12 +32,13 @@ func Test(t *testing.T) {
 
 			clear(universe)
 
+			var got, want strings.Builder
+
 			parsed := make(map[string]*File)
 			for _, f := range a.Files {
-				parsed[f.Name] = parseTestFile(t, f)
+				parsed[f.Name] = parseTestFile(t, f, &got)
 			}
 
-			var got, want strings.Builder
 			l := linter{
 				stdout:           &got,
 				scope:            make(map[string]string),
@@ -68,8 +70,8 @@ func Test(t *testing.T) {
 	}
 }
 
-func parseTestFile(t *testing.T, f txtar.File) *File {
-	file, err := Parse(bytes.NewReader(f.Data), false)
+func parseTestFile(t *testing.T, f txtar.File, warnOut io.Writer) *File {
+	file, err := parsePHP(bytes.NewReader(f.Data), f.Name, false, warnOut)
 	if se, ok := err.(*SyntaxError); ok {
 		t.Fatalf("%s:%d:%d: %v", f.Name, se.Line, se.Column, se.Err)
 	} else if err != nil {
