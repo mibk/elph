@@ -9,7 +9,7 @@ import (
 )
 
 func (p *parser) tryParseType() phptype.Type {
-	if p.tok.Type == token.Ident {
+	if p.tok.Type == token.Backslash || p.tok.Type == token.Ident {
 		name := p.parseQualifiedName()
 		name = p.fullyQualify(name)
 		typ := phptype.Named{Parts: strings.Split(name, `\`)}

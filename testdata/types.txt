@@ -4,6 +4,9 @@ a.php:14:3: $another is of type: string (DEBUG)
 a.php:22:3: $x is of type: int (DEBUG)
 a.php:29:3: $val is of type: string (DEBUG)
 
+% check b.php
+b.php:9:3: $a is of type: \stdClass (DEBUG)
+
 -- a.php --
 <?php
 
@@ -34,5 +37,17 @@ class Foo
 
 		$val = $this->process($x);
 		#debugType $val
+	}
+}
+-- b.php --
+<?php
+
+namespace Path\To\Module;
+
+class Bar
+{
+	private function watch(\stdClass $a, ?array $x, $y = 'default', $z = [])
+	{
+		#debugType $a
 	}
 }

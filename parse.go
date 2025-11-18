@@ -390,9 +390,18 @@ func (p *parser) parseParamList() {
 		}
 		typ := p.tryParseType()
 		name := p.tok.Text
-		p.expect(token.Var)
+		if !p.got(token.Var) {
+			// TODO: Unsupported syntax. Giving up.
+			p.next()
+			continue
+		}
 		class := p.getClass(typ)
 		p.params = append(p.params, Param{Name: name, Class: class})
+		if p.got(token.Assign) {
+			// TODO: Do not ignore the value.
+			p.next()
+			p.consume(token.Rbrack)
+		}
 		if !p.got(token.Comma) {
 			p.expect(token.Rparen)
 			return
