@@ -1,0 +1,23 @@
+% check a.php
+a.php:10:3: $name is of type: string (DEBUG)
+
+-- a.php --
+<?php
+
+class Foo
+{
+	private Stringable $str;
+
+	public function hi()
+	{
+		$name = $this->str->toString();
+		#debugType $name
+	}
+}
+-- util.php --
+<?php
+
+interface Stringable
+{
+	public function toString(): string;
+}

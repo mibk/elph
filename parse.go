@@ -215,6 +215,10 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 			if c := p.parseTrait(docComment); c != nil {
 				s.Nodes = append(s.Nodes, c)
 			}
+		case token.Interface:
+			if c := p.parseInterface(); c != nil {
+				s.Nodes = append(s.Nodes, c)
+			}
 		case token.Private, token.Protected, token.Public:
 			p.parseMember(docComment)
 		case token.Function:
@@ -314,6 +318,25 @@ func (p *parser) parseTrait(doc string) *Trait {
 
 	// TODO: Doc comment.
 	return t
+}
+
+func (p *parser) parseInterface() *Class {
+	p.expect(token.Interface)
+	name := p.tok
+	p.expect(token.Ident)
+	p.thisClass = name.Text
+	if p.namespace != "" {
+		p.thisClass = p.namespace + `\` + p.thisClass
+	}
+	// log.Println("INTERFACE", p.thisClass)
+
+	if _, ok := universe[p.thisClass]; ok {
+		p.errorf("type %v already defined", p.thisClass)
+		return nil
+	}
+	i := &Class{Name: p.thisClass, Members: make(map[string]*Member)}
+	universe[p.thisClass] = i
+	return i
 }
 
 func (p *parser) parseMember(doc string) {
