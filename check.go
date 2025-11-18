@@ -139,7 +139,7 @@ func (l *linter) checkClassMember(pos token.Pos, class, member string) string {
 	c, ok := universe[class].(*Class)
 	if !ok {
 		l.reportf(pos, "class `%v` not found", class)
-		return "<unknown-class>"
+		return "\\stdClass"
 	}
 
 	for _, name := range c.Traits {
