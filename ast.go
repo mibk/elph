@@ -14,7 +14,13 @@ type File struct {
 
 type scope struct {
 	Open, close token.Type
+	Params      []Param
 	Stmts       []*Stmt
+}
+
+type Param struct {
+	Name  string
+	Class string
 }
 
 type Debug struct {

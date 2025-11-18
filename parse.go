@@ -31,6 +31,7 @@ type parser struct {
 	namespace string
 	use       map[string]string
 	thisClass string
+	params    []Param
 }
 
 func Parse(r io.Reader, php74Compat bool) (*File, error) {
@@ -116,6 +117,8 @@ func (p *parser) parseScope(open token.Type) *scope {
 	case token.OpenTag:
 		s.close = token.EOF
 	case token.Lbrace:
+		s.Params = p.params
+		p.params = nil
 		s.close = token.Rbrace
 	case token.Lparen:
 		s.close = token.Rparen
@@ -335,9 +338,7 @@ func (p *parser) parseFunction(doc string) {
 	def := p.tok
 	p.expect(token.Ident)
 
-	// Skip params for now.
-	p.expect(token.Lparen)
-	p.parseScope(token.Lparen)
+	p.parseParamList()
 
 	var typ phptype.Type
 	if p.got(token.Colon) {
@@ -372,6 +373,30 @@ func (p *parser) parseFunction(doc string) {
 	m := Member{Name: def.Text, Type: typ, Class: class}
 	if err := c.addMember(&m); err != nil {
 		p.errorf("%v", err)
+	}
+}
+
+func (p *parser) parseParamList() {
+	p.params = nil
+	p.expect(token.Lparen)
+	for {
+		switch p.tok.Type {
+		case token.EOF:
+			p.expect(token.Rparen)
+			return
+		case token.Rparen:
+			p.next()
+			return
+		}
+		typ := p.tryParseType()
+		name := p.tok.Text
+		p.expect(token.Var)
+		class := p.getClass(typ)
+		p.params = append(p.params, Param{Name: name, Class: class})
+		if !p.got(token.Comma) {
+			p.expect(token.Rparen)
+			return
+		}
 	}
 }
 

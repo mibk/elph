@@ -1,7 +1,8 @@
 % check a.php
 a.php:13:3: $n is of type: string (DEBUG)
-a.php:21:3: $x is of type: int (DEBUG)
-a.php:28:3: $val is of type: string (DEBUG)
+a.php:14:3: $another is of type: string (DEBUG)
+a.php:22:3: $x is of type: int (DEBUG)
+a.php:29:3: $val is of type: string (DEBUG)
 
 -- a.php --
 <?php
@@ -17,6 +18,7 @@ class Foo
 	{
 		$n = $this->name;
 		#debugType $n
+		#debugType $another
 	}
 
 	public void $number;
