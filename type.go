@@ -35,11 +35,13 @@ func (p *parser) fullyQualify(name string) string {
 	if strings.HasPrefix(name, `\`) || isBasicType(name) {
 		return name
 	}
-
 	if ns, rest, ok := strings.Cut(name, `\`); ok {
 		if tr, ok := p.use[ns]; ok {
 			return tr + `\` + rest
 		}
+	}
+	if tr, ok := p.use[name]; ok {
+		return tr
 	}
 	if p.namespace != "" {
 		name = p.namespace + `\` + name

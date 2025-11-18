@@ -1,6 +1,9 @@
 % check a.php
 a.php:12:1: $bar is of type: Path\To\Module\Bar (DEBUG)
 
+% check b.php
+b.php:12:1: $bar is of type: Path\To\Module\Bar (DEBUG)
+
 -- a.php --
 <?php
 
@@ -9,6 +12,19 @@ namespace Path\To;
 class View
 {
 	public function getInstance(): Module\Bar;
+}
+
+$v = new View;
+$bar = $v->getInstance();
+#debugType $bar
+-- b.php --
+<?php
+
+use Path\To\Module\Bar;
+
+class View
+{
+	public function getInstance(): Bar;
 }
 
 $v = new View;
