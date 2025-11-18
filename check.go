@@ -131,10 +131,10 @@ func (l *linter) checkMemberAccess(a *MemberAccess) string {
 		// All member access allowed.
 		return x
 	}
-	return l.checkClassMember(a.Pos(), x, a.Name)
+	return l.checkClassMember(a.Pos(), x, x, a.Name)
 }
 
-func (l *linter) checkClassMember(pos token.Pos, class, member string) string {
+func (l *linter) checkClassMember(pos token.Pos, originalClass, class, member string) string {
 	// TODO: Different error if entity exists but is not a class?
 	c, ok := universe[class].(*Class)
 	if !ok {
@@ -158,10 +158,10 @@ func (l *linter) checkClassMember(pos token.Pos, class, member string) string {
 	m, ok := c.Members[member]
 	for !ok && c.Extends != "" {
 		parent := strings.TrimPrefix(c.Extends, `\`)
-		return l.checkClassMember(pos, parent, member)
+		return l.checkClassMember(pos, originalClass, parent, member)
 	}
 	if !ok {
-		l.reportf(pos, "class member `%v::%v` does not exist", c.Name, member)
+		l.reportf(pos, "class member `%v::%v` does not exist", originalClass, member)
 		return "\\stdClass"
 	}
 	return m.Class
