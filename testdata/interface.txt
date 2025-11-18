@@ -1,5 +1,6 @@
 % check a.php
 a.php:10:3: $name is of type: string (DEBUG)
+a.php:13:3: $cnt is of type: int (DEBUG)
 
 -- a.php --
 <?php
@@ -12,6 +13,9 @@ class Foo
 	{
 		$name = $this->str->toString();
 		#debugType $name
+
+		$cnt = $this->str->charCount();
+		#debugType $cnt
 	}
 }
 -- util.php --
@@ -20,4 +24,6 @@ class Foo
 interface Stringable
 {
 	public function toString(): string;
+
+	function charCount(): int;
 }

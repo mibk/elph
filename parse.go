@@ -222,9 +222,10 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 		case token.Private, token.Protected, token.Public:
 			p.parseMember(docComment)
 		case token.Function:
+			p.next()
+			p.parseFunction(docComment)
 			// Disarm parsing 'use' stmt after 'function' for now.
 			afterFunc = true
-			p.next()
 		case token.Lparen:
 			p.next()
 			sub := p.parseScope(typ)
@@ -362,8 +363,10 @@ func (p *parser) parseFunction(doc string) {
 		p.tok.Type = token.Ident
 	}
 	def := p.tok
-	p.expect(token.Ident)
-
+	if !p.got(token.Ident) {
+		// TODO: Anonymous function not yet supported.
+		return
+	}
 	p.parseParamList()
 
 	var typ phptype.Type
