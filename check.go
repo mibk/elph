@@ -69,9 +69,10 @@ func (l *linter) check(x any) {
 			l.check(n)
 		}
 	case *AssignExpr:
-		l.findVarType(x)
 		l.check(x.Left)
-		l.check(x.Right)
+		if checked := l.findVarType(x); !checked {
+			l.check(x.Right)
+		}
 	case *MemberAccess:
 		// dump.Encode(x)
 		l.checkMemberAccess(x)
@@ -80,10 +81,10 @@ func (l *linter) check(x any) {
 	}
 }
 
-func (l *linter) findVarType(a *AssignExpr) {
+func (l *linter) findVarType(a *AssignExpr) (checked bool) {
 	v, ok := a.Left.(*VarExpr)
 	if !ok {
-		return
+		return false
 	}
 
 	class := "<unknown-val>"
@@ -93,8 +94,8 @@ func (l *linter) findVarType(a *AssignExpr) {
 	case *VarExpr:
 		class = cmp.Or(l.scope[val.Name], class)
 	case *MemberAccess:
-		// TODO: Don't check twice.
 		class = l.checkMemberAccess(val)
+		checked = true
 	}
 
 	if class == "void" {
@@ -103,6 +104,7 @@ func (l *linter) findVarType(a *AssignExpr) {
 	}
 
 	l.scope[v.Name] = class
+	return checked
 }
 
 func (l *linter) checkMemberAccess(a *MemberAccess) string {
