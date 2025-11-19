@@ -419,7 +419,7 @@ func (p *parser) parseFunction(doc token.Token) {
 
 	c, _ := universe[p.thisClass]
 	if c == nil {
-		p.errorf("unknown class %v", p.thisClass)
+		// TODO: Add support for regular functions.
 		return
 	}
 
@@ -493,7 +493,7 @@ func (p *parser) parseProperty(doc token.Token) {
 
 	c, _ := universe[p.thisClass]
 	if c == nil {
-		p.errorf("unknown class %v", p.thisClass)
+		p.errorf("not in class context")
 		return
 	}
 

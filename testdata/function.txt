@@ -1,0 +1,15 @@
+% check a.php
+a.php:5:2: $s is of type: string (DEBUG)
+a.php:9:1: $i is of type: <unknown-val> (DEBUG)
+# NOTE: Functions aren't supported for now.
+
+-- a.php --
+<?php
+
+function convert(string $s): int
+{
+	#debugType $s
+}
+
+$i = convert('three');
+#debugType $i
