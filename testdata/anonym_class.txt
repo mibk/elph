@@ -1,0 +1,9 @@
+% check a.php
+a.php:5:1: $x is of type: stdClass (DEBUG)
+
+-- a.php --
+<?php
+
+$x = new class extends \stdClass {
+};
+#debugType $x

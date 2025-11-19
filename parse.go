@@ -520,6 +520,11 @@ func (p *parser) parseExpr() Expr {
 }
 
 func (p *parser) parseNewInstance() Expr {
+	if p.got(token.Class) {
+		// TODO: Add support for anonymous clases later.
+		p.consume(token.Extends)
+		return &NewInstance{Class: "stdClass"}
+	}
 	name := p.parseQualifiedName()
 	if name == "" {
 		p.expect(token.Ident)
