@@ -9,6 +9,9 @@ import (
 )
 
 func (p *parser) tryParseType() phptype.Type {
+	if p.got(token.Static) {
+		return &phptype.Named{Parts: []string{"static"}}
+	}
 	if p.tok.Type == token.Backslash || p.tok.Type == token.Ident {
 		name := p.parseQualifiedName()
 		typ := phptype.Named{Parts: strings.Split(name, `\`)}
@@ -79,7 +82,7 @@ func getClass(typ phptype.Type) string {
 
 func isBasicType(typ string) bool {
 	switch typ {
-	case "void", "never", "string":
+	case "void", "never", "static", "string":
 		return true
 	default:
 		return false

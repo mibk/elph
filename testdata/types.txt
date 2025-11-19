@@ -7,6 +7,9 @@ a.php:29:3: $val is of type: string (DEBUG)
 % check b.php
 b.php:9:3: $a is of type: \stdClass (DEBUG)
 
+% check c.php
+c.php:16:1: $i is of type: Employees\Worker (DEBUG)
+
 -- a.php --
 <?php
 
@@ -53,3 +56,20 @@ class Bar
 
 	private function switch($msg = Foo\Bar::BAZ_CONST);
 }
+-- c.php --
+<?php
+
+namespace Employees;
+
+class Person
+{
+	public function identity(): static;
+}
+
+class Worker extends Person
+{
+}
+
+$w = new Worker;
+$i = $w->identity();
+#debugType $i

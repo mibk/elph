@@ -183,5 +183,9 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class, member st
 		l.reportf(pos, "class %s `%v::%v` does not exist", memberType, originalClass, member)
 		return "\\stdClass"
 	}
+	if memberClass == "static" {
+		// TODO: Doesn't file like the right place for this.
+		return originalClass
+	}
 	return memberClass
 }
