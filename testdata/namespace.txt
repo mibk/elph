@@ -34,6 +34,7 @@ $bar = $v->getInstance();
 <?php
 
 namespace Path\To\Module;
+use function is_array;
 
 class Bar
 {
