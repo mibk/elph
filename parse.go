@@ -523,9 +523,12 @@ func (p *parser) parseNewInstance() Expr {
 	if p.got(token.Static) {
 		return &NewInstance{Class: p.thisClass}
 	}
-	if p.got(token.Class) {
+	switch {
+	case p.got(token.Class):
 		// TODO: Add support for anonymous clases later.
 		p.consume(token.Extends)
+		fallthrough
+	case p.got(token.Var):
 		return &NewInstance{Class: "stdClass"}
 	}
 	name := p.parseQualifiedName()
