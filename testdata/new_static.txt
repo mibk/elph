@@ -1,0 +1,16 @@
+% check a.php
+a.php:10:3: $x is of type: Module\Submodule\Foo (DEBUG)
+
+-- a.php --
+<?php
+
+namespace Module\Submodule;
+
+class Foo
+{
+	public function init()
+	{
+		$x = new static();
+		#debugType $x
+	}
+}

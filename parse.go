@@ -520,6 +520,9 @@ func (p *parser) parseExpr() Expr {
 }
 
 func (p *parser) parseNewInstance() Expr {
+	if p.got(token.Static) {
+		return &NewInstance{Class: p.thisClass}
+	}
 	if p.got(token.Class) {
 		// TODO: Add support for anonymous clases later.
 		p.consume(token.Extends)
