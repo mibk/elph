@@ -554,6 +554,9 @@ func (p *parser) parseVarExpr() Expr {
 
 func (p *parser) parseMemberAccess(x Expr) Expr {
 	a := &MemberAccess{Rcvr: x, NamePos: p.tok.Pos, Name: p.tok.Text}
+	if p.tok.Type.IsKeyword() {
+		p.tok.Type = token.Ident
+	}
 	if p.got(token.Ident) {
 		// Skip params.
 		if p.got(token.Lparen) {
@@ -562,6 +565,7 @@ func (p *parser) parseMemberAccess(x Expr) Expr {
 		}
 		return a
 	}
+	// TODO: This doesn't seem like a good default.
 	return x
 }
 

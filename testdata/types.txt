@@ -2,10 +2,12 @@
 a.php:13:3: $n is of type: string (DEBUG)
 a.php:14:3: $another is of type: string (DEBUG)
 a.php:22:3: $x is of type: int (DEBUG)
+a.php:24:10: class method `Foo::do` does not exist
 a.php:29:3: $val is of type: string (DEBUG)
 
 % check b.php
 b.php:9:3: $a is of type: \stdClass (DEBUG)
+b.php:17:1: $i is of type: int (DEBUG)
 
 % check c.php
 c.php:16:1: $i is of type: Employees\Worker (DEBUG)
@@ -54,8 +56,12 @@ class Bar
 		#debugType $a
 	}
 
-	private function switch($msg = Foo\Bar::BAZ_CONST);
+	private function switch($msg = Foo\Bar::BAZ_CONST): int;
 }
+
+$b = new Bar;
+$i = $b->switch();
+#debugType $i
 -- c.php --
 <?php
 
