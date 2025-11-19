@@ -1,6 +1,6 @@
 % check a.php
 a.php:4:13: cannot assign 'void' to $x
-a.php:11:13: class member `Repo::notExist` does not exist
+a.php:11:13: class property `Repo::notExist` does not exist
 a.php:13:18: class `Instance` not found
 
 -- a.php --

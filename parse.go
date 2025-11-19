@@ -205,12 +205,12 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 				if b := p.parsePHPDoc(doc); b != nil {
 					for _, line := range b.Lines {
 						if tag, ok := line.(*phpdoc.PropertyTag); ok {
-							m := &Member{
+							m := &Property{
 								Name:  strings.TrimPrefix(tag.Var, "$"),
 								Type:  tag.Type,
 								Class: p.getClass(tag.Type),
 							}
-							c.Members[m.Name] = m
+							c.Properties[m.Name] = m
 						}
 					}
 				}
@@ -300,7 +300,7 @@ func (p *parser) parseClass() *Class {
 		p.errorf("type %v already defined", p.thisClass)
 		return nil
 	}
-	c := &Class{Name: p.thisClass, Members: make(map[string]*Member)}
+	c := &Class{Name: p.thisClass, Properties: make(map[string]*Property), Methods: make(map[string]*Function)}
 	universe[p.thisClass] = c
 
 	if p.got(token.Extends) {
@@ -344,7 +344,7 @@ func (p *parser) parseTrait(doc token.Token) *Trait {
 		p.errorf("type %v already defined", p.thisClass)
 		return nil
 	}
-	t := &Trait{Name: p.thisClass, Members: make(map[string]*Member)}
+	t := &Trait{Name: p.thisClass, Properties: make(map[string]*Property), Methods: make(map[string]*Function)}
 	universe[p.thisClass] = t
 
 	// TODO: Doc comment.
@@ -365,7 +365,7 @@ func (p *parser) parseInterface() *Class {
 		p.errorf("type %v already defined", p.thisClass)
 		return nil
 	}
-	i := &Class{Name: p.thisClass, Members: make(map[string]*Member)}
+	i := &Class{Name: p.thisClass, Methods: make(map[string]*Function)}
 	universe[p.thisClass] = i
 	return i
 }
@@ -424,8 +424,8 @@ func (p *parser) parseFunction(doc token.Token) {
 	}
 
 	class := p.getClass(typ)
-	m := Member{Name: def.Text, Type: typ, Class: class}
-	if err := c.addMember(&m); err != nil {
+	m := Function{Name: def.Text, Type: typ, Class: class}
+	if err := c.addMethod(&m); err != nil {
 		p.errorf("%v", err)
 	}
 }
@@ -499,8 +499,8 @@ func (p *parser) parseProperty(doc token.Token) {
 
 	name := strings.TrimPrefix(def.Text, "$")
 	class := p.getClass(typ)
-	m := Member{Name: name, Type: typ, Class: class}
-	if err := c.addMember(&m); err != nil {
+	m := Property{Name: name, Type: typ, Class: class}
+	if err := c.addProperty(&m); err != nil {
 		p.errorf("%v", err)
 	}
 }
@@ -546,6 +546,7 @@ func (p *parser) parseMemberAccess(x Expr) Expr {
 	if p.got(token.Ident) {
 		// Skip params.
 		if p.got(token.Lparen) {
+			a.MethodCall = true
 			p.parseScope(token.Lparen)
 		}
 		return a

@@ -1,5 +1,5 @@
 % check a.php
-a.php:4:8: class member `Repo::notExist` does not exist
+a.php:4:8: class method `Repo::notExist` does not exist
 a.php:5:15: cannot call method on 'void'
 
 -- a.php --

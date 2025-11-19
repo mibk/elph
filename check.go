@@ -131,10 +131,10 @@ func (l *linter) checkMemberAccess(a *MemberAccess) string {
 		// All member access allowed.
 		return x
 	}
-	return l.checkClassMember(a.Pos(), x, x, a.Name)
+	return l.checkClassMember(a.Pos(), x, x, a.Name, a.MethodCall)
 }
 
-func (l *linter) checkClassMember(pos token.Pos, originalClass, class, member string) string {
+func (l *linter) checkClassMember(pos token.Pos, originalClass, class, member string, methodCall bool) string {
 	// TODO: Different error if entity exists but is not a class?
 	c, ok := universe[class].(*Class)
 	if !ok {
@@ -148,21 +148,40 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class, member st
 			l.reportf(pos, "trait `%v` not found", name)
 			continue
 		}
-		for _, m := range t.Members {
-			// TODO: Check whether member not defined?
-			c.addMember(m)
+		for _, m := range t.Properties {
+			// TODO: Check whether property not already defined?
+			c.addProperty(m)
+		}
+		for _, m := range t.Methods {
+			// TODO: Check whether method not already defined?
+			c.addMethod(m)
 		}
 	}
 	c.Traits = nil // Mark as process.
 
-	m, ok := c.Members[member]
-	for !ok && c.Extends != "" {
-		parent := strings.TrimPrefix(c.Extends, `\`)
-		return l.checkClassMember(pos, originalClass, parent, member)
+	var memberClass string
+	var memberType string
+	if methodCall {
+		memberType = "method"
+		m := c.Methods[member]
+		if m != nil {
+			memberClass = m.Class
+		}
+	} else {
+		memberType = "property"
+		p := c.Properties[member]
+		if p != nil {
+			memberClass = p.Class
+		}
 	}
-	if !ok {
-		l.reportf(pos, "class member `%v::%v` does not exist", originalClass, member)
+
+	for memberClass == "" && c.Extends != "" {
+		parent := strings.TrimPrefix(c.Extends, `\`)
+		return l.checkClassMember(pos, originalClass, parent, member, methodCall)
+	}
+	if memberClass == "" {
+		l.reportf(pos, "class %s `%v::%v` does not exist", memberType, originalClass, member)
 		return "\\stdClass"
 	}
-	return m.Class
+	return memberClass
 }

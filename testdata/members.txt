@@ -1,0 +1,23 @@
+% check a.php
+a.php:17:1: $x is of type: string (DEBUG)
+a.php:18:1: $y is of type: bool (DEBUG)
+
+-- a.php --
+<?php
+
+class Foo
+{
+	protected string $check;
+
+	public function check(): bool
+	{
+		return $this->check === 'OK';
+	}
+}
+
+$foo = new Foo;
+$x = $foo->check;
+$y = $foo->check();
+
+#debugType $x
+#debugType $y

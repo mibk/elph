@@ -33,38 +33,63 @@ type Stmt struct {
 }
 
 type typeDecl interface {
-	addMember(m *Member) error
+	addProperty(m *Property) error
+	addMethod(m *Function) error
 }
 
 type Class struct {
-	Name    string
-	Extends string // or empty
-	Traits  []string
-	Members map[string]*Member
+	Name       string
+	Extends    string // or empty
+	Traits     []string
+	Properties map[string]*Property
+	Methods    map[string]*Function
 }
 
-func (c *Class) addMember(m *Member) error {
-	if _, ok := c.Members[m.Name]; ok {
-		return fmt.Errorf("class %s already has %s", c.Name, m.Name)
+func (c *Class) addProperty(p *Property) error {
+	if _, ok := c.Properties[p.Name]; ok {
+		return fmt.Errorf("class %s already has property %s", c.Name, p.Name)
 	}
-	c.Members[m.Name] = m
+	c.Properties[p.Name] = p
+	return nil
+}
+
+func (c *Class) addMethod(m *Function) error {
+	if _, ok := c.Methods[m.Name]; ok {
+		return fmt.Errorf("class %s already has method %s", c.Name, m.Name)
+	}
+	c.Methods[m.Name] = m
 	return nil
 }
 
 type Trait struct {
-	Name    string
-	Members map[string]*Member
+	Name       string
+	Properties map[string]*Property
+	Methods    map[string]*Function
 }
 
-func (t *Trait) addMember(m *Member) error {
-	if _, ok := t.Members[m.Name]; ok {
+func (t *Trait) addProperty(m *Property) error {
+	if _, ok := t.Properties[m.Name]; ok {
 		return fmt.Errorf("trait %s already has %s", t.Name, m.Name)
 	}
-	t.Members[m.Name] = m
+	t.Properties[m.Name] = m
 	return nil
 }
 
-type Member struct {
+func (t *Trait) addMethod(m *Function) error {
+	if _, ok := t.Methods[m.Name]; ok {
+		return fmt.Errorf("class %s already has method %s", t.Name, m.Name)
+	}
+	t.Methods[m.Name] = m
+	return nil
+}
+
+type Property struct {
+	Name  string
+	Type  phptype.Type
+	Class string
+}
+
+type Function struct {
 	Name  string
 	Type  phptype.Type
 	Class string
@@ -89,9 +114,10 @@ type VarExpr struct {
 func (e *VarExpr) Pos() token.Pos { return e.Dollar }
 
 type MemberAccess struct {
-	Rcvr    Expr
-	NamePos token.Pos
-	Name    string
+	Rcvr       Expr
+	NamePos    token.Pos
+	Name       string
+	MethodCall bool
 }
 
 func (e *MemberAccess) Pos() token.Pos { return e.NamePos }
