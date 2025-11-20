@@ -1,0 +1,4 @@
+-- class.php --
+<?php
+
+$x = $this::class;

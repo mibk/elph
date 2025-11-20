@@ -248,6 +248,12 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 		case token.Var:
 			e := p.parseExpr()
 			s.Nodes = append(s.Nodes, e)
+		case token.DoubleColon:
+			p.next()
+			// Keywords after :: are idents.
+			if p.tok.Type.IsKeyword() {
+				p.tok.Type = token.Ident
+			}
 		default:
 			if slices.Contains(separators, typ) {
 				return s
