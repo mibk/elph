@@ -248,6 +248,9 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 		case token.Var:
 			e := p.parseExpr()
 			s.Nodes = append(s.Nodes, e)
+		case token.New:
+			p.next()
+			p.parseNewInstance()
 		case token.Arrow, token.QmarkArrow, token.DoubleColon:
 			p.next()
 			// Keywords after :: are idents.
@@ -501,6 +504,10 @@ func (p *parser) parseProperty(doc token.Token) {
 
 	c, _ := universe[p.thisClass]
 	if c == nil {
+		if strings.ContainsRune(p.thisClass, '@') {
+			// TODO: Add proper support for anonymous classes.
+			return
+		}
 		p.errorf("not in class context")
 		return
 	}

@@ -3,7 +3,7 @@ a.php:5:1: $x is of type: stdClass (DEBUG)
 a.php:9:1: $y is of type: stdClass (DEBUG)
 
 % check b.php
-b.php:26:1: $c is of type: string (DEBUG)
+b.php:32:1: $c is of type: string (DEBUG)
 
 -- a.php --
 <?php
@@ -28,9 +28,15 @@ class Foo
 	{
 		$x = new class
 		{
+			public string $id;
+
 			public function __construct()
 			{
 			}
+		}
+
+		return new class
+		{
 		}
 	}
 
