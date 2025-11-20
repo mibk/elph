@@ -35,6 +35,7 @@ type parser struct {
 	namespace string
 	use       map[string]string
 	thisClass string
+	nextClass string
 	params    []Param
 }
 
@@ -127,6 +128,9 @@ func (p *parser) parseScope(open token.Type) *scope {
 	case token.Lbrace:
 		s.Params = p.params
 		p.params = nil
+		backup := p.thisClass
+		p.thisClass = p.nextClass
+		defer func() { p.thisClass = backup }()
 		s.close = token.Rbrace
 	case token.Lparen:
 		s.close = token.Rparen
@@ -208,7 +212,7 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 							m := &Property{
 								Name:  strings.TrimPrefix(tag.Var, "$"),
 								Type:  tag.Type,
-								Class: p.getClass(tag.Type),
+								Class: p.getClass(c.Name, tag.Type),
 							}
 							c.Properties[m.Name] = m
 						}
@@ -286,10 +290,7 @@ func (p *parser) parsePHPDoc(doc token.Token) *phpdoc.Block {
 func (p *parser) parseClass() *Class {
 	p.expect(token.Class)
 	name := p.tok
-	if !p.got(token.Ident) {
-		// TODO: anonymous class
-		return nil
-	}
+	p.expect(token.Ident)
 	class := name.Text
 	if p.namespace != "" {
 		class = p.namespace + `\` + class
@@ -301,7 +302,7 @@ func (p *parser) parseClass() *Class {
 	}
 	c := &Class{Name: class, Properties: make(map[string]*Property), Methods: make(map[string]*Function)}
 	universe[class] = c
-	p.thisClass = class
+	p.nextClass = class
 
 	if p.got(token.Extends) {
 		e := p.parseQualifiedName()
@@ -345,7 +346,7 @@ func (p *parser) parseTrait(doc token.Token) *Trait {
 	}
 	t := &Trait{Name: class, Properties: make(map[string]*Property), Methods: make(map[string]*Function)}
 	universe[class] = t
-	p.thisClass = class
+	p.nextClass = class
 
 	// TODO: Doc comment.
 	return t
@@ -366,7 +367,7 @@ func (p *parser) parseInterface() *Class {
 	}
 	i := &Class{Name: class, Methods: make(map[string]*Function)}
 	universe[class] = i
-	p.thisClass = class
+	p.nextClass = class
 	return i
 }
 
@@ -423,7 +424,7 @@ func (p *parser) parseFunction(doc token.Token) {
 		return
 	}
 
-	class := p.getClass(typ)
+	class := p.getClass(p.thisClass, typ)
 	m := Function{Name: def.Text, Type: typ, Class: class}
 	if err := c.addMethod(&m); err != nil {
 		// TODO: Fix position of error.
@@ -450,7 +451,7 @@ func (p *parser) parseParamList() {
 			p.next()
 			continue
 		}
-		class := p.getClass(typ)
+		class := p.getClass(p.thisClass, typ)
 		p.params = append(p.params, Param{Name: name, Class: class})
 		if p.got(token.Assign) {
 		Skip:
@@ -499,7 +500,7 @@ func (p *parser) parseProperty(doc token.Token) {
 	}
 
 	name := strings.TrimPrefix(def.Text, "$")
-	class := p.getClass(typ)
+	class := p.getClass(p.thisClass, typ)
 	m := Property{Name: name, Type: typ, Class: class}
 	if err := c.addProperty(&m); err != nil {
 		// TODO: Fix position of error.
@@ -521,13 +522,16 @@ func (p *parser) parseExpr() Expr {
 	return e
 }
 
+var anonymousCount int
+
 func (p *parser) parseNewInstance() Expr {
 	if p.got(token.Static) {
 		return &NewInstance{Class: p.thisClass}
 	}
 	switch {
 	case p.got(token.Class):
-		// TODO: Add support for anonymous clases later.
+		anonymousCount++
+		p.nextClass = "Anonymous@" + fmt.Sprint(anonymousCount)
 		p.consume(token.Extends)
 		fallthrough
 	case p.got(token.Var):
@@ -571,10 +575,10 @@ func (p *parser) parseMemberAccess(x Expr) Expr {
 	return x
 }
 
-func (p *parser) getClass(typ phptype.Type) string {
+func (p *parser) getClass(thisClass string, typ phptype.Type) string {
 	class := getClass(typ)
 	if class == "self" {
-		return p.thisClass
+		return thisClass
 	}
 	class = p.fullyQualify(class)
 	return class

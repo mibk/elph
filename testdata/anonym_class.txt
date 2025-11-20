@@ -2,6 +2,9 @@
 a.php:5:1: $x is of type: stdClass (DEBUG)
 a.php:9:1: $y is of type: stdClass (DEBUG)
 
+% check b.php
+b.php:26:1: $c is of type: string (DEBUG)
+
 -- a.php --
 <?php
 
@@ -12,3 +15,30 @@ $x = new class extends \stdClass {
 $class = 'It\Does\Not\Matter';
 $y = new $class;
 #debugType $y
+-- b.php --
+<?php
+
+class Foo
+{
+	public function __construct()
+	{
+	}
+
+	public function process()
+	{
+		$x = new class
+		{
+			public function __construct()
+			{
+			}
+		}
+	}
+
+	public function check(): string
+	{
+	}
+}
+
+$foo = new Foo;
+$c = $foo->check();
+#debugType $c
