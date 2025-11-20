@@ -290,18 +290,18 @@ func (p *parser) parseClass() *Class {
 		// TODO: anonymous class
 		return nil
 	}
-	p.thisClass = name.Text
+	class := name.Text
 	if p.namespace != "" {
-		p.thisClass = p.namespace + `\` + p.thisClass
+		class = p.namespace + `\` + class
 	}
-	// log.Println("CLASS", p.thisClass)
 
-	if _, ok := universe[p.thisClass]; ok {
-		p.errorf("type %v already defined", p.thisClass)
+	if _, ok := universe[class]; ok {
+		p.errorf("type %v already defined", class)
 		return nil
 	}
-	c := &Class{Name: p.thisClass, Properties: make(map[string]*Property), Methods: make(map[string]*Function)}
-	universe[p.thisClass] = c
+	c := &Class{Name: class, Properties: make(map[string]*Property), Methods: make(map[string]*Function)}
+	universe[class] = c
+	p.thisClass = class
 
 	if p.got(token.Extends) {
 		e := p.parseQualifiedName()
@@ -334,18 +334,18 @@ func (p *parser) parseTrait(doc token.Token) *Trait {
 	p.expect(token.Trait)
 	name := p.tok
 	p.expect(token.Ident)
-	p.thisClass = name.Text
+	class := name.Text
 	if p.namespace != "" {
-		p.thisClass = p.namespace + `\` + p.thisClass
+		class = p.namespace + `\` + class
 	}
-	// log.Println("TRAIT", p.thisClass)
 
-	if _, ok := universe[p.thisClass]; ok {
-		p.errorf("type %v already defined", p.thisClass)
+	if _, ok := universe[class]; ok {
+		p.errorf("type %v already defined", class)
 		return nil
 	}
-	t := &Trait{Name: p.thisClass, Properties: make(map[string]*Property), Methods: make(map[string]*Function)}
-	universe[p.thisClass] = t
+	t := &Trait{Name: class, Properties: make(map[string]*Property), Methods: make(map[string]*Function)}
+	universe[class] = t
+	p.thisClass = class
 
 	// TODO: Doc comment.
 	return t
@@ -355,18 +355,18 @@ func (p *parser) parseInterface() *Class {
 	p.expect(token.Interface)
 	name := p.tok
 	p.expect(token.Ident)
-	p.thisClass = name.Text
+	class := name.Text
 	if p.namespace != "" {
-		p.thisClass = p.namespace + `\` + p.thisClass
+		class = p.namespace + `\` + class
 	}
-	// log.Println("INTERFACE", p.thisClass)
 
-	if _, ok := universe[p.thisClass]; ok {
-		p.errorf("type %v already defined", p.thisClass)
+	if _, ok := universe[class]; ok {
+		p.errorf("type %v already defined", class)
 		return nil
 	}
-	i := &Class{Name: p.thisClass, Methods: make(map[string]*Function)}
-	universe[p.thisClass] = i
+	i := &Class{Name: class, Methods: make(map[string]*Function)}
+	universe[class] = i
+	p.thisClass = class
 	return i
 }
 
@@ -426,6 +426,7 @@ func (p *parser) parseFunction(doc token.Token) {
 	class := p.getClass(typ)
 	m := Function{Name: def.Text, Type: typ, Class: class}
 	if err := c.addMethod(&m); err != nil {
+		// TODO: Fix position of error.
 		p.errorf("%v", err)
 	}
 }
@@ -501,6 +502,7 @@ func (p *parser) parseProperty(doc token.Token) {
 	class := p.getClass(typ)
 	m := Property{Name: name, Type: typ, Class: class}
 	if err := c.addProperty(&m); err != nil {
+		// TODO: Fix position of error.
 		p.errorf("%v", err)
 	}
 }
