@@ -72,6 +72,7 @@ func (p *parser) next() {
 }
 
 func (p *parser) expect(typ token.Type) {
+	p.consume(token.Comment, token.Whitespace)
 	if p.tok.Type != typ {
 		p.errorf("expecting %v, found %v", typ, p.tok)
 	}

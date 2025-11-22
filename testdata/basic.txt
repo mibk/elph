@@ -24,7 +24,7 @@ namespace Foo;
 
 use Another\Bar;
 
-class Service
+class Service // Comment is ignored
 {
 	/** @var Bar\User */
 	public $user;
