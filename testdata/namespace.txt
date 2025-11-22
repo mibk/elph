@@ -47,6 +47,7 @@ $bar = new Other\Bar;
 namespace Path\To\Module;
 
 use function is_array;
+use const FOO_BAR;
 
 class Bar
 {

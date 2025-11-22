@@ -188,7 +188,7 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 			// log.Println("NAMESPACE", p.namespace)
 		case token.Use:
 			p.next()
-			if afterFunc || p.got(token.Function) {
+			if afterFunc || p.got(token.Function) || p.got(token.Const) {
 				continue
 			}
 			use := p.parseQualifiedName()
