@@ -22,3 +22,5 @@ foreach (['this', 'will', 'not', 'work'] as $s);
 foreach ($foo->names as $index => &$n) {
 	#debugType $n
 }
+
+foreach ($foo->names as [$bar, $baz]);
