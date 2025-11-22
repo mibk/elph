@@ -2,3 +2,4 @@
 <?php
 
 $x = $this::class;
+$y = self::foo()->class;
