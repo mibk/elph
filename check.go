@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"strings"
 	"unicode"
@@ -56,6 +57,11 @@ func (l *linter) check(x any) {
 		for _, stmt := range x.Stmts {
 			l.check(stmt)
 		}
+	case *Foreach:
+		l.check(x.X)
+		v := x.Value
+		l.scope[v.Name] = v.Class
+		log.Println("@@", v.Name, v.Class)
 	case *Debug:
 		class := l.scope[x.Var]
 		if class != "" {

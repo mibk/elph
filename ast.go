@@ -95,6 +95,11 @@ type Function struct {
 	Class string
 }
 
+type Foreach struct {
+	X     Expr
+	Value Param
+}
+
 type Expr interface {
 	Pos() token.Pos
 }

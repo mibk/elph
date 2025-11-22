@@ -1,0 +1,17 @@
+% check a.php
+a.php:11:2: $name is of type: stdClass (DEBUG)
+# For now, it is just stdClass. TODO: Fix that.
+
+-- a.php --
+<?php
+
+class Foo
+{
+	/** @var string[] */
+	public $names;
+}
+
+$foo = new Foo;
+foreach ($foo->names as $name) {
+	#debugType $name
+}

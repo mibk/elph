@@ -239,6 +239,9 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 			p.parseFunction(docComment)
 			// Disarm parsing 'use' stmt after 'function' for now.
 			afterFunc = true
+		case token.Foreach:
+			f := p.parseForeach()
+			s.Nodes = append(s.Nodes, f)
 		case token.Lparen:
 			p.next()
 			sub := p.parseScope(typ)
@@ -527,6 +530,22 @@ func (p *parser) parseProperty(doc token.Token) {
 	if err := c.addProperty(&m); err != nil {
 		// TODO: Fix position of error.
 		p.errorf("%v", err)
+	}
+}
+
+func (p *parser) parseForeach() *Foreach {
+	p.expect(token.Foreach)
+	p.expect(token.Lparen)
+
+	x := p.parseExpr()
+	p.expect(token.As)
+
+	name := p.tok.Text
+	p.expect(token.Var)
+	p.expect(token.Rparen)
+	return &Foreach{
+		X:     x,
+		Value: Param{name, "stdClass"},
 	}
 }
 
