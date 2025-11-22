@@ -551,9 +551,11 @@ func (p *parser) parseForeach() *Foreach {
 		}
 	}
 
+	p.consume(token.BitAnd)
 	name := p.tok.Text
 	p.expect(token.Var)
 	if p.got(token.DoubleArrow) {
+		p.consume(token.BitAnd)
 		// We only care about value, not key.
 		name = p.tok.Text
 		p.expect(token.Var)
