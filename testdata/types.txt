@@ -56,7 +56,7 @@ class Bar
 		#debugType $a
 	}
 
-	private function switch($msg = Foo\Bar::BAZ_CONST, $opt = array('R'=>128)): int;
+	private function switch($msg = Foo\Bar::BAZ_CONST, $opt = array('R'=>128)): ?int;
 }
 
 $b = new Bar;

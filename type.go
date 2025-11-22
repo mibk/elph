@@ -9,6 +9,14 @@ import (
 )
 
 func (p *parser) tryParseType() phptype.Type {
+	if p.got(token.Qmark) {
+		typ := p.tryParseType()
+		if typ == nil {
+			p.errorf("expecting type def; found %s", p.tok)
+			return nil
+		}
+		return &phptype.Nullable{Type: typ}
+	}
 	if p.got(token.Static) {
 		return &phptype.Named{Parts: []string{"static"}}
 	}
