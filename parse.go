@@ -464,11 +464,15 @@ func (p *parser) parseParamList() {
 		p.params = append(p.params, Param{Name: name, Class: class})
 		if p.got(token.Assign) {
 		Skip:
-			// TODO: Do not ignore the value.
+			// TODO: Implement proper parsing of default values.
 			for {
 				switch p.tok.Type {
 				case token.EOF, token.Comma, token.Rparen:
 					break Skip
+				case token.Lparen:
+					// It must be array()
+					p.next()
+					p.parseScope(token.Lparen)
 				default:
 					p.next()
 				}
