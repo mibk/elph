@@ -33,7 +33,8 @@ func (p *parser) parseQualifiedName() string {
 	if p.got(token.Backslash) {
 		id.WriteRune('\\')
 	}
-	for {
+	// TODO: Do not allow { in all contexts.
+	for p.tok.Type != token.Lbrace {
 		id.WriteString(p.tok.Text)
 		if p.tok.Type.IsKeyword() {
 			p.tok.Type = token.Ident

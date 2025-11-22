@@ -191,18 +191,9 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 			if afterFunc || p.got(token.Function) || p.got(token.Const) {
 				continue
 			}
-			use := p.parseQualifiedName()
-			// log.Println("USE", use)
-			alias := use
-			if i := strings.LastIndexByte(alias, '\\'); i >= 0 {
-				alias = alias[i+1:]
+			for _, use := range p.parseUseStmt() {
+				p.use[use.Alias] = use.Namespace
 			}
-			if p.got(token.As) {
-				alias = p.tok.Text
-				p.expect(token.Ident)
-			}
-			p.expect(token.Semicolon)
-			p.use[alias] = use
 		case token.Abstract:
 			p.next()
 		case token.Class:
@@ -304,6 +295,46 @@ func (p *parser) parsePHPDoc(doc token.Token) *phpdoc.Block {
 		return nil
 	}
 	return b
+}
+
+func (p *parser) parseUseStmt() []UseStmt {
+	use := p.parseQualifiedName()
+	if p.got(token.Lbrace) {
+		return p.parseGroupedUseStmt(use)
+	}
+	alias := use
+	if i := strings.LastIndexByte(alias, '\\'); i >= 0 {
+		alias = alias[i+1:]
+	}
+	if p.got(token.As) {
+		alias = p.tok.Text
+		p.expect(token.Ident)
+	}
+	p.expect(token.Semicolon)
+	return []UseStmt{{Namespace: use, Alias: alias}}
+}
+
+func (p *parser) parseGroupedUseStmt(prefix string) []UseStmt {
+	var uses []UseStmt
+	for {
+		part := p.parseQualifiedName()
+		alias := part
+		if i := strings.LastIndexByte(alias, '\\'); i >= 0 {
+			alias = alias[i+1:]
+		}
+		if p.got(token.As) {
+			alias = p.tok.Text
+			p.expect(token.Ident)
+		}
+		uses = append(uses, UseStmt{Namespace: prefix + part, Alias: alias})
+		if p.got(token.Comma) {
+			continue
+		}
+		break
+	}
+
+	p.expect(token.Rbrace)
+	return uses
 }
 
 func (p *parser) parseClass() *Class {

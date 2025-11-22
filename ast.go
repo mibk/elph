@@ -12,6 +12,11 @@ type File struct {
 	Scope *scope
 }
 
+type UseStmt struct {
+	Namespace string
+	Alias     string
+}
+
 type scope struct {
 	Open, close token.Type
 	Params      []Param
