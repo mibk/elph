@@ -1,5 +1,7 @@
 -- class.php --
 <?php
 
+namespace Foo\Namespace;
+
 $x = $this::class;
 $y = self::foo()->class;
