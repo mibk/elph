@@ -15,3 +15,5 @@ $foo = new Foo;
 foreach ($foo->names as $name) {
 	#debugType $name
 }
+
+foreach (['this', 'will', 'not', 'work'] as $s);

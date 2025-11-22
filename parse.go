@@ -538,7 +538,18 @@ func (p *parser) parseForeach() *Foreach {
 	p.expect(token.Lparen)
 
 	x := p.parseExpr()
-	p.expect(token.As)
+	for !p.got(token.As) {
+		// Basically skip over all tokens.
+		switch typ := p.tok.Type; typ {
+		default:
+			p.next()
+			continue
+		case token.Lparen, token.Lbrack:
+			// TODO: Don't ignore these.
+			p.next()
+			p.parseScope(typ)
+		}
+	}
 
 	name := p.tok.Text
 	p.expect(token.Var)
