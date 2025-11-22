@@ -241,8 +241,9 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 			// Disarm parsing 'use' stmt after 'function' for now.
 			afterFunc = true
 		case token.Foreach:
-			f := p.parseForeach()
-			s.Nodes = append(s.Nodes, f)
+			if f := p.parseForeach(); f != nil {
+				s.Nodes = append(s.Nodes, f)
+			}
 		case token.Lparen:
 			p.next()
 			sub := p.parseScope(typ)
@@ -552,25 +553,38 @@ func (p *parser) parseForeach() *Foreach {
 		}
 	}
 
-	p.consume(token.BitAnd)
-	name := "list-comprehension"
-	if p.got(token.Lbrack) {
-		p.parseScope(token.Lbrack)
-	} else {
-		name = p.tok.Text
-		p.expect(token.Var)
-	}
+	param := p.parseForeachParam()
 	if p.got(token.DoubleArrow) {
-		p.consume(token.BitAnd)
 		// We only care about value, not key.
-		name = p.tok.Text
-		p.expect(token.Var)
+		param = p.parseForeachParam()
 	}
 	p.expect(token.Rparen)
+	if param == nil {
+		return nil
+	}
 	return &Foreach{
 		X:     x,
-		Value: Param{name, "stdClass"},
+		Value: *param,
 	}
+}
+
+func (p *parser) parseForeachParam() *Param {
+	if p.got(token.Lbrack) {
+		// Giving up.
+		p.parseScope(token.Lbrack)
+		return nil
+	}
+	p.consume(token.BitAnd)
+	param := Param{Name: p.tok.Text, Class: "stdClass"}
+	if !p.got(token.Var) {
+		return nil
+	}
+	if p.got(token.Lbrack) {
+		// Giving up.
+		p.parseScope(token.Lbrack)
+		return nil
+	}
+	return &param
 }
 
 func (p *parser) parseExpr() Expr {
