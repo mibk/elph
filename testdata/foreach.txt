@@ -1,5 +1,6 @@
 % check a.php
 a.php:11:2: $name is of type: stdClass (DEBUG)
+a.php:17:2: $n is of type: stdClass (DEBUG)
 # For now, it is just stdClass. TODO: Fix that.
 
 -- a.php --
@@ -17,3 +18,7 @@ foreach ($foo->names as $name) {
 }
 
 foreach (['this', 'will', 'not', 'work'] as $s);
+
+foreach ($foo->names as $index => $n) {
+	#debugType $n
+}

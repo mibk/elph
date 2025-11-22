@@ -553,6 +553,11 @@ func (p *parser) parseForeach() *Foreach {
 
 	name := p.tok.Text
 	p.expect(token.Var)
+	if p.got(token.DoubleArrow) {
+		// We only care about value, not key.
+		name = p.tok.Text
+		p.expect(token.Var)
+	}
 	p.expect(token.Rparen)
 	return &Foreach{
 		X:     x,
