@@ -1,5 +1,6 @@
 % check a.php
 a.php:10:1: $name is of type: string (DEBUG)
+a.php:12:1: $self is of type: Foo (DEBUG)
 
 % check b.php
 b.php:14:1: $name is of type: string (DEBUG)
@@ -15,6 +16,8 @@ class Foo
 $foo = new Foo;
 $name = $foo->name;
 #debugType $name
+$self = $foo->identity();
+#debugType $self
 -- b.php --
 <?php
 
@@ -39,4 +42,6 @@ trait Name
 {
 	/** @var string */
 	public $name;
+
+	public function identity(): self;
 }

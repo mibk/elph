@@ -155,7 +155,12 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class, member st
 		}
 		for _, m := range t.Methods {
 			// TODO: Check whether method not already defined?
-			c.addMethod(m)
+			m := *m
+			if m.Class == t.Name {
+				// TODO: This is hacky, and ugly.
+				m.Class = c.Name
+			}
+			c.addMethod(&m)
 		}
 	}
 	c.Traits = nil // Mark as process.
