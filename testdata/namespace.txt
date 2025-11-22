@@ -4,6 +4,10 @@ a.php:12:1: $bar is of type: Path\To\Module\Bar (DEBUG)
 % check b.php
 b.php:12:1: $bar is of type: Path\To\Module\Bar (DEBUG)
 
+% check c.php
+c.php:6:1: $bar is of type: Path\To\Module\Bar (DEBUG)
+
+
 -- a.php --
 <?php
 
@@ -30,10 +34,18 @@ class View
 $v = new View;
 $bar = $v->getInstance();
 #debugType $bar
+-- c.php --
+<?php
+
+use Path\To\Module as Other;
+
+$bar = new Other\Bar;
+#debugType $bar
 -- util.php --
 <?php
 
 namespace Path\To\Module;
+
 use function is_array;
 
 class Bar

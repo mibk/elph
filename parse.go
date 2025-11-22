@@ -192,11 +192,16 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 			}
 			use := p.parseQualifiedName()
 			// log.Println("USE", use)
-			last := use
-			if i := strings.LastIndexByte(last, '\\'); i >= 0 {
-				last = last[i+1:]
+			alias := use
+			if i := strings.LastIndexByte(alias, '\\'); i >= 0 {
+				alias = alias[i+1:]
 			}
-			p.use[last] = use
+			if p.got(token.As) {
+				alias = p.tok.Text
+				p.expect(token.Ident)
+			}
+			p.expect(token.Semicolon)
+			p.use[alias] = use
 		case token.Abstract:
 			p.next()
 		case token.Class:
