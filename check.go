@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"unicode"
 
 	"mibk.dev/phpfmt/token"
 )
@@ -163,15 +164,21 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class, member st
 	var memberType string
 	if methodCall {
 		memberType = "method"
-		m := c.Methods[member]
-		if m != nil {
+		if m := c.Methods[member]; m != nil {
 			memberClass = m.Class
 		}
 	} else {
 		memberType = "property"
-		p := c.Properties[member]
-		if p != nil {
+		if p := c.Properties[member]; p != nil {
 			memberClass = p.Class
+		} else {
+			// TODO: Let's assume, for now,
+			// that any property might be a get method.
+			getter := []rune(member)
+			getter[0] = unicode.ToUpper(getter[0])
+			if m := c.Methods["get"+string(getter)]; m != nil {
+				memberClass = m.Class
+			}
 		}
 	}
 
