@@ -164,7 +164,6 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 	var docComment token.Token
 	afterFunc := false
 	for {
-		// TODO: make these keywords indents: token.Arrow, token.DoubleColon
 		switch typ := p.tok.Type; typ {
 		case token.EOF, token.Rparen, token.Rbrace, token.Rbrack:
 			return s
@@ -252,9 +251,9 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 		case token.New:
 			p.next()
 			p.parseNewInstance()
-		case token.Arrow, token.QmarkArrow, token.DoubleColon:
+		case token.Arrow, token.QmarkArrow, token.DoubleColon, token.Const:
 			p.next()
-			// Keywords after :: are idents.
+			// Keywords after :: (and all the above tokens) are always idents.
 			if p.tok.Type.IsKeyword() {
 				p.tok.Type = token.Ident
 			}
