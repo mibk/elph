@@ -111,9 +111,9 @@ func (p *parser) errorf(format string, args ...any) {
 func (p *parser) parseFile() *File {
 	file := new(File)
 	p.consume(token.InlineHTML)
-	p.expect(token.OpenTag)
-
-	file.Scope = p.parseScope(token.OpenTag)
+	if p.got(token.OpenTag) {
+		file.Scope = p.parseScope(token.OpenTag)
+	}
 	return file
 }
 

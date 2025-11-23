@@ -11,3 +11,5 @@ class Foo
 	 */
 	public function clone(bool $throw = true): ?self
 }
+-- no_php_tag.php --
+<p>no PHP</p>
