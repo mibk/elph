@@ -33,17 +33,17 @@ func (p *parser) parseQualifiedName() string {
 	if p.got(token.Backslash) {
 		id.WriteRune('\\')
 	}
-	id.WriteString(p.tok.Text)
-	if p.tok.Type.IsKeyword() {
-		p.tok.Type = token.Ident
-	}
-	p.expect(token.Ident)
-	for p.got(token.Backslash) {
-		id.WriteString(`\` + p.tok.Text)
+	for {
+		id.WriteString(p.tok.Text)
 		if p.tok.Type.IsKeyword() {
 			p.tok.Type = token.Ident
 		}
 		p.expect(token.Ident)
+		if p.got(token.Backslash) {
+			id.WriteRune('\\')
+			continue
+		}
+		break
 	}
 	return id.String()
 }
