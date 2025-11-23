@@ -344,6 +344,10 @@ func (p *parser) parseClass() *Class {
 		// TODO: Are any other keywords allowed?
 		p.tok.Type = token.Ident
 	}
+	if p.got(token.Colon) {
+		// TODO: hack
+		return nil
+	}
 	p.expect(token.Ident)
 	class := name.Text
 	if p.namespace != "" {

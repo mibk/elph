@@ -11,3 +11,6 @@ class Enum
 {
 	const INTERFACE = 'Interface';
 }
+
+// Keyword is allowed as a named param.
+register(class: 'Enum');
