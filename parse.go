@@ -351,7 +351,7 @@ func (p *parser) parseClass() *Class {
 	}
 
 	if _, ok := universe[class]; ok {
-		p.errorf("type %v already defined", class)
+		p.errorf("type %v already defined in %s", class, p.filename)
 		return nil
 	}
 	c := &Class{Name: class, Properties: make(map[string]*Property), Methods: make(map[string]*Function)}
@@ -367,6 +367,8 @@ func (p *parser) parseClass() *Class {
 	// TODO: Choose a different aproach to skip tokens unil '{'?
 	if p.got(token.Implements) {
 		for {
+			// TODO: Fix this hack. Ignore all comments.
+			p.consume(token.Comment, token.Whitespace)
 			p.parseQualifiedName() // ignore these
 			if !p.got(token.Comma) {
 				break
@@ -395,7 +397,7 @@ func (p *parser) parseTrait(doc token.Token) *Trait {
 	}
 
 	if _, ok := universe[class]; ok {
-		p.errorf("type %v already defined", class)
+		p.errorf("type %v already defined in %s", class, p.filename)
 		return nil
 	}
 	t := &Trait{Name: class, Properties: make(map[string]*Property), Methods: make(map[string]*Function)}
@@ -416,7 +418,7 @@ func (p *parser) parseInterface() *Class {
 	}
 
 	if _, ok := universe[class]; ok {
-		p.errorf("type %v already defined", class)
+		p.errorf("type %v already defined in %s", class, p.filename)
 		return nil
 	}
 	i := &Class{Name: class, Methods: make(map[string]*Function)}

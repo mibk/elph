@@ -13,3 +13,9 @@ class Foo
 }
 -- no_php_tag.php --
 <p>no PHP</p>
+__ awkward_comments.txt --
+<?php
+
+class FooFoo implements \ArrayAccess, /* Countable, */ \IteratorAggregate
+{
+}
