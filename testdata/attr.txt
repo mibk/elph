@@ -1,0 +1,9 @@
+
+-- a.php --
+<?php
+
+function foo(
+	#[Ignore('it')]
+	$a,
+	$b,
+)
