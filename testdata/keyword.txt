@@ -5,3 +5,8 @@ namespace Foo\Namespace;
 
 $x = $this::class;
 $y = self::foo()->class;
+
+// Apparently "Enum" as a name is allowed.
+class Enum
+{
+}

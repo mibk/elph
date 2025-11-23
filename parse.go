@@ -340,6 +340,11 @@ func (p *parser) parseGroupedUseStmt(prefix string) []UseStmt {
 func (p *parser) parseClass() *Class {
 	p.expect(token.Class)
 	name := p.tok
+	switch p.tok.Type {
+	case token.Enum:
+		// TODO: Are any other keywords allowed?
+		p.tok.Type = token.Ident
+	}
 	p.expect(token.Ident)
 	class := name.Text
 	if p.namespace != "" {
@@ -493,6 +498,12 @@ func (p *parser) parseParamList() {
 		case token.Rparen:
 			p.next()
 			return
+		}
+		if p.got(token.Hash) {
+			// Attrs are ignored for now.
+			// TODO: Fix that?
+			p.expect(token.Lbrack)
+			p.parseScope(token.Lbrack)
 		}
 		typ := p.tryParseType()
 		name := p.tok.Text
