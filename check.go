@@ -103,6 +103,8 @@ func (l *linter) findVarType(a *AssignExpr) (class string, checked bool) {
 		checked = true
 	case *AssignExpr:
 		class, checked = l.findVarType(val)
+	case *IndexExpr:
+		class = "stdClass"
 	}
 
 	if class == "void" {
@@ -130,6 +132,9 @@ func (l *linter) checkMemberAccess(a *MemberAccess) string {
 		}
 	case *MemberAccess:
 		x = l.checkMemberAccess(r)
+	case *IndexExpr:
+		// TODO: Implement later.
+		x = "stdClass"
 	}
 
 	if isBasicType(x) {

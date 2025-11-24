@@ -1,5 +1,8 @@
 % check a.php
 a.php:10:1: $y is of type: string (DEBUG)
+a.php:13:1: $m is of type: stdClass (DEBUG)
+a.php:16:1: $n is of type: stdClass (DEBUG)
+
 
 -- a.php --
 <?php
@@ -12,3 +15,9 @@ class Foo
 $foo = new Foo;
 $y = $z['bar'] = $foo->name;
 #debugType $y
+
+$m = $z['bar'];
+#debugType $m
+
+$n = $z['bar']->foo();
+#debugType $n
