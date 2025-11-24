@@ -49,6 +49,8 @@ func (l *linter) check(x any) {
 		l.check(x.Scope)
 	case *Class:
 		l.thisClass = x
+	case *Trait:
+		// Ignore
 	case *scope:
 		for _, p := range x.Params {
 			l.scope[p.Name] = p.Class
