@@ -82,6 +82,11 @@ func getClass(typ phptype.Type) string {
 		return opts[0]
 	case *phptype.Generic:
 		return getClass(typ.Base)
+	case *phptype.Array:
+		// If there's a method on array,
+		// it's not actually an array.
+		// TODO: Add proper support.
+		return "\\stdClass"
 	case *phptype.Nullable:
 		return getClass(typ.Type)
 	case *phptype.Named:
