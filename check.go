@@ -203,6 +203,11 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class, member st
 
 	for memberClass == "" && c.Extends != "" {
 		parent := strings.TrimPrefix(c.Extends, `\`)
+		if parent == "stdClass" {
+			// All good.
+			// TODO: Really?
+			return parent
+		}
 		return l.checkClassMember(pos, originalClass, parent, member, methodCall)
 	}
 	if memberClass == "" {
