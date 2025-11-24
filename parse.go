@@ -677,6 +677,11 @@ func (p *parser) parseVarExpr() Expr {
 	if !p.got(token.Var) {
 		return &VarExpr{Name: "<not-a-class>"}
 	}
+	if p.got(token.Lbrack) {
+		// TODO: Also check index expr?
+		x = &IndexExpr{X: x}
+		p.parseScope(token.Lbrack)
+	}
 
 	for p.got(token.Arrow) || p.got(token.QmarkArrow) {
 		x = p.parseMemberAccess(x)

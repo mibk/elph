@@ -1,0 +1,14 @@
+% check a.php
+a.php:10:1: $y is of type: string (DEBUG)
+
+-- a.php --
+<?php
+
+class Foo
+{
+	protected string $name;
+}
+
+$foo = new Foo;
+$y = $z['bar'] = $foo->name;
+#debugType $y

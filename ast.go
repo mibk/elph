@@ -123,6 +123,12 @@ type VarExpr struct {
 
 func (e *VarExpr) Pos() token.Pos { return e.Dollar }
 
+type IndexExpr struct {
+	X Expr
+}
+
+func (e *IndexExpr) Pos() token.Pos { return e.X.Pos() }
+
 type MemberAccess struct {
 	Rcvr       Expr
 	NamePos    token.Pos

@@ -77,41 +77,44 @@ func (l *linter) check(x any) {
 		}
 	case *AssignExpr:
 		l.check(x.Left)
-		if checked := l.findVarType(x); !checked {
+		if _, checked := l.findVarType(x); !checked {
 			l.check(x.Right)
 		}
 	case *MemberAccess:
 		// dump.Encode(x)
 		l.checkMemberAccess(x)
+	case *IndexExpr:
+		l.check(x.X)
 	case *VarExpr:
 		// dump.Encode(x)
 	}
 }
 
-func (l *linter) findVarType(a *AssignExpr) (checked bool) {
-	v, ok := a.Left.(*VarExpr)
-	if !ok {
-		return false
-	}
-
-	class := "<unknown-val>"
+func (l *linter) findVarType(a *AssignExpr) (class string, checked bool) {
 	switch val := a.Right.(type) {
+	default:
+		panic(fmt.Sprintf("unsupported type: %T", val))
 	case *NewInstance:
 		class = val.Class
 	case *VarExpr:
-		class = cmp.Or(l.scope[val.Name], class)
+		class = cmp.Or(l.scope[val.Name], "<unknown-val>")
 	case *MemberAccess:
 		class = l.checkMemberAccess(val)
 		checked = true
+	case *AssignExpr:
+		class, checked = l.findVarType(val)
 	}
 
 	if class == "void" {
-		l.reportf(a.Right.Pos(), "cannot assign '%s' to %s", class, v.Name)
+		l.reportf(a.Right.Pos(), "cannot assign '%s'", class)
 		class = "stdClass"
 	}
 
-	l.scope[v.Name] = class
-	return checked
+	if v, ok := a.Left.(*VarExpr); ok {
+		l.scope[v.Name] = class
+	}
+
+	return class, checked
 }
 
 func (l *linter) checkMemberAccess(a *MemberAccess) string {
