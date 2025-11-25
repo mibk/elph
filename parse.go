@@ -510,6 +510,14 @@ func (p *parser) parseParamList() {
 			p.expect(token.Lbrack)
 			p.parseScope(token.Lbrack)
 		}
+
+		isMember := false
+		switch p.tok.Type {
+		case token.Private, token.Protected, token.Public:
+			p.next()
+			isMember = true
+		}
+
 		typ := p.tryParseType()
 		name := p.tok.Text
 		if !p.got(token.Var) {
@@ -535,6 +543,18 @@ func (p *parser) parseParamList() {
 				}
 			}
 		}
+
+		if isMember {
+			if c, _ := universe[p.thisClass]; c != nil {
+				name = strings.TrimPrefix(name, "$")
+				m := Property{Name: name, Type: typ, Class: class}
+				if err := c.addProperty(&m); err != nil {
+					p.errorf("%v", err)
+				}
+				// TODO: Support anonymous classes.
+			}
+		}
+
 		if !p.got(token.Comma) {
 			p.expect(token.Rparen)
 			return

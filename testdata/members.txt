@@ -1,6 +1,7 @@
 % check a.php
-a.php:17:1: $x is of type: string (DEBUG)
-a.php:18:1: $y is of type: bool (DEBUG)
+a.php:23:1: $x is of type: string (DEBUG)
+a.php:24:1: $y is of type: bool (DEBUG)
+a.php:27:1: $s is of type: int (DEBUG)
 
 -- a.php --
 <?php
@@ -8,6 +9,12 @@ a.php:18:1: $y is of type: bool (DEBUG)
 class Foo
 {
 	protected string $check;
+
+	public function __construct(
+		private int $seed,
+	)
+	{
+	}
 
 	public function check(): bool
 	{
@@ -21,3 +28,6 @@ $y = $foo->check();
 
 #debugType $x
 #debugType $y
+
+$s = $foo->seed;
+#debugType $s
