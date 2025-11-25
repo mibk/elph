@@ -3,8 +3,11 @@ package main
 import (
 	"io/fs"
 	"log"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 )
 
 func main() {
@@ -18,22 +21,20 @@ func main() {
 	toAnalyze := []string{
 	}
 
-	for _, name := range toAnalyze {
-		file := parsedFiles[name]
-		if file == nil {
-			log.Println(name, "is not parsed")
-			continue
+	allParsed := slices.Sorted(maps.Keys(parsedFiles))
+	for _, name := range allParsed {
+		matched := false
+		for _, pattern := range toAnalyze {
+			if strings.HasPrefix(name, pattern) {
+				matched = true
+				break
+			}
 		}
-		Check(file)
+		if matched {
+			file := parsedFiles[name]
+			Check(file)
+		}
 	}
-
-	// allParsed := slices.Sorted(maps.Keys(parsedFiles))
-	// for _, name := range allParsed {
-	// 		continue
-	// 	}
-	// 	file := parsedFiles[name]
-	// 	Check(file)
-	// }
 }
 
 var parsedFiles = make(map[string]*File)
