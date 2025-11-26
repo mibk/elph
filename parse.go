@@ -194,7 +194,6 @@ func (p *parser) parseStmt(sep token.Type) (s *Stmt) {
 						if tag, ok := line.(*phpdoc.PropertyTag); ok {
 							m := &Property{
 								Name:  strings.TrimPrefix(tag.Var, "$"),
-								Type:  tag.Type,
 								Class: p.getClass(c.Name, tag.Type),
 							}
 							c.Properties[m.Name] = m
@@ -467,7 +466,7 @@ func (p *parser) parseFunction(doc token.Token) {
 	}
 
 	class := p.getClass(p.thisClass, typ)
-	m := Function{Name: def.Text, Type: typ, Class: class}
+	m := Function{Name: def.Text, Class: class}
 	if err := c.addMethod(&m); err != nil {
 		// TODO: Fix position of error.
 		p.errorf("%v", err)
@@ -529,7 +528,7 @@ func (p *parser) parseParamList() {
 		if isMember {
 			if c, _ := universe[p.thisClass]; c != nil {
 				name = strings.TrimPrefix(name, "$")
-				m := Property{Name: name, Type: typ, Class: class}
+				m := Property{Name: name, Class: class}
 				if err := c.addProperty(&m); err != nil {
 					p.errorf("%v", err)
 				}
@@ -577,7 +576,7 @@ func (p *parser) parseProperty(doc token.Token) {
 
 	name := strings.TrimPrefix(def.Text, "$")
 	class := p.getClass(p.thisClass, typ)
-	m := Property{Name: name, Type: typ, Class: class}
+	m := Property{Name: name, Class: class}
 	if err := c.addProperty(&m); err != nil {
 		// TODO: Fix position of error.
 		p.errorf("%v", err)

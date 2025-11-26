@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 
-	"mibk.dev/phpfmt/phpdoc/phptype"
 	"mibk.dev/phpfmt/token"
 )
 
@@ -89,13 +88,11 @@ func (t *Trait) addMethod(m *Function) error {
 
 type Property struct {
 	Name  string
-	Type  phptype.Type
 	Class string
 }
 
 type Function struct {
 	Name  string
-	Type  phptype.Type
 	Class string
 }
 
