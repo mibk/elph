@@ -52,20 +52,25 @@ func parsePHP(r io.Reader, filename string, php74Compat bool, warnOut io.Writer)
 	return doc, nil
 }
 
-func (p *parser) next0() {
-	if p.tok.Type == token.EOF {
-		return
-	}
-	p.tok = p.scan.Next()
-}
+const debugTypeCmd = "#debugType "
 
 func (p *parser) next() {
-	p.next0()
-	p.consume(token.Whitespace)
+	for p.tok.Type != token.EOF {
+		switch p.tok = p.scan.Next(); p.tok.Type {
+		default:
+			return
+		case token.Comment:
+			// Allow this special comment.
+			// Hopefully the code in the wild doesn't use it in awkward places.
+			if strings.HasPrefix(p.tok.Text, debugTypeCmd) {
+				return
+			}
+		case token.Whitespace:
+		}
+	}
 }
 
 func (p *parser) expect(typ token.Type) {
-	p.consume(token.Comment, token.Whitespace)
 	if p.tok.Type != typ {
 		p.errorf("expecting %v, found %v", typ, p.tok)
 	}
@@ -80,18 +85,6 @@ func (p *parser) got(typ token.Type) bool {
 	return false
 }
 
-func (p *parser) consume(types ...token.Type) {
-	if len(types) == 0 {
-		panic("no token types to consume provided")
-	}
-
-	for ; len(types) > 0; types = types[1:] {
-		if p.tok.Type == types[0] {
-			p.next0()
-		}
-	}
-}
-
 func (p *parser) errorf(format string, args ...any) {
 	if p.err == nil {
 		p.tok.Type = token.EOF
@@ -103,7 +96,7 @@ func (p *parser) errorf(format string, args ...any) {
 
 func (p *parser) parseFile() *File {
 	file := new(File)
-	p.consume(token.InlineHTML)
+	p.got(token.InlineHTML) // ignore
 	if p.got(token.OpenTag) {
 		file.Block = p.parseBlock(token.OpenTag)
 	}
@@ -166,10 +159,10 @@ func (p *parser) parseStmt(sep token.Type) (s *Stmt) {
 			return s
 		case token.Comment:
 			pos := p.tok.Pos
-			v, ok := strings.CutPrefix(p.tok.Text, "#debugType")
+			v, ok := strings.CutPrefix(p.tok.Text, debugTypeCmd)
 			p.next()
 			if !ok {
-				break
+				panic(fmt.Sprintf("unexpected comment: %q", p.tok.Text))
 			}
 			s.Nodes = append(s.Nodes, &Debug{Var: strings.TrimSpace(v), Pos: pos})
 		case token.DocComment:
@@ -362,8 +355,6 @@ func (p *parser) parseClass() *Class {
 	// TODO: Choose a different aproach to skip tokens unil '{'?
 	if p.got(token.Implements) {
 		for {
-			// TODO: Fix this hack. Ignore all comments.
-			p.consume(token.Comment, token.Whitespace)
 			p.parseQualifiedName() // ignore these
 			if !p.got(token.Comma) {
 				break
@@ -439,7 +430,7 @@ func (p *parser) parseMember(doc token.Token) {
 
 func (p *parser) parseFunction(doc token.Token) {
 	// We don't care whether the function returns a reference, or not.
-	p.consume(token.BitAnd)
+	p.got(token.BitAnd) // ignore
 
 	if p.tok.Type.IsKeyword() {
 		p.tok.Type = token.Ident
@@ -632,7 +623,7 @@ func (p *parser) parseForeachParam() *Param {
 		p.parseBlock(token.Lbrack)
 		return nil
 	}
-	p.consume(token.BitAnd)
+	p.got(token.BitAnd) // ignore
 	param := Param{Name: p.tok.Text, Class: "stdClass"}
 	if !p.got(token.Var) {
 		return nil
@@ -669,7 +660,7 @@ func (p *parser) parseNewInstance() Expr {
 	case p.got(token.Class):
 		anonymousCount++
 		p.nextClass = "Anonymous@" + fmt.Sprint(anonymousCount)
-		p.consume(token.Extends)
+		p.got(token.Extends) // ignore
 		fallthrough
 	case p.got(token.Var):
 		return &NewInstance{Class: "stdClass"}
