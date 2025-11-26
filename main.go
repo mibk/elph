@@ -15,6 +15,7 @@ func main() {
 	log.SetFlags(0)
 
 	parseFile("stub/DateTime.php")
+	parseFile("stub/exceptions.php")
 
 
 
