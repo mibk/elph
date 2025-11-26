@@ -30,7 +30,6 @@ type parser struct {
 
 	err error
 	tok token.Token
-	alt *token.Token // TODO: rm?
 
 	namespace string
 	use       map[string]string
@@ -58,15 +57,10 @@ func (p *parser) next0() {
 	if p.tok.Type == token.EOF {
 		return
 	}
-	if p.alt != nil {
-		p.tok, p.alt = *p.alt, nil
-		return
-	}
 	p.tok = p.scan.Next()
 }
 
 func (p *parser) next() {
-	// TODO: p.prev = p.tok
 	p.next0()
 	p.consume(token.Whitespace)
 }
