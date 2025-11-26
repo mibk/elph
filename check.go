@@ -46,12 +46,12 @@ func (l *linter) check(x any) {
 		panic(fmt.Sprintf("unsupported type: %T", x))
 	case *File:
 		l.fileBeingChecked = x.Path
-		l.check(x.Scope)
+		l.check(x.Block)
 	case *Class:
 		l.thisClass = x
 	case *Trait:
 		// Ignore
-	case *scope:
+	case *Block:
 		for _, p := range x.Params {
 			l.scope[p.Name] = p.Class
 		}

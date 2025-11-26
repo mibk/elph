@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"slices"
 	"strings"
 
 	"mibk.dev/phpfmt/phpdoc"
@@ -106,31 +105,33 @@ func (p *parser) parseFile() *File {
 	file := new(File)
 	p.consume(token.InlineHTML)
 	if p.got(token.OpenTag) {
-		file.Scope = p.parseScope(token.OpenTag)
+		file.Block = p.parseBlock(token.OpenTag)
 	}
 	return file
 }
 
-func (p *parser) parseScope(open token.Type) *scope {
-	s := &scope{Open: open}
+func (p *parser) parseBlock(open token.Type) *Block {
+	s := new(Block)
 	sep := token.Semicolon
 
+	var close token.Type
 	switch open {
 	default:
 		panic(fmt.Sprintf("unknown pair for %v", open))
 	case token.OpenTag:
-		s.close = token.EOF
+		close = token.EOF
 	case token.Lbrace:
 		s.Params = p.params
 		p.params = nil
 		backup := p.thisClass
 		p.thisClass = p.nextClass
 		defer func() { p.thisClass = backup }()
-		s.close = token.Rbrace
+
+		close = token.Rbrace
 	case token.Lparen:
-		s.close = token.Rparen
+		close = token.Rparen
 	case token.Lbrack:
-		s.close = token.Rbrack
+		close = token.Rbrack
 		sep = token.Comma
 	}
 
@@ -142,7 +143,7 @@ func (p *parser) parseScope(open token.Type) *scope {
 		}
 
 		switch typ := p.tok.Type; typ {
-		case s.close:
+		case close:
 			p.next()
 			return s
 		case token.EOF, token.Rparen, token.Rbrace, token.Rbrack:
@@ -150,16 +151,15 @@ func (p *parser) parseScope(open token.Type) *scope {
 			return s
 		}
 	}
-	return s
 }
 
-func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
+func (p *parser) parseStmt(sep token.Type) (s *Stmt) {
 	s = new(Stmt)
 	var docComment token.Token
 	afterFunc := false
 	for {
 		switch typ := p.tok.Type; typ {
-		case token.EOF, token.Rparen, token.Rbrace, token.Rbrack:
+		case sep, token.EOF, token.Rparen, token.Rbrace, token.Rbrack:
 			return s
 		case token.OpenTag:
 			p.next()
@@ -193,8 +193,8 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 			doc := docComment
 			if c := p.parseClass(); c != nil {
 				s.Nodes = append(s.Nodes, c)
-				sub := p.parseScope(token.Lbrace)
-				s.Nodes = append(s.Nodes, sub)
+				b := p.parseBlock(token.Lbrace)
+				s.Nodes = append(s.Nodes, b)
 
 				if b := p.parsePHPDoc(doc); b != nil {
 					for _, line := range b.Lines {
@@ -230,12 +230,12 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 			}
 		case token.Lparen:
 			p.next()
-			sub := p.parseScope(typ)
-			s.Nodes = append(s.Nodes, sub)
+			b := p.parseBlock(typ)
+			s.Nodes = append(s.Nodes, b)
 		case token.Lbrace, token.Lbrack:
 			p.next()
-			sub := p.parseScope(typ)
-			s.Nodes = append(s.Nodes, sub)
+			b := p.parseBlock(typ)
+			s.Nodes = append(s.Nodes, b)
 			if typ == token.Lbrace {
 				return s
 			}
@@ -252,9 +252,6 @@ func (p *parser) parseStmt(separators ...token.Type) (s *Stmt) {
 				p.tok.Type = token.Ident
 			}
 		default:
-			if slices.Contains(separators, typ) {
-				return s
-			}
 			p.next()
 			docComment = token.Token{Type: token.Illegal}
 		}
@@ -502,7 +499,7 @@ func (p *parser) parseParamList() {
 			// Attrs are ignored for now.
 			// TODO: Fix that?
 			p.expect(token.Lbrack)
-			p.parseScope(token.Lbrack)
+			p.parseBlock(token.Lbrack)
 		}
 
 		isMember := false
@@ -531,7 +528,7 @@ func (p *parser) parseParamList() {
 				case token.Lparen:
 					// It must be array()
 					p.next()
-					p.parseScope(token.Lparen)
+					p.parseBlock(token.Lparen)
 				default:
 					p.next()
 				}
@@ -610,7 +607,7 @@ func (p *parser) parseForeach() *Foreach {
 		case token.Lparen, token.Lbrack:
 			// TODO: Don't ignore these.
 			p.next()
-			p.parseScope(typ)
+			p.parseBlock(typ)
 		}
 	}
 
@@ -632,7 +629,7 @@ func (p *parser) parseForeach() *Foreach {
 func (p *parser) parseForeachParam() *Param {
 	if p.got(token.Lbrack) {
 		// Giving up.
-		p.parseScope(token.Lbrack)
+		p.parseBlock(token.Lbrack)
 		return nil
 	}
 	p.consume(token.BitAnd)
@@ -642,7 +639,7 @@ func (p *parser) parseForeachParam() *Param {
 	}
 	if p.got(token.Lbrack) {
 		// Giving up.
-		p.parseScope(token.Lbrack)
+		p.parseBlock(token.Lbrack)
 		return nil
 	}
 	return &param
@@ -694,7 +691,7 @@ func (p *parser) parseVarExpr() Expr {
 	if p.got(token.Lbrack) {
 		// TODO: Also check index expr?
 		x = &IndexExpr{X: x}
-		p.parseScope(token.Lbrack)
+		p.parseBlock(token.Lbrack)
 	}
 
 	for p.got(token.Arrow) || p.got(token.QmarkArrow) {
@@ -712,7 +709,7 @@ func (p *parser) parseMemberAccess(x Expr) Expr {
 		// Skip params.
 		if p.got(token.Lparen) {
 			a.MethodCall = true
-			p.parseScope(token.Lparen)
+			p.parseBlock(token.Lparen)
 		}
 		return a
 	}

@@ -9,7 +9,7 @@ import (
 
 type File struct {
 	Path  string
-	Scope *scope
+	Block *Block
 }
 
 type UseStmt struct {
@@ -17,10 +17,9 @@ type UseStmt struct {
 	Alias     string
 }
 
-type scope struct {
-	Open, close token.Type
-	Params      []Param
-	Stmts       []*Stmt
+type Block struct {
+	Params []Param
+	Stmts  []*Stmt
 }
 
 type Param struct {
