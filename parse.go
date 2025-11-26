@@ -171,7 +171,6 @@ func (p *parser) parseStmt(sep token.Type) (s *Stmt) {
 		case token.Namespace:
 			p.next()
 			p.namespace = p.parseQualifiedName()
-			// log.Println("NAMESPACE", p.namespace)
 		case token.Use:
 			p.next()
 			if afterFunc || p.got(token.Function) || p.got(token.Const) {
@@ -348,7 +347,6 @@ func (p *parser) parseClass() *Class {
 	if p.got(token.Extends) {
 		e := p.parseQualifiedName()
 		c.Extends = p.fullyQualify(e)
-		// log.Println("EXTENDS", c.Extends)
 	}
 
 	// TODO: Choose a different aproach to skip tokens unil '{'?

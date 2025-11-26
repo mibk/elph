@@ -81,12 +81,10 @@ func (l *linter) check(x any) {
 			l.check(x.Right)
 		}
 	case *MemberAccess:
-		// dump.Encode(x)
 		l.checkMemberAccess(x)
 	case *IndexExpr:
 		l.check(x.X)
 	case *VarExpr:
-		// dump.Encode(x)
 	}
 }
 
