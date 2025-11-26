@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -12,6 +13,20 @@ import (
 )
 
 func Test(t *testing.T) {
+	stubFiles, err := filepath.Glob("stub/*.php")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var stubs []txtar.File
+	for _, name := range stubFiles {
+		b, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		stubs = append(stubs, txtar.File{Name: name, Data: b})
+	}
+
 	files, err := filepath.Glob("testdata/*.txt")
 	if err != nil {
 		t.Fatal(err)
@@ -35,6 +50,9 @@ func Test(t *testing.T) {
 			var got, want strings.Builder
 
 			parsed := make(map[string]*File)
+			for _, f := range stubs {
+				parsed[f.Name] = parseTestFile(t, f, &got)
+			}
 			for _, f := range a.Files {
 				parsed[f.Name] = parseTestFile(t, f, &got)
 			}

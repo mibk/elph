@@ -62,6 +62,9 @@ func (l *linter) check(x any) {
 		l.check(x.X)
 		v := x.Value
 		l.scope[v.Name] = v.Class
+	case *Param:
+		// TODO: Is this just because of "catch"
+		l.scope[x.Name] = x.Class
 	case *Debug:
 		class := l.scope[x.Var]
 		if class != "" {

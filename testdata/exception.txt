@@ -1,0 +1,15 @@
+% check a.php
+a.php:10:2: $e is of type: \FooException (DEBUG)
+
+-- a.php --
+<?php
+
+class FooException extends \Exception
+{
+}
+
+try {
+} catch (\FooException $e) {
+	echo $e->getMessage();
+	#debugType $e
+}

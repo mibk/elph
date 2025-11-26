@@ -219,6 +219,9 @@ func (p *parser) parseStmt(sep token.Type) (s *Stmt) {
 			if f := p.parseForeach(); f != nil {
 				s.Nodes = append(s.Nodes, f)
 			}
+		case token.Catch:
+			c := p.parseCatch()
+			s.Nodes = append(s.Nodes, c)
 		case token.Lparen:
 			p.next()
 			b := p.parseBlock(typ)
@@ -630,6 +633,20 @@ func (p *parser) parseForeachParam() *Param {
 		p.parseBlock(token.Lbrack)
 		return nil
 	}
+	return &param
+}
+
+func (p *parser) parseCatch() *Param {
+	p.expect(token.Catch)
+	p.expect(token.Lparen)
+	e := p.parseQualifiedName()
+	e = p.fullyQualify(e)
+	param := Param{Class: e}
+	name := p.tok.Text
+	if p.got(token.Var) {
+		param.Name = name
+	}
+	p.expect(token.Rparen)
 	return &param
 }
 
