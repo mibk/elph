@@ -23,6 +23,10 @@ func (p *parser) tryParseType() phptype.Type {
 	if p.tok.Type == token.Backslash || p.tok.Type == token.Ident {
 		name := p.parseQualifiedName()
 		typ := phptype.Named{Parts: strings.Split(name, `\`)}
+		if p.got(token.BitOr) {
+			// TODO: Support union types
+			p.tryParseType() // just ignore
+		}
 		return &typ
 	}
 	return nil

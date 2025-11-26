@@ -639,9 +639,9 @@ func (p *parser) parseForeachParam() *Param {
 func (p *parser) parseCatch() *Param {
 	p.expect(token.Catch)
 	p.expect(token.Lparen)
-	e := p.parseQualifiedName()
-	e = p.fullyQualify(e)
-	param := Param{Class: e}
+	typ := p.tryParseType()
+	class := p.getClass(p.thisClass, typ)
+	param := Param{Class: class}
 	name := p.tok.Text
 	if p.got(token.Var) {
 		param.Name = name

@@ -9,7 +9,7 @@ class FooException extends \Exception
 }
 
 try {
-} catch (\FooException $e) {
+} catch (\FooException | Exception $e) {
 	echo $e->getMessage();
 	#debugType $e
 }
