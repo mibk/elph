@@ -22,7 +22,7 @@ func (p *parser) tryParseType() phptype.Type {
 	}
 	if p.tok.Type == token.Backslash || p.tok.Type == token.Ident {
 		name := p.parseQualifiedName()
-		typ := phptype.Named{Parts: strings.Split(name, `\`)}
+		typ := phptype.Named{Parts: strings.Split(string(name), `\`)}
 		if p.got(token.BitOr) {
 			// TODO: Support union types
 			p.tryParseType() // just ignore
@@ -32,7 +32,14 @@ func (p *parser) tryParseType() phptype.Type {
 	return nil
 }
 
-func (p *parser) parseQualifiedName() string {
+type Ident string
+
+func (id Ident) unslash() Ident {
+	// TODO: Do we need this method?
+	return Ident(strings.TrimPrefix(string(id), `\`))
+}
+
+func (p *parser) parseQualifiedName() Ident {
 	var id strings.Builder
 	if p.got(token.Backslash) {
 		id.WriteRune('\\')
@@ -50,31 +57,32 @@ func (p *parser) parseQualifiedName() string {
 		}
 		break
 	}
-	return id.String()
+	return Ident(id.String())
 }
 
-func (p *parser) fullyQualify(name string) string {
-	if strings.HasPrefix(name, `\`) || isBasicType(name) {
-		return name
+func (p *parser) fullyQualify(id Ident) Ident {
+	name := string(id)
+	if strings.HasPrefix(name, `\`) || isBasicType(id) {
+		return id
 	}
 	if ns, rest, ok := strings.Cut(name, `\`); ok {
 		if tr, ok := p.use[ns]; ok {
-			return tr + `\` + rest
+			return tr + Ident(`\`+rest)
 		}
 	}
 	if tr, ok := p.use[name]; ok {
 		return tr
 	}
 	if p.namespace != "" {
-		name = p.namespace + `\` + name
+		id = p.namespace + `\` + id
 	}
-	return name
+	return id
 }
 
-func getClass(typ phptype.Type) string {
+func getClass(typ phptype.Type) Ident {
 	switch typ := typ.(type) {
 	case *phptype.Union:
-		var opts []string
+		var opts []Ident
 		for _, s := range typ.Types {
 			c := getClass(s)
 			// TODO: Fix this. The namespace isn't taken into account.
@@ -83,6 +91,7 @@ func getClass(typ phptype.Type) string {
 			}
 			opts = append(opts, c)
 		}
+		// TODO: Not just the first one, I guess.
 		return opts[0]
 	case *phptype.Generic:
 		return getClass(typ.Base)
@@ -96,15 +105,15 @@ func getClass(typ phptype.Type) string {
 	case *phptype.Named:
 		name := strings.Join(typ.Parts, `\`)
 		if typ.Global {
-			return `\` + name
+			return Ident(`\` + name)
 		}
-		return name
+		return Ident(name)
 	default:
-		return fmt.Sprintf("<unsupported-%T>", typ)
+		return Ident(fmt.Sprintf("<unsupported-%T>", typ))
 	}
 }
 
-func isBasicType(typ string) bool {
+func isBasicType(typ Ident) bool {
 	switch typ {
 	case "void", "never", "static", "string", "int":
 		return true

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 	"unicode"
 
 	"mibk.dev/phpfmt/token"
@@ -15,7 +14,7 @@ import (
 func Check(x any) {
 	l := linter{
 		stdout:           os.Stdout,
-		scope:            make(map[string]string),
+		scope:            make(map[string]Ident),
 		fileBeingChecked: "<line>",
 	}
 	l.check(x)
@@ -23,7 +22,7 @@ func Check(x any) {
 
 type linter struct {
 	stdout io.Writer
-	scope  map[string]string
+	scope  map[string]Ident
 
 	// TODO: Fix this.
 	fileBeingChecked string
@@ -91,7 +90,7 @@ func (l *linter) check(x any) {
 	}
 }
 
-func (l *linter) findVarType(a *AssignExpr) (class string, checked bool) {
+func (l *linter) findVarType(a *AssignExpr) (class Ident, checked bool) {
 	switch val := a.Right.(type) {
 	default:
 		panic(fmt.Sprintf("unsupported type: %T", val))
@@ -120,8 +119,8 @@ func (l *linter) findVarType(a *AssignExpr) (class string, checked bool) {
 	return class, checked
 }
 
-func (l *linter) checkMemberAccess(a *MemberAccess) string {
-	var x string
+func (l *linter) checkMemberAccess(a *MemberAccess) Ident {
+	var x Ident
 	switch r := a.Rcvr.(type) {
 	default:
 		panic(fmt.Sprintf("unsupported type: %T", r))
@@ -129,7 +128,7 @@ func (l *linter) checkMemberAccess(a *MemberAccess) string {
 		if r.Name == "$this" && l.thisClass != nil {
 			x = l.thisClass.Name
 		} else {
-			x = cmp.Or(l.scope[r.Name], "<unknown-type-of-"+r.Name+">")
+			x = cmp.Or(l.scope[r.Name], Ident("<unknown-type-of-"+r.Name+">"))
 		}
 	case *MemberAccess:
 		x = l.checkMemberAccess(r)
@@ -143,14 +142,14 @@ func (l *linter) checkMemberAccess(a *MemberAccess) string {
 		return "<not-a-class>"
 	}
 
-	if x = strings.TrimPrefix(x, `\`); x == "stdClass" {
+	if x = x.unslash(); x == "stdClass" {
 		// All member access allowed.
 		return x
 	}
 	return l.checkClassMember(a.Pos(), x, x, a.Name, a.MethodCall)
 }
 
-func (l *linter) checkClassMember(pos token.Pos, originalClass, class, member string, methodCall bool) string {
+func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, member string, methodCall bool) Ident {
 	// TODO: Different error if entity exists but is not a class?
 	c, ok := universe[class].(*Class)
 	if !ok {
@@ -180,8 +179,8 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class, member st
 	}
 	c.Traits = nil // Mark as process.
 
-	var memberClass string
-	var memberType string
+	var memberClass Ident
+	var memberType Ident
 	if methodCall {
 		memberType = "method"
 		if m := c.Methods[member]; m != nil {
@@ -203,7 +202,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class, member st
 	}
 
 	for memberClass == "" && c.Extends != "" {
-		parent := strings.TrimPrefix(c.Extends, `\`)
+		parent := c.Extends.unslash()
 		if parent == "stdClass" {
 			// All good.
 			// TODO: Really?

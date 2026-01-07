@@ -59,7 +59,7 @@ func Test(t *testing.T) {
 
 			l := linter{
 				stdout:           &got,
-				scope:            make(map[string]string),
+				scope:            make(map[string]Ident),
 				fileBeingChecked: "<test-line>",
 			}
 

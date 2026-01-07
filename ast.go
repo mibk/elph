@@ -12,7 +12,7 @@ type File struct {
 }
 
 type UseStmt struct {
-	Namespace string
+	Namespace Ident
 	Alias     string
 }
 
@@ -23,7 +23,7 @@ type Block struct {
 
 type Param struct {
 	Name string
-	Type string
+	Type Ident
 }
 
 type Debug struct {
@@ -41,9 +41,9 @@ type typeDecl interface {
 }
 
 type Class struct {
-	Name       string
-	Extends    string // or empty
-	Traits     []string
+	Name       Ident
+	Extends    Ident // or empty
+	Traits     []Ident
 	Properties map[string]*Property
 	Methods    map[string]*Function
 }
@@ -65,7 +65,7 @@ func (c *Class) addMethod(m *Function) error {
 }
 
 type Trait struct {
-	Name       string
+	Name       Ident
 	Properties map[string]*Property
 	Methods    map[string]*Function
 }
@@ -88,12 +88,12 @@ func (t *Trait) addMethod(m *Function) error {
 
 type Property struct {
 	Name string
-	Type string
+	Type Ident
 }
 
 type Function struct {
 	Name    string
-	Returns string
+	Returns Ident
 }
 
 type Foreach struct {
@@ -107,7 +107,7 @@ type Expr interface {
 
 type NewInstance struct {
 	New   token.Pos
-	Class string
+	Class Ident
 }
 
 func (e *NewInstance) Pos() token.Pos { return e.New }

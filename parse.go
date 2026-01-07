@@ -30,10 +30,10 @@ type parser struct {
 	err error
 	tok token.Token
 
-	namespace string
-	use       map[string]string
-	thisClass string
-	nextClass string
+	namespace Ident
+	use       map[string]Ident
+	thisClass Ident
+	nextClass Ident
 	params    []*Param
 }
 
@@ -43,7 +43,7 @@ func Parse(r io.Reader, filename string, php74Compat bool) (*File, error) {
 
 func parsePHP(r io.Reader, filename string, php74Compat bool, warnOut io.Writer) (*File, error) {
 	p := &parser{scan: token.NewScanner(r, php74Compat), filename: filename, warnOut: warnOut}
-	p.use = make(map[string]string)
+	p.use = make(map[string]Ident)
 	p.next() // init
 	doc := p.parseFile()
 	if p.err != nil {
@@ -193,7 +193,7 @@ func (p *parser) parseStmt(sep token.Type) (s *Stmt) {
 						if tag, ok := line.(*phpdoc.PropertyTag); ok {
 							m := &Property{
 								Name: strings.TrimPrefix(tag.Var, "$"),
-								Type: p.getClass(c.Name, tag.Type),
+								Type: p.resolveClass(c.Name, tag.Type),
 							}
 							c.Properties[m.Name] = m
 						}
@@ -253,7 +253,7 @@ func (p *parser) parseStmt(sep token.Type) (s *Stmt) {
 }
 
 // TODO: Is this global var necessary/convenient?
-var universe = make(map[string]typeDecl)
+var universe = make(map[Ident]typeDecl)
 
 func (p *parser) parsePHPDoc(doc token.Token) *phpdoc.Block {
 	if doc.Type != token.DocComment {
@@ -286,7 +286,7 @@ func (p *parser) parseUseStmt() []UseStmt {
 	if p.got(token.Lbrace) {
 		return p.parseGroupedUseStmt(use)
 	}
-	alias := use
+	alias := string(use)
 	if i := strings.LastIndexByte(alias, '\\'); i >= 0 {
 		alias = alias[i+1:]
 	}
@@ -298,11 +298,11 @@ func (p *parser) parseUseStmt() []UseStmt {
 	return []UseStmt{{Namespace: use, Alias: alias}}
 }
 
-func (p *parser) parseGroupedUseStmt(prefix string) []UseStmt {
+func (p *parser) parseGroupedUseStmt(prefix Ident) []UseStmt {
 	var uses []UseStmt
 	for {
 		part := p.parseQualifiedName()
-		alias := part
+		alias := string(part)
 		if i := strings.LastIndexByte(alias, '\\'); i >= 0 {
 			alias = alias[i+1:]
 		}
@@ -334,7 +334,7 @@ func (p *parser) parseClass() *Class {
 		return nil
 	}
 	p.expect(token.Ident)
-	class := name.Text
+	class := Ident(name.Text)
 	if p.namespace != "" {
 		class = p.namespace + `\` + class
 	}
@@ -377,7 +377,7 @@ func (p *parser) parseTrait(doc token.Token) *Trait {
 	p.expect(token.Trait)
 	name := p.tok
 	p.expect(token.Ident)
-	class := name.Text
+	class := Ident(name.Text)
 	if p.namespace != "" {
 		class = p.namespace + `\` + class
 	}
@@ -398,7 +398,7 @@ func (p *parser) parseInterface() *Class {
 	p.expect(token.Interface)
 	name := p.tok
 	p.expect(token.Ident)
-	class := name.Text
+	class := Ident(name.Text)
 	if p.namespace != "" {
 		class = p.namespace + `\` + class
 	}
@@ -466,7 +466,7 @@ func (p *parser) parseFunction(doc token.Token) {
 		return
 	}
 
-	class := p.getClass(p.thisClass, typ)
+	class := p.resolveClass(p.thisClass, typ)
 	m := Function{Name: def.Text, Returns: class}
 	if err := c.addMethod(&m); err != nil {
 		// TODO: Fix position of error.
@@ -507,7 +507,7 @@ func (p *parser) parseParamList() {
 			p.next()
 			continue
 		}
-		class := p.getClass(p.thisClass, typ)
+		class := p.resolveClass(p.thisClass, typ)
 		p.params = append(p.params, &Param{Name: name, Type: class})
 		if p.got(token.Assign) {
 		Skip:
@@ -567,7 +567,7 @@ func (p *parser) parseProperty(doc token.Token) {
 
 	c, _ := universe[p.thisClass]
 	if c == nil {
-		if strings.ContainsRune(p.thisClass, '@') {
+		if strings.ContainsRune(string(p.thisClass), '@') {
 			// TODO: Add proper support for anonymous classes.
 			return
 		}
@@ -576,7 +576,7 @@ func (p *parser) parseProperty(doc token.Token) {
 	}
 
 	name := strings.TrimPrefix(def.Text, "$")
-	class := p.getClass(p.thisClass, typ)
+	class := p.resolveClass(p.thisClass, typ)
 	m := Property{Name: name, Type: class}
 	if err := c.addProperty(&m); err != nil {
 		// TODO: Fix position of error.
@@ -640,7 +640,7 @@ func (p *parser) parseCatch() *Param {
 	p.expect(token.Catch)
 	p.expect(token.Lparen)
 	typ := p.tryParseType()
-	class := p.getClass(p.thisClass, typ)
+	class := p.resolveClass(p.thisClass, typ)
 	param := Param{Type: class}
 	name := p.tok.Text
 	if p.got(token.Var) {
@@ -673,7 +673,7 @@ func (p *parser) parseNewInstance() Expr {
 	switch {
 	case p.got(token.Class):
 		anonymousCount++
-		p.nextClass = "Anonymous@" + fmt.Sprint(anonymousCount)
+		p.nextClass = Ident("Anonymous@" + fmt.Sprint(anonymousCount))
 		p.got(token.Extends) // ignore
 		fallthrough
 	case p.got(token.Var):
@@ -722,10 +722,11 @@ func (p *parser) parseMemberAccess(x Expr) Expr {
 	return x
 }
 
-func (p *parser) getClass(thisClass string, typ phptype.Type) string {
+func (p *parser) resolveClass(name Ident, typ phptype.Type) Ident {
+	// TODO: This method is weird. Fix it.
 	class := getClass(typ)
 	if class == "self" {
-		return thisClass
+		return name
 	}
 	class = p.fullyQualify(class)
 	return class
