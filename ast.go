@@ -17,13 +17,13 @@ type UseStmt struct {
 }
 
 type Block struct {
-	Params []Param
+	Params []*Param
 	Stmts  []*Stmt
 }
 
 type Param struct {
-	Name  string
-	Class string
+	Name string
+	Type string
 }
 
 type Debug struct {
@@ -87,13 +87,13 @@ func (t *Trait) addMethod(m *Function) error {
 }
 
 type Property struct {
-	Name  string
-	Class string
+	Name string
+	Type string
 }
 
 type Function struct {
-	Name  string
-	Class string
+	Name    string
+	Returns string
 }
 
 type Foreach struct {

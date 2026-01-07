@@ -34,7 +34,7 @@ type parser struct {
 	use       map[string]string
 	thisClass string
 	nextClass string
-	params    []Param
+	params    []*Param
 }
 
 func Parse(r io.Reader, filename string, php74Compat bool) (*File, error) {
@@ -192,8 +192,8 @@ func (p *parser) parseStmt(sep token.Type) (s *Stmt) {
 					for _, line := range b.Lines {
 						if tag, ok := line.(*phpdoc.PropertyTag); ok {
 							m := &Property{
-								Name:  strings.TrimPrefix(tag.Var, "$"),
-								Class: p.getClass(c.Name, tag.Type),
+								Name: strings.TrimPrefix(tag.Var, "$"),
+								Type: p.getClass(c.Name, tag.Type),
 							}
 							c.Properties[m.Name] = m
 						}
@@ -467,7 +467,7 @@ func (p *parser) parseFunction(doc token.Token) {
 	}
 
 	class := p.getClass(p.thisClass, typ)
-	m := Function{Name: def.Text, Class: class}
+	m := Function{Name: def.Text, Returns: class}
 	if err := c.addMethod(&m); err != nil {
 		// TODO: Fix position of error.
 		p.errorf("%v", err)
@@ -508,7 +508,7 @@ func (p *parser) parseParamList() {
 			continue
 		}
 		class := p.getClass(p.thisClass, typ)
-		p.params = append(p.params, Param{Name: name, Class: class})
+		p.params = append(p.params, &Param{Name: name, Type: class})
 		if p.got(token.Assign) {
 		Skip:
 			// TODO: Implement proper parsing of default values.
@@ -529,7 +529,7 @@ func (p *parser) parseParamList() {
 		if isMember {
 			if c, _ := universe[p.thisClass]; c != nil {
 				name = strings.TrimPrefix(name, "$")
-				m := Property{Name: name, Class: class}
+				m := Property{Name: name, Type: class}
 				if err := c.addProperty(&m); err != nil {
 					p.errorf("%v", err)
 				}
@@ -577,7 +577,7 @@ func (p *parser) parseProperty(doc token.Token) {
 
 	name := strings.TrimPrefix(def.Text, "$")
 	class := p.getClass(p.thisClass, typ)
-	m := Property{Name: name, Class: class}
+	m := Property{Name: name, Type: class}
 	if err := c.addProperty(&m); err != nil {
 		// TODO: Fix position of error.
 		p.errorf("%v", err)
@@ -624,7 +624,7 @@ func (p *parser) parseForeachParam() *Param {
 		return nil
 	}
 	p.got(token.BitAnd) // ignore
-	param := Param{Name: p.tok.Text, Class: "stdClass"}
+	param := Param{Name: p.tok.Text, Type: "stdClass"}
 	if !p.got(token.Var) {
 		return nil
 	}
@@ -641,7 +641,7 @@ func (p *parser) parseCatch() *Param {
 	p.expect(token.Lparen)
 	typ := p.tryParseType()
 	class := p.getClass(p.thisClass, typ)
-	param := Param{Class: class}
+	param := Param{Type: class}
 	name := p.tok.Text
 	if p.got(token.Var) {
 		param.Name = name

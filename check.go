@@ -53,7 +53,7 @@ func (l *linter) check(x any) {
 		// Ignore
 	case *Block:
 		for _, p := range x.Params {
-			l.scope[p.Name] = p.Class
+			l.scope[p.Name] = p.Type
 		}
 		for _, stmt := range x.Stmts {
 			l.check(stmt)
@@ -61,10 +61,10 @@ func (l *linter) check(x any) {
 	case *Foreach:
 		l.check(x.X)
 		v := x.Value
-		l.scope[v.Name] = v.Class
+		l.scope[v.Name] = v.Type
 	case *Param:
 		// TODO: Is this just because of "catch"
-		l.scope[x.Name] = x.Class
+		l.scope[x.Name] = x.Type
 	case *Debug:
 		class := l.scope[x.Var]
 		if class != "" {
@@ -171,9 +171,9 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class, member st
 		for _, m := range t.Methods {
 			// TODO: Check whether method not already defined?
 			m := *m
-			if m.Class == t.Name {
+			if m.Returns == t.Name {
 				// TODO: This is hacky, and ugly.
-				m.Class = c.Name
+				m.Returns = c.Name
 			}
 			c.addMethod(&m)
 		}
@@ -185,19 +185,19 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class, member st
 	if methodCall {
 		memberType = "method"
 		if m := c.Methods[member]; m != nil {
-			memberClass = m.Class
+			memberClass = m.Returns
 		}
 	} else {
 		memberType = "property"
 		if p := c.Properties[member]; p != nil {
-			memberClass = p.Class
+			memberClass = p.Type
 		} else {
 			// TODO: Let's assume, for now,
 			// that any property might be a get method.
 			getter := []rune(member)
 			getter[0] = unicode.ToUpper(getter[0])
 			if m := c.Methods["get"+string(getter)]; m != nil {
-				memberClass = m.Class
+				memberClass = m.Returns
 			}
 		}
 	}
