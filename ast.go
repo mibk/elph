@@ -35,11 +35,6 @@ type Stmt struct {
 	Nodes []any
 }
 
-type typeDecl interface {
-	addProperty(m *Property) error
-	addMethod(m *Function) error
-}
-
 type Class struct {
 	Name       Ident
 	Extends    Ident // or empty
@@ -48,42 +43,10 @@ type Class struct {
 	Methods    map[string]*Function
 }
 
-func (c *Class) addProperty(p *Property) error {
-	if _, ok := c.Properties[p.Name]; ok {
-		return fmt.Errorf("class %s already has property %s", c.Name, p.Name)
-	}
-	c.Properties[p.Name] = p
-	return nil
-}
-
-func (c *Class) addMethod(m *Function) error {
-	if _, ok := c.Methods[m.Name]; ok {
-		return fmt.Errorf("class %s already has method %s", c.Name, m.Name)
-	}
-	c.Methods[m.Name] = m
-	return nil
-}
-
 type Trait struct {
 	Name       Ident
 	Properties map[string]*Property
 	Methods    map[string]*Function
-}
-
-func (t *Trait) addProperty(m *Property) error {
-	if _, ok := t.Properties[m.Name]; ok {
-		return fmt.Errorf("trait %s already has %s", t.Name, m.Name)
-	}
-	t.Properties[m.Name] = m
-	return nil
-}
-
-func (t *Trait) addMethod(m *Function) error {
-	if _, ok := t.Methods[m.Name]; ok {
-		return fmt.Errorf("class %s already has method %s", t.Name, m.Name)
-	}
-	t.Methods[m.Name] = m
-	return nil
 }
 
 type Property struct {
@@ -140,3 +103,58 @@ type AssignExpr struct {
 }
 
 func (e *AssignExpr) Pos() token.Pos { return e.Left.Pos() }
+
+////////////
+
+type typeDecl interface {
+	addProperty(m *Property) error
+	addMethod(m *Function) error
+}
+
+func (c *Class) addProperty(p *Property) error {
+	initMap(&c.Properties)
+	if _, ok := c.Properties[p.Name]; ok {
+		return fmt.Errorf("class %s already has property %s", c.Name, p.Name)
+	}
+	c.Properties[p.Name] = p
+	return nil
+}
+
+func (c *Class) replaceProperty(p *Property) {
+	initMap(&c.Properties)
+	c.Properties[p.Name] = p
+}
+
+func (c *Class) addMethod(m *Function) error {
+	initMap(&c.Methods)
+	if _, ok := c.Methods[m.Name]; ok {
+		return fmt.Errorf("class %s already has method %s", c.Name, m.Name)
+	}
+	c.Methods[m.Name] = m
+	return nil
+}
+
+func (t *Trait) addProperty(m *Property) error {
+	initMap(&t.Properties)
+	if _, ok := t.Properties[m.Name]; ok {
+		return fmt.Errorf("trait %s already has %s", t.Name, m.Name)
+	}
+	t.Properties[m.Name] = m
+	return nil
+}
+
+func (t *Trait) addMethod(m *Function) error {
+	initMap(&t.Methods)
+	if _, ok := t.Methods[m.Name]; ok {
+		return fmt.Errorf("class %s already has method %s", t.Name, m.Name)
+	}
+	t.Methods[m.Name] = m
+	return nil
+}
+
+func initMap[M map[K]V, K comparable, V any](m *M) {
+	if *m != nil {
+		return
+	}
+	*m = make(map[K]V)
+}

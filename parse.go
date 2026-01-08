@@ -195,7 +195,7 @@ func (p *parser) parseStmt(sep token.Type) (s *Stmt) {
 								Name: strings.TrimPrefix(tag.Var, "$"),
 								Type: p.resolveClass(c.Name, tag.Type),
 							}
-							c.Properties[m.Name] = m
+							c.replaceProperty(m)
 						}
 					}
 				}
@@ -343,7 +343,7 @@ func (p *parser) parseClass() *Class {
 		p.errorf("type %v already defined in %s", class, p.filename)
 		return nil
 	}
-	c := &Class{Name: class, Properties: make(map[string]*Property), Methods: make(map[string]*Function)}
+	c := &Class{Name: class}
 	universe[class] = c
 	p.nextClass = class
 
@@ -386,7 +386,7 @@ func (p *parser) parseTrait(doc token.Token) *Trait {
 		p.errorf("type %v already defined in %s", class, p.filename)
 		return nil
 	}
-	t := &Trait{Name: class, Properties: make(map[string]*Property), Methods: make(map[string]*Function)}
+	t := &Trait{Name: class}
 	universe[class] = t
 	p.nextClass = class
 
@@ -407,7 +407,7 @@ func (p *parser) parseInterface() *Class {
 		p.errorf("type %v already defined in %s", class, p.filename)
 		return nil
 	}
-	i := &Class{Name: class, Methods: make(map[string]*Function)}
+	i := &Class{Name: class}
 	universe[class] = i
 	p.nextClass = class
 	return i
