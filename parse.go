@@ -179,7 +179,7 @@ func (p *parser) parseStmt(sep token.Type) (s *Stmt) {
 			for _, use := range p.parseUseStmt() {
 				p.use[use.Alias] = use.Namespace
 			}
-		case token.Abstract:
+		case token.Abstract, token.Final:
 			p.next()
 		case token.Class:
 			doc := docComment
@@ -562,6 +562,9 @@ func (p *parser) parseParamList() {
 }
 
 func (p *parser) parseProperty(doc token.Token) {
+	// Skip this token.
+	p.got(token.Readonly)
+
 	typ := p.tryParseType()
 
 	def := p.tok
