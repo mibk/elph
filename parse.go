@@ -709,7 +709,7 @@ func (p *parser) parseNewInstance() Expr {
 }
 
 func (p *parser) parseVarExpr() Expr {
-	var x Expr = &VarExpr{Name: p.tok.Text}
+	var x Expr = &VarExpr{Dollar: p.tok.Pos, Name: p.tok.Text}
 	if !p.got(token.Var) {
 		return &VarExpr{Name: "<not-a-class>"}
 	}

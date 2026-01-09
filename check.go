@@ -141,7 +141,7 @@ func (l *linter) checkMemberAccess(a *MemberAccess) Ident {
 			// All member acces allowed on mixed.
 			return x
 		}
-		l.reportf(a.Pos(), "cannot call method on '%s'", x)
+		l.reportf(a.NamePos, "cannot call method on '%s'", x)
 		return "<not-a-class>"
 	}
 
@@ -149,7 +149,7 @@ func (l *linter) checkMemberAccess(a *MemberAccess) Ident {
 		// All member access allowed.
 		return x
 	}
-	return l.checkClassMember(a.Pos(), x, x, a.Name, a.MethodCall, "")
+	return l.checkClassMember(a.NamePos, x, x, a.Name, a.MethodCall, "")
 }
 
 func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, member string, methodCall bool, template Ident) Ident {

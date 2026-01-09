@@ -98,7 +98,7 @@ type MemberAccess struct {
 	MethodCall bool
 }
 
-func (e *MemberAccess) Pos() token.Pos { return e.NamePos }
+func (e *MemberAccess) Pos() token.Pos { return e.Rcvr.Pos() }
 
 type AssignExpr struct {
 	Left  Expr
