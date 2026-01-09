@@ -14,8 +14,7 @@ func main() {
 	log.SetPrefix("phpqc: ")
 	log.SetFlags(0)
 
-	parseFile("stub/DateTime.php")
-	parseFile("stub/exceptions.php")
+	parseFile("stub/")
 
 
 
