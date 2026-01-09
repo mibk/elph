@@ -190,12 +190,19 @@ func (p *parser) parseStmt(sep token.Type) (s *Stmt) {
 
 				if b := p.parsePHPDoc(doc); b != nil {
 					for _, line := range b.Lines {
-						if tag, ok := line.(*phpdoc.PropertyTag); ok {
+						switch tag := line.(type) {
+						case *phpdoc.PropertyTag:
 							m := &Property{
 								Name: strings.TrimPrefix(tag.Var, "$"),
 								Type: p.resolveClass(c.Name, tag.Type),
 							}
 							c.replaceProperty(m)
+						case *phpdoc.MethodTag:
+							m := &Function{
+								Name:    tag.Name,
+								Returns: p.resolveClass(c.Name, tag.Result),
+							}
+							c.replaceMethod(m)
 						}
 					}
 				}
@@ -722,11 +729,11 @@ func (p *parser) parseMemberAccess(x Expr) Expr {
 	return x
 }
 
-func (p *parser) resolveClass(name Ident, typ phptype.Type) Ident {
+func (p *parser) resolveClass(thisClass Ident, typ phptype.Type) Ident {
 	// TODO: This method is weird. Fix it.
 	class := getClass(typ)
 	if class == "self" {
-		return name
+		return thisClass
 	}
 	class = p.fullyQualify(class)
 	return class

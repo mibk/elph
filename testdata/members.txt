@@ -3,6 +3,9 @@ a.php:23:1: $x is of type: string (DEBUG)
 a.php:24:1: $y is of type: bool (DEBUG)
 a.php:27:1: $s is of type: int (DEBUG)
 
+% check b.php
+# No errors.
+
 -- a.php --
 <?php
 
@@ -31,3 +34,15 @@ $y = $foo->check();
 
 $s = $foo->seed;
 #debugType $s
+-- b.php --
+<?php
+
+/**
+ * @method int foo()
+ */
+class Bar
+{
+}
+
+$bar = new Bar;
+$bar->foo();

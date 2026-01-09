@@ -108,6 +108,8 @@ func getClass(typ phptype.Type) Ident {
 			return Ident(`\` + name)
 		}
 		return Ident(name)
+	case *phptype.This:
+		return "static"
 	default:
 		return Ident(fmt.Sprintf("<unsupported-%T>", typ))
 	}

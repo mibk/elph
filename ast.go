@@ -134,6 +134,11 @@ func (c *Class) addMethod(m *Function) error {
 	return nil
 }
 
+func (c *Class) replaceMethod(m *Function) {
+	initMap(&c.Methods)
+	c.Methods[m.Name] = m
+}
+
 func (t *Trait) addProperty(m *Property) error {
 	initMap(&t.Properties)
 	if _, ok := t.Properties[m.Name]; ok {
