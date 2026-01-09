@@ -104,7 +104,7 @@ func (p *parser) parseFile() *File {
 }
 
 func (p *parser) parseBlock(open token.Type) *Block {
-	s := new(Block)
+	b := new(Block)
 	sep := token.Semicolon
 
 	var close token.Type
@@ -114,7 +114,7 @@ func (p *parser) parseBlock(open token.Type) *Block {
 	case token.OpenTag:
 		close = token.EOF
 	case token.Lbrace:
-		s.Params = p.params
+		b.Params = p.params
 		p.params = nil
 		backup := p.thisClass
 		p.thisClass = p.nextClass
@@ -132,16 +132,16 @@ func (p *parser) parseBlock(open token.Type) *Block {
 		stmt := p.parseStmt(sep)
 		p.got(sep)
 		if len(stmt.Nodes) > 0 {
-			s.Stmts = append(s.Stmts, stmt)
+			b.Stmts = append(b.Stmts, stmt)
 		}
 
 		switch typ := p.tok.Type; typ {
 		case close:
 			p.next()
-			return s
+			return b
 		case token.EOF, token.Rparen, token.Rbrace, token.Rbrack:
 			p.errorf("unexpected %v", typ)
-			return s
+			return b
 		}
 	}
 }
