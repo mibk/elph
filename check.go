@@ -90,6 +90,7 @@ func (l *linter) check(x any) {
 	case *IndexExpr:
 		l.check(x.X)
 	case *VarExpr:
+	case *ValueExpr:
 	}
 }
 
@@ -99,6 +100,8 @@ func (l *linter) findVarType(a *AssignExpr) (class Ident, checked bool) {
 		panic(fmt.Sprintf("unsupported type: %T", val))
 	case *NewInstance:
 		class = val.Class
+	case *ValueExpr:
+		class = val.Type
 	case *VarExpr:
 		class = cmp.Or(l.scope[val.Name], "<unknown-val>")
 	case *MemberAccess:
@@ -107,6 +110,7 @@ func (l *linter) findVarType(a *AssignExpr) (class Ident, checked bool) {
 	case *AssignExpr:
 		class, checked = l.findVarType(val)
 	case *IndexExpr:
+		// TODO: Fix this.
 		class = "stdClass"
 	}
 

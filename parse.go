@@ -218,13 +218,15 @@ func (p *parser) parseStmt(sep token.Type) (s *Stmt) {
 			p.next()
 			b := p.parseBlock(typ)
 			s.Nodes = append(s.Nodes, b)
-		case token.Lbrace, token.Lbrack:
+		case token.Lbrace:
 			p.next()
 			b := p.parseBlock(typ)
 			s.Nodes = append(s.Nodes, b)
-			if typ == token.Lbrace {
-				return s
-			}
+			return s
+		case token.Lbrack:
+			p.next()
+			b := p.parseBlock(typ)
+			s.Nodes = append(s.Nodes, b)
 		case token.Var:
 			e := p.parseExpr()
 			s.Nodes = append(s.Nodes, e)
@@ -711,18 +713,21 @@ func (p *parser) parseNewInstance() Expr {
 func (p *parser) parseVarExpr() Expr {
 	var x Expr = &VarExpr{Dollar: p.tok.Pos, Name: p.tok.Text}
 	if !p.got(token.Var) {
-		return &VarExpr{Name: "<not-a-class>"}
-	}
-	if p.got(token.Lbrack) {
-		// TODO: Also check index expr?
-		x = &IndexExpr{X: x}
-		p.parseBlock(token.Lbrack)
+		return &VarExpr{Dollar: p.tok.Pos, Name: "<unknown-expr>"}
 	}
 
-	for p.got(token.Arrow) || p.got(token.QmarkArrow) {
-		x = p.parseMemberAccess(x)
+	for {
+		switch {
+		case p.got(token.Lbrack):
+			// TODO: Also check index expr?
+			x = &IndexExpr{X: x}
+			p.parseBlock(token.Lbrack)
+		case p.got(token.Arrow), p.got(token.QmarkArrow):
+			x = p.parseMemberAccess(x)
+		default:
+			return x
+		}
 	}
-	return x
 }
 
 func (p *parser) parseMemberAccess(x Expr) Expr {
@@ -733,6 +738,10 @@ func (p *parser) parseMemberAccess(x Expr) Expr {
 	if p.got(token.Ident) {
 		// Skip params.
 		if p.got(token.Lparen) {
+			if p.got(token.Ellipsis) && p.got(token.Rparen) {
+				// TODO: Return concrete callback type?
+				return &ValueExpr{V: x.Pos(), Type: "callable"}
+			}
 			a.MethodCall = true
 			p.parseBlock(token.Lparen)
 		}
