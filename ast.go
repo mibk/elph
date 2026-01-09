@@ -6,6 +6,8 @@ import (
 	"mibk.dev/phpfmt/token"
 )
 
+const TemplateParam = "T"
+
 type File struct {
 	Path  string
 	Block *Block
@@ -37,6 +39,7 @@ type Stmt struct {
 
 type Class struct {
 	Name       Ident
+	Template   Ident // or empty
 	Extends    Ident // or empty
 	Traits     []Ident
 	Properties map[string]*Property

@@ -150,10 +150,10 @@ func (l *linter) checkMemberAccess(a *MemberAccess) Ident {
 		// All member access allowed.
 		return x
 	}
-	return l.checkClassMember(a.Pos(), x, x, a.Name, a.MethodCall)
+	return l.checkClassMember(a.Pos(), x, x, a.Name, a.MethodCall, "")
 }
 
-func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, member string, methodCall bool) Ident {
+func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, member string, methodCall bool, template Ident) Ident {
 	// TODO: Different error if entity exists but is not a class?
 	c, ok := universe[class].(*Class)
 	if !ok {
@@ -185,6 +185,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 
 	var memberClass Ident
 	var memberType Ident
+
 	if methodCall {
 		memberType = "method"
 		if m := c.Methods[member]; m != nil {
@@ -205,6 +206,10 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 		}
 	}
 
+	if memberClass == TemplateParam && template != "" {
+		memberClass = template
+	}
+
 	for memberClass == "" && c.Extends != "" {
 		parent := c.Extends.unslash()
 		if parent == "stdClass" {
@@ -212,7 +217,8 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 			// TODO: Really?
 			return parent
 		}
-		return l.checkClassMember(pos, originalClass, parent, member, methodCall)
+		template = cmp.Or(template, c.Template)
+		return l.checkClassMember(pos, originalClass, parent, member, methodCall, template)
 	}
 	if memberClass == "" {
 		l.reportf(pos, "class %s `%v::%v` does not exist", memberType, originalClass, member)

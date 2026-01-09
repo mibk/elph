@@ -380,6 +380,11 @@ func (p *parser) handleClassDoc(c *Class, b *phpdoc.Block) {
 				Returns: p.resolveClass(c.Name, tag.Result),
 			}
 			c.replaceMethod(m)
+		case *phpdoc.ExtendsTag:
+			// TODO: Add support for arbitrary @template.
+			if g, ok := tag.Class.(*phptype.Generic); ok && len(g.TypeParams) == 1 {
+				c.Template = p.resolveClass(p.thisClass, g.TypeParams[0])
+			}
 		}
 	}
 }

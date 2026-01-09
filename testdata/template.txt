@@ -1,0 +1,25 @@
+% check a.php
+a.php:21:1: $x is of type: int (DEBUG)
+
+-- a.php --
+<?php
+
+class Foo
+{
+	private $val;
+
+	/** @return T */
+	public function find()
+	{
+		return $this->val;
+	}
+}
+
+/** @extends Foo<int> */
+class Bar extends Foo
+{
+}
+
+$bar = new Bar;
+$x = $bar->find();
+#debugType $x

@@ -119,6 +119,9 @@ func getClass(typ phptype.Type) Ident {
 
 func isBasicType(typ Ident) bool {
 	switch typ {
+	case TemplateParam:
+		// TODO: This is ugly.
+		return true
 	case "void", "never", "static", "mixed", "string", "int":
 		return true
 	default:
