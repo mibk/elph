@@ -4,6 +4,8 @@ a.php:14:3: $another is of type: string (DEBUG)
 a.php:22:3: $x is of type: int (DEBUG)
 a.php:24:10: class method `Foo::do` does not exist
 a.php:29:3: $val is of type: string (DEBUG)
+a.php:32:3: $y is of type: Foo (DEBUG)
+a.php:33:3: $this is of type: Foo (DEBUG)
 
 % check b.php
 b.php:9:3: $a is of type: \stdClass (DEBUG)
@@ -42,6 +44,10 @@ class Foo
 
 		$val = $this->process($x);
 		#debugType $val
+
+		$y = $this
+		#debugType $y
+		#debugType $this
 	}
 }
 -- b.php --

@@ -48,6 +48,9 @@ func (l *linter) check(x any) {
 		l.check(x.Block)
 	case *Class:
 		l.thisClass = x
+		// TODO: Clearing the scope should be more subtle.
+		clear(l.scope)
+		l.scope["$this"] = x.Name
 	case *Trait:
 		// Ignore
 	case *Block:
@@ -125,11 +128,7 @@ func (l *linter) checkMemberAccess(a *MemberAccess) Ident {
 	default:
 		panic(fmt.Sprintf("unsupported type: %T", r))
 	case *VarExpr:
-		if r.Name == "$this" && l.thisClass != nil {
-			x = l.thisClass.Name
-		} else {
-			x = cmp.Or(l.scope[r.Name], Ident("<unknown-type-of-"+r.Name+">"))
-		}
+		x = cmp.Or(l.scope[r.Name], Ident("<unknown-type-of-"+r.Name+">"))
 	case *MemberAccess:
 		x = l.checkMemberAccess(r)
 	case *IndexExpr:
