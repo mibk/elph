@@ -189,22 +189,7 @@ func (p *parser) parseStmt(sep token.Type) (s *Stmt) {
 				s.Nodes = append(s.Nodes, b)
 
 				if b := p.parsePHPDoc(doc); b != nil {
-					for _, line := range b.Lines {
-						switch tag := line.(type) {
-						case *phpdoc.PropertyTag:
-							m := &Property{
-								Name: strings.TrimPrefix(tag.Var, "$"),
-								Type: p.resolveClass(c.Name, tag.Type),
-							}
-							c.replaceProperty(m)
-						case *phpdoc.MethodTag:
-							m := &Function{
-								Name:    tag.Name,
-								Returns: p.resolveClass(c.Name, tag.Result),
-							}
-							c.replaceMethod(m)
-						}
-					}
+					p.handleClassDoc(c, b)
 				}
 			}
 		case token.Trait:
@@ -378,6 +363,25 @@ func (p *parser) parseClass() *Class {
 	}
 
 	return c
+}
+
+func (p *parser) handleClassDoc(c *Class, b *phpdoc.Block) {
+	for _, line := range b.Lines {
+		switch tag := line.(type) {
+		case *phpdoc.PropertyTag:
+			m := &Property{
+				Name: strings.TrimPrefix(tag.Var, "$"),
+				Type: p.resolveClass(c.Name, tag.Type),
+			}
+			c.replaceProperty(m)
+		case *phpdoc.MethodTag:
+			m := &Function{
+				Name:    tag.Name,
+				Returns: p.resolveClass(c.Name, tag.Result),
+			}
+			c.replaceMethod(m)
+		}
+	}
 }
 
 func (p *parser) parseTrait(doc token.Token) *Trait {
