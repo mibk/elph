@@ -442,10 +442,11 @@ func (p *parser) parseFunction(doc token.Token) {
 	if p.tok.Type.IsKeyword() {
 		p.tok.Type = token.Ident
 	}
-	def := p.tok
+	name := p.tok.Text
 	if !p.got(token.Ident) {
-		// TODO: Anonymous function not yet supported.
-		return
+		// TODO: Prevent adding it as a method to p.thisClass.
+		name = "anonymousFn@" + fmt.Sprint(anonymousCount)
+		anonymousCount++
 	}
 	p.parseParamList()
 
@@ -474,7 +475,7 @@ func (p *parser) parseFunction(doc token.Token) {
 	}
 
 	class := p.resolveClass(p.thisClass, typ)
-	m := Function{Name: def.Text, Returns: class}
+	m := Function{Name: name, Returns: class}
 	if err := c.addMethod(&m); err != nil {
 		// TODO: Fix position of error.
 		p.errorf("%v", err)
@@ -680,7 +681,7 @@ func (p *parser) parseNewInstance() Expr {
 	switch {
 	case p.got(token.Class):
 		anonymousCount++
-		p.nextClass = Ident("Anonymous@" + fmt.Sprint(anonymousCount))
+		p.nextClass = Ident("AnonymousClass@" + fmt.Sprint(anonymousCount))
 		p.got(token.Extends) // ignore
 		fallthrough
 	case p.got(token.Var):

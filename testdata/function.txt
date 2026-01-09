@@ -3,6 +3,9 @@ a.php:5:2: $s is of type: string (DEBUG)
 a.php:9:1: $i is of type: <unknown-val> (DEBUG)
 # NOTE: Functions aren't supported for now.
 
+% check b.php
+b.php:8:4: $t is of type: mixed (DEBUG)
+
 -- a.php --
 <?php
 
@@ -13,3 +16,15 @@ function convert(string $s): int
 
 $i = convert('three');
 #debugType $i
+-- b.php --
+<?php
+
+class Foo
+{
+	function bar()
+	{
+		(function($t) {
+			#debugType $t
+		})();
+	}
+}

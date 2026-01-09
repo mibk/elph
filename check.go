@@ -138,6 +138,10 @@ func (l *linter) checkMemberAccess(a *MemberAccess) Ident {
 	}
 
 	if isBasicType(x) {
+		if x == "mixed" {
+			// All member acces allowed on mixed.
+			return x
+		}
 		l.reportf(a.Pos(), "cannot call method on '%s'", x)
 		return "<not-a-class>"
 	}

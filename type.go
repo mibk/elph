@@ -81,6 +81,8 @@ func (p *parser) fullyQualify(id Ident) Ident {
 
 func getClass(typ phptype.Type) Ident {
 	switch typ := typ.(type) {
+	case nil:
+		return "mixed"
 	case *phptype.Union:
 		var opts []Ident
 		for _, s := range typ.Types {
@@ -117,7 +119,7 @@ func getClass(typ phptype.Type) Ident {
 
 func isBasicType(typ Ident) bool {
 	switch typ {
-	case "void", "never", "static", "string", "int":
+	case "void", "never", "static", "mixed", "string", "int":
 		return true
 	default:
 		return false
