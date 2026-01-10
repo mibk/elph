@@ -233,6 +233,10 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 			p.next()
 			b := p.parseBlock(typ, false)
 			s.Nodes = append(s.Nodes, b)
+		case token.Backslash, token.Ident:
+			if a := p.tryParseStaticMemberAccess(); a != nil {
+				s.Nodes = append(s.Nodes, a)
+			}
 		case token.Var:
 			e := p.parseExpr()
 			s.Nodes = append(s.Nodes, e)
@@ -683,9 +687,16 @@ func (p *parser) parseExpr() Expr {
 	e := p.parseVarExpr()
 	if p.got(token.Assign) {
 		var v Expr
-		if p.got(token.New) {
+		switch {
+		case p.got(token.New):
 			v = p.parseNewInstance()
-		} else {
+		case p.tok.Type == token.Backslash || p.tok.Type == token.Ident:
+			v = p.tryParseStaticMemberAccess()
+			if v != nil {
+				break
+			}
+			fallthrough
+		default:
 			v = p.parseExpr()
 		}
 		e = &AssignExpr{e, v}
@@ -718,11 +729,15 @@ func (p *parser) parseNewInstance() Expr {
 }
 
 func (p *parser) parseVarExpr() Expr {
-	var x Expr = &VarExpr{Dollar: p.tok.Pos, Name: p.tok.Text}
+	x := &VarExpr{Dollar: p.tok.Pos, Name: p.tok.Text}
 	if !p.got(token.Var) {
-		return &VarExpr{Dollar: p.tok.Pos, Name: "<unknown-expr>"}
+		x.Name = "<unknown-expr>"
+		return x
 	}
+	return p.parseChainAccess(x)
+}
 
+func (p *parser) parseChainAccess(x Expr) Expr {
 	for {
 		static := false
 		switch {
@@ -762,6 +777,23 @@ func (p *parser) parseMemberAccess(x Expr, static bool) Expr {
 		p.parseBlock(token.Lparen, false)
 	}
 	return a
+}
+
+func (p *parser) tryParseStaticMemberAccess() Expr {
+	x := &ValueExpr{V: p.tok.Pos}
+	x.Type = p.parseQualifiedName()
+	if x.Type == "self" || x.Type == "parent" {
+		// TODO: Fix this ugly special case?
+		x.Type = p.thisClass
+	} else {
+		x.Type = p.fullyQualify(x.Type)
+	}
+
+	if p.got(token.DoubleColon) {
+		x := p.parseMemberAccess(x, true)
+		return p.parseChainAccess(x)
+	}
+	return nil
 }
 
 func (p *parser) resolveClass(thisClass Ident, typ phptype.Type) Ident {

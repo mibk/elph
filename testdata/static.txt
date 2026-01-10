@@ -6,6 +6,8 @@ a.php:22:7: cannot call instance method 'dynam' statically
 a.php:25:7: cannot access instance property 'a' statically
 a.php:27:7: cannot access static property 'b' via object instance
 a.php:29:1: $z is of type: string (DEBUG)
+a.php:36:1: $m is of type: string (DEBUG)
+a.php:37:6: class property `Foo::$c` does not exist
 
 % check b.php
 b.php:15:5: class property `Bar::$counter` does not exist
@@ -45,6 +47,10 @@ $z = $foo::$b;
 // TODO: Report missing consts.
 $foo::a;
 $foo::b;
+
+$m = Foo::$b;
+#debugType $m
+Foo::$c;
 -- b.php --
 <?php
 

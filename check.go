@@ -132,6 +132,8 @@ func (l *linter) checkMemberAccess(a *MemberAccess) Ident {
 	switch r := a.Rcvr.(type) {
 	default:
 		panic(fmt.Sprintf("unsupported type: %T", r))
+	case *ValueExpr:
+		x = r.Type
 	case *VarExpr:
 		x = cmp.Or(l.scope[r.Name], Ident("<unknown-type-of-"+r.Name+">"))
 	case *MemberAccess:
