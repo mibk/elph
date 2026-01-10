@@ -45,7 +45,7 @@ func Test(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			clear(universe)
+			clear(universe.types)
 
 			var got, want strings.Builder
 

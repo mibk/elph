@@ -122,9 +122,12 @@ func (e *AssignExpr) Pos() token.Pos { return e.Left.Pos() }
 ////////////
 
 type typeDecl interface {
+	name() Ident
 	addProperty(m *Property) error
 	addMethod(m *Function) error
 }
+
+func (c *Class) name() Ident { return c.Name }
 
 func (c *Class) addProperty(p *Property) error {
 	initMap(&c.Properties)
@@ -153,6 +156,8 @@ func (c *Class) replaceMethod(m *Function) {
 	initMap(&c.Methods)
 	c.Methods[m.Name] = m
 }
+
+func (t *Trait) name() Ident { return t.Name }
 
 func (t *Trait) addProperty(m *Property) error {
 	initMap(&t.Properties)

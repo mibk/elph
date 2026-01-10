@@ -161,15 +161,15 @@ func (l *linter) checkMemberAccess(a *MemberAccess) Ident {
 
 func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, member string, methodCall, static bool, template Ident) Ident {
 	// TODO: Different error if entity exists but is not a class?
-	c, ok := universe[class].(*Class)
-	if !ok {
+	c := universe.findClass(class)
+	if c == nil {
 		l.reportf(pos, "class `%v` not found", class)
 		return "\\stdClass"
 	}
 
 	for _, name := range c.Traits {
-		t, ok := universe[name].(*Trait)
-		if !ok {
+		t := universe.findTrait(name)
+		if t == nil {
 			l.reportf(pos, "trait `%v` not found", name)
 			continue
 		}
