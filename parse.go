@@ -469,17 +469,23 @@ func (p *parser) parseFunction(doc token.Token, static bool) {
 		typ = p.tryParseType()
 	}
 	if b := p.parsePHPDoc(doc); b != nil {
+	Loop:
 		for _, line := range b.Lines {
-			if tag, ok := line.(*phpdoc.ReturnTag); ok {
+			switch tag := line.(type) {
+			case *phpdoc.TemplateTag:
+				// If there's a template param, just give up.
+				// TODO: Fix that?
+				break Loop
+			case *phpdoc.ReturnTag:
 				typ = tag.Type
-				break
+				break Loop
 			}
 		}
 	}
 
 	if typ == nil {
-		// TODO: not true
-		typ = &phptype.Named{Parts: []string{"void"}}
+		// TODO: Ensure this makes sense.
+		typ = &phptype.Named{Parts: []string{"mixed"}}
 	}
 
 	c, _ := universe[p.thisClass]

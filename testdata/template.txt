@@ -1,6 +1,10 @@
 % check a.php
 a.php:21:1: $x is of type: int (DEBUG)
 
+% check b.php
+b.php:15:1: $x is of type: mixed (DEBUG)
+
+
 -- a.php --
 <?php
 
@@ -22,4 +26,20 @@ class Bar extends Foo
 
 $bar = new Bar;
 $x = $bar->find();
+#debugType $x
+-- b.php --
+<?php
+
+class List
+{
+	/**
+	 * @template T
+	 * @param    iterator<T> $a
+	 * @return   T
+	 */
+	function getFirst($a);
+}
+
+$l = new List;
+$x = $l->getFirst($vals);
 #debugType $x
