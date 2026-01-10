@@ -53,13 +53,15 @@ type Trait struct {
 }
 
 type Property struct {
-	Name string
-	Type Ident
+	Name   string
+	Type   Ident
+	Static bool
 }
 
 type Function struct {
 	Name    string
 	Returns Ident
+	Static  bool
 }
 
 type Foreach struct {
@@ -105,6 +107,7 @@ type MemberAccess struct {
 	NamePos    token.Pos
 	Name       string
 	MethodCall bool
+	Static     bool
 }
 
 func (e *MemberAccess) Pos() token.Pos { return e.Rcvr.Pos() }

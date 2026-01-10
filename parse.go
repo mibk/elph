@@ -200,11 +200,11 @@ func (p *parser) parseStmt(sep token.Type) (s *Stmt) {
 			if c := p.parseInterface(); c != nil {
 				s.Nodes = append(s.Nodes, c)
 			}
-		case token.Private, token.Protected, token.Public:
-			p.parseMember(docComment)
+		case token.Private, token.Protected, token.Public, token.Static:
+			p.parseMember(docComment, p.tok.Type == token.Static)
 		case token.Function:
 			p.next()
-			p.parseFunction(docComment)
+			p.parseFunction(docComment, false)
 			// Disarm parsing 'use' stmt after 'function' for now.
 			afterFunc = true
 		case token.Foreach:
@@ -431,22 +431,21 @@ func (p *parser) parseInterface() *Class {
 	return i
 }
 
-func (p *parser) parseMember(doc token.Token) {
+func (p *parser) parseMember(doc token.Token, static bool) {
 	p.next()
 
-	if p.got(token.Static) {
-		// TODO: Skip these for now.
-		return
+	if !static {
+		static = p.got(token.Static)
 	}
 
 	if p.got(token.Function) {
-		p.parseFunction(doc)
+		p.parseFunction(doc, static)
 	} else {
-		p.parseProperty(doc)
+		p.parseProperty(doc, static)
 	}
 }
 
-func (p *parser) parseFunction(doc token.Token) {
+func (p *parser) parseFunction(doc token.Token, static bool) {
 	// We don't care whether the function returns a reference, or not.
 	p.got(token.BitAnd) // ignore
 
@@ -486,7 +485,7 @@ func (p *parser) parseFunction(doc token.Token) {
 	}
 
 	class := p.resolveClass(p.thisClass, typ)
-	m := Function{Name: name, Returns: class}
+	m := Function{Name: name, Returns: class, Static: static}
 	if err := c.addMethod(&m); err != nil {
 		// TODO: Fix position of error.
 		p.errorf("%v", err)
@@ -563,10 +562,8 @@ func (p *parser) parseParamList() {
 	}
 }
 
-func (p *parser) parseProperty(doc token.Token) {
-	// Skip this token.
-	p.got(token.Readonly)
-
+func (p *parser) parseProperty(doc token.Token, static bool) {
+	p.got(token.Readonly) // ignore
 	typ := p.tryParseType()
 
 	def := p.tok
@@ -599,7 +596,7 @@ func (p *parser) parseProperty(doc token.Token) {
 
 	name := strings.TrimPrefix(def.Text, "$")
 	class := p.resolveClass(p.thisClass, typ)
-	m := Property{Name: name, Type: class}
+	m := Property{Name: name, Type: class, Static: static}
 	if err := c.addProperty(&m); err != nil {
 		// TODO: Fix position of error.
 		p.errorf("%v", err)
@@ -717,38 +714,44 @@ func (p *parser) parseVarExpr() Expr {
 	}
 
 	for {
+		static := false
 		switch {
 		case p.got(token.Lbrack):
 			// TODO: Also check index expr?
 			x = &IndexExpr{X: x}
 			p.parseBlock(token.Lbrack)
+		case p.got(token.DoubleColon):
+			static = true
+			fallthrough
 		case p.got(token.Arrow), p.got(token.QmarkArrow):
-			x = p.parseMemberAccess(x)
+			x = p.parseMemberAccess(x, static)
 		default:
 			return x
 		}
 	}
 }
 
-func (p *parser) parseMemberAccess(x Expr) Expr {
-	a := &MemberAccess{Rcvr: x, NamePos: p.tok.Pos, Name: p.tok.Text}
+func (p *parser) parseMemberAccess(x Expr, static bool) Expr {
+	a := &MemberAccess{Rcvr: x, NamePos: p.tok.Pos, Name: p.tok.Text, Static: static}
 	if p.tok.Type.IsKeyword() {
 		p.tok.Type = token.Ident
 	}
-	if p.got(token.Ident) {
-		// Skip params.
-		if p.got(token.Lparen) {
-			if p.got(token.Ellipsis) && p.got(token.Rparen) {
-				// TODO: Return concrete callback type?
-				return &ValueExpr{V: x.Pos(), Type: "callable"}
-			}
-			a.MethodCall = true
-			p.parseBlock(token.Lparen)
-		}
-		return a
+
+	if !p.got(token.Ident) && !p.got(token.Var) {
+		// TODO: This doesn't seem like a good default.
+		return x
 	}
-	// TODO: This doesn't seem like a good default.
-	return x
+
+	// Skip params.
+	if p.got(token.Lparen) {
+		if p.got(token.Ellipsis) && p.got(token.Rparen) {
+			// TODO: Return concrete callback type?
+			return &ValueExpr{V: x.Pos(), Type: "callable"}
+		}
+		a.MethodCall = true
+		p.parseBlock(token.Lparen)
+	}
+	return a
 }
 
 func (p *parser) resolveClass(thisClass Ident, typ phptype.Type) Ident {

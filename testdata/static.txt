@@ -1,0 +1,43 @@
+% check a.php
+a.php:15:12: cannot call static method 'bar' via object instance
+a.php:16:1: $x is of type: string (DEBUG)
+a.php:19:1: $y is of type: string (DEBUG)
+a.php:22:7: cannot call instance method 'dynam' statically
+a.php:25:7: cannot access instance property 'a' statically
+a.php:27:7: cannot access static property 'b' via object instance
+a.php:29:1: $z is of type: string (DEBUG)
+
+-- a.php --
+<?php
+
+class Foo
+{
+	private $a;
+
+	private static string $b;
+
+	static function bar(): string;
+	function dynam(): int;
+}
+
+$foo = new Foo;
+
+$x = $foo->bar();
+#debugType $x
+
+$y = $foo::bar();
+#debugType $y
+
+$foo->dynam();
+$foo::dynam();
+
+$foo->a;
+$foo::$a;
+
+$foo->b;
+$z = $foo::$b;
+#debugType $z
+
+// TODO: Report missing consts.
+$foo::a;
+$foo::b;

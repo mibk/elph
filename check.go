@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"unicode"
 
 	"mibk.dev/phpfmt/token"
@@ -153,10 +154,10 @@ func (l *linter) checkMemberAccess(a *MemberAccess) Ident {
 		// All member access allowed.
 		return x
 	}
-	return l.checkClassMember(a.NamePos, x, x, a.Name, a.MethodCall, "")
+	return l.checkClassMember(a.NamePos, x, x, a.Name, a.MethodCall, a.Static, "")
 }
 
-func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, member string, methodCall bool, template Ident) Ident {
+func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, member string, methodCall, static bool, template Ident) Ident {
 	// TODO: Different error if entity exists but is not a class?
 	c, ok := universe[class].(*Class)
 	if !ok {
@@ -192,18 +193,26 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 	if methodCall {
 		memberType = "method"
 		if m := c.Methods[member]; m != nil {
+			l.checkStaticAccess(pos, member, m.Static, static, true)
 			memberClass = m.Returns
 		}
 	} else {
+		member, isVar := strings.CutPrefix(member, "$")
+		if !isVar && static {
+			// TODO: Add support for constants.
+			return "\\stdClass"
+		}
+
 		memberType = "property"
 		if p := c.Properties[member]; p != nil {
+			l.checkStaticAccess(pos, member, p.Static, static, false)
 			memberClass = p.Type
 		} else {
 			// TODO: Let's assume, for now,
 			// that any property might be a get method.
 			getter := []rune(member)
 			getter[0] = unicode.ToUpper(getter[0])
-			if m := c.Methods["get"+string(getter)]; m != nil {
+			if m := c.Methods["get"+string(getter)]; m != nil && m.Static == static {
 				memberClass = m.Returns
 			}
 		}
@@ -221,7 +230,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 			return parent
 		}
 		template = cmp.Or(template, c.Template)
-		return l.checkClassMember(pos, originalClass, parent, member, methodCall, template)
+		return l.checkClassMember(pos, originalClass, parent, member, methodCall, static, template)
 	}
 	if memberClass == "" {
 		l.reportf(pos, "class %s `%v::%v` does not exist", memberType, originalClass, member)
@@ -232,4 +241,20 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 		return originalClass
 	}
 	return memberClass
+}
+
+func (l *linter) checkStaticAccess(pos token.Pos, memberName string, isStatic, accessStatic, methodCall bool) {
+	if isStatic == accessStatic {
+		return
+	}
+
+	verb, obj := "access", "property"
+	if methodCall {
+		verb, obj = "call", "method"
+	}
+	if isStatic {
+		l.reportf(pos, "cannot %s static %s '%s' via object instance", verb, obj, memberName)
+	} else {
+		l.reportf(pos, "cannot %s instance %s '%s' statically", verb, obj, memberName)
+	}
 }
