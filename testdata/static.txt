@@ -2,7 +2,6 @@
 a.php:15:12: cannot call static method 'bar' via object instance
 a.php:16:1: $x is of type: string (DEBUG)
 a.php:19:1: $y is of type: string (DEBUG)
-a.php:22:7: cannot call instance method 'dynam' statically
 a.php:25:7: cannot access instance property 'a' statically
 a.php:27:7: cannot access static property 'b' via object instance
 a.php:29:1: $z is of type: string (DEBUG)

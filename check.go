@@ -257,6 +257,10 @@ func (l *linter) checkStaticAccess(pos token.Pos, memberName string, isStatic, a
 	if isStatic {
 		l.reportf(pos, "cannot %s static %s '%s' via object instance", verb, obj, memberName)
 	} else {
+		if methodCall {
+			// Prevent issues with parent::foo etc.
+			return
+		}
 		l.reportf(pos, "cannot %s instance %s '%s' statically", verb, obj, memberName)
 	}
 }
