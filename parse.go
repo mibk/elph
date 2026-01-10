@@ -98,12 +98,12 @@ func (p *parser) parseFile() *File {
 	file := new(File)
 	p.got(token.InlineHTML) // ignore
 	if p.got(token.OpenTag) {
-		file.Block = p.parseBlock(token.OpenTag)
+		file.Block = p.parseBlock(token.OpenTag, false)
 	}
 	return file
 }
 
-func (p *parser) parseBlock(open token.Type) *Block {
+func (p *parser) parseBlock(open token.Type, classRoot bool) *Block {
 	b := new(Block)
 	sep := token.Semicolon
 
@@ -129,7 +129,7 @@ func (p *parser) parseBlock(open token.Type) *Block {
 	}
 
 	for {
-		stmt := p.parseStmt(sep)
+		stmt := p.parseStmt(sep, classRoot)
 		p.got(sep)
 		if len(stmt.Nodes) > 0 {
 			b.Stmts = append(b.Stmts, stmt)
@@ -146,7 +146,7 @@ func (p *parser) parseBlock(open token.Type) *Block {
 	}
 }
 
-func (p *parser) parseStmt(sep token.Type) (s *Stmt) {
+func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 	s = new(Stmt)
 	var docComment token.Token
 	afterFunc := false
@@ -185,7 +185,7 @@ func (p *parser) parseStmt(sep token.Type) (s *Stmt) {
 			doc := docComment
 			if c := p.parseClass(); c != nil {
 				s.Nodes = append(s.Nodes, c)
-				b := p.parseBlock(token.Lbrace)
+				b := p.parseBlock(token.Lbrace, true)
 				s.Nodes = append(s.Nodes, b)
 
 				if b := p.parsePHPDoc(doc); b != nil {
@@ -200,8 +200,14 @@ func (p *parser) parseStmt(sep token.Type) (s *Stmt) {
 			if c := p.parseInterface(); c != nil {
 				s.Nodes = append(s.Nodes, c)
 			}
-		case token.Private, token.Protected, token.Public, token.Static:
-			p.parseMember(docComment, p.tok.Type == token.Static)
+		case token.Static:
+			p.next()
+			if classRoot {
+				p.parseMember(docComment, true)
+			}
+		case token.Private, token.Protected, token.Public:
+			p.next()
+			p.parseMember(docComment, false)
 		case token.Function:
 			p.next()
 			p.parseFunction(docComment, false)
@@ -216,16 +222,16 @@ func (p *parser) parseStmt(sep token.Type) (s *Stmt) {
 			s.Nodes = append(s.Nodes, c)
 		case token.Lparen:
 			p.next()
-			b := p.parseBlock(typ)
+			b := p.parseBlock(typ, false)
 			s.Nodes = append(s.Nodes, b)
 		case token.Lbrace:
 			p.next()
-			b := p.parseBlock(typ)
+			b := p.parseBlock(typ, false)
 			s.Nodes = append(s.Nodes, b)
 			return s
 		case token.Lbrack:
 			p.next()
-			b := p.parseBlock(typ)
+			b := p.parseBlock(typ, false)
 			s.Nodes = append(s.Nodes, b)
 		case token.Var:
 			e := p.parseExpr()
@@ -432,8 +438,6 @@ func (p *parser) parseInterface() *Class {
 }
 
 func (p *parser) parseMember(doc token.Token, static bool) {
-	p.next()
-
 	if !static {
 		static = p.got(token.Static)
 	}
@@ -508,7 +512,7 @@ func (p *parser) parseParamList() {
 			// Attrs are ignored for now.
 			// TODO: Fix that?
 			p.expect(token.Lbrack)
-			p.parseBlock(token.Lbrack)
+			p.parseBlock(token.Lbrack, false)
 		}
 
 		isMember := false
@@ -537,7 +541,7 @@ func (p *parser) parseParamList() {
 				case token.Lparen:
 					// It must be array()
 					p.next()
-					p.parseBlock(token.Lparen)
+					p.parseBlock(token.Lparen, false)
 				default:
 					p.next()
 				}
@@ -617,7 +621,7 @@ func (p *parser) parseForeach() *Foreach {
 		case token.Lparen, token.Lbrack:
 			// TODO: Don't ignore these.
 			p.next()
-			p.parseBlock(typ)
+			p.parseBlock(typ, false)
 		}
 	}
 
@@ -639,7 +643,7 @@ func (p *parser) parseForeach() *Foreach {
 func (p *parser) parseForeachParam() *Param {
 	if p.got(token.Lbrack) {
 		// Giving up.
-		p.parseBlock(token.Lbrack)
+		p.parseBlock(token.Lbrack, false)
 		return nil
 	}
 	p.got(token.BitAnd) // ignore
@@ -649,7 +653,7 @@ func (p *parser) parseForeachParam() *Param {
 	}
 	if p.got(token.Lbrack) {
 		// Giving up.
-		p.parseBlock(token.Lbrack)
+		p.parseBlock(token.Lbrack, false)
 		return nil
 	}
 	return &param
@@ -719,7 +723,7 @@ func (p *parser) parseVarExpr() Expr {
 		case p.got(token.Lbrack):
 			// TODO: Also check index expr?
 			x = &IndexExpr{X: x}
-			p.parseBlock(token.Lbrack)
+			p.parseBlock(token.Lbrack, false)
 		case p.got(token.DoubleColon):
 			static = true
 			fallthrough
@@ -749,7 +753,7 @@ func (p *parser) parseMemberAccess(x Expr, static bool) Expr {
 			return &ValueExpr{V: x.Pos(), Type: "callable"}
 		}
 		a.MethodCall = true
-		p.parseBlock(token.Lparen)
+		p.parseBlock(token.Lparen, false)
 	}
 	return a
 }

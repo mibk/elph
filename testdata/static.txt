@@ -7,6 +7,10 @@ a.php:25:7: cannot access instance property 'a' statically
 a.php:27:7: cannot access static property 'b' via object instance
 a.php:29:1: $z is of type: string (DEBUG)
 
+% check b.php
+b.php:15:5: class property `Bar::$counter` does not exist
+
+
 -- a.php --
 <?php
 
@@ -41,3 +45,19 @@ $z = $foo::$b;
 // TODO: Report missing consts.
 $foo::a;
 $foo::b;
+-- b.php --
+<?php
+
+class Bar
+{
+	private static $bar;
+
+	public static function init()
+	{
+		static $counter = 0; // not a class property
+	}
+}
+
+
+$b =new Bar;
+$b::$counter;
