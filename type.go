@@ -8,37 +8,6 @@ import (
 	"mibk.dev/phpfmt/token"
 )
 
-// TODO: Is this global var necessary/convenient?
-
-type world struct {
-	types map[Ident]typeDecl
-}
-
-var universe = &world{types: make(map[Ident]typeDecl)}
-
-func (w *world) add(d typeDecl) (ok bool) {
-	name := d.name().canonical()
-	if _, exists := w.types[name]; exists {
-		return false
-	}
-	w.types[name] = d
-	return true
-}
-
-func (w *world) find(name Ident) typeDecl {
-	return w.types[name.canonical()]
-}
-
-func (w *world) findClass(name Ident) *Class {
-	c, _ := w.find(name).(*Class)
-	return c
-}
-
-func (w *world) findTrait(name Ident) *Trait {
-	c, _ := w.find(name).(*Trait)
-	return c
-}
-
 func (p *parser) tryParseType() phptype.Type {
 	if p.got(token.Qmark) {
 		typ := p.tryParseType()
@@ -64,10 +33,6 @@ func (p *parser) tryParseType() phptype.Type {
 }
 
 type Ident string
-
-func (id Ident) canonical() Ident {
-	return Ident(strings.ToLower(string(id)))
-}
 
 func (id Ident) unslash() Ident {
 	// TODO: Do we need this method?

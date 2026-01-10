@@ -256,6 +256,9 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 	}
 }
 
+// TODO: Is this global var necessary/convenient?
+var universe = make(map[Ident]typeDecl)
+
 func (p *parser) parsePHPDoc(doc token.Token) *phpdoc.Block {
 	if doc.Type != token.DocComment {
 		return nil
@@ -340,11 +343,12 @@ func (p *parser) parseClass() *Class {
 		class = p.namespace + `\` + class
 	}
 
-	c := &Class{Name: class}
-	if ok := universe.add(c); !ok {
+	if _, ok := universe[class]; ok {
 		p.errorf("type %v already defined in %s", class, p.filename)
 		return nil
 	}
+	c := &Class{Name: class}
+	universe[class] = c
 	p.nextClass = class
 
 	if p.got(token.Extends) {
@@ -406,11 +410,12 @@ func (p *parser) parseTrait(doc token.Token) *Trait {
 		class = p.namespace + `\` + class
 	}
 
-	t := &Trait{Name: class}
-	if ok := universe.add(t); !ok {
+	if _, ok := universe[class]; ok {
 		p.errorf("type %v already defined in %s", class, p.filename)
 		return nil
 	}
+	t := &Trait{Name: class}
+	universe[class] = t
 	p.nextClass = class
 
 	// TODO: Doc comment.
@@ -426,11 +431,12 @@ func (p *parser) parseInterface() *Class {
 		class = p.namespace + `\` + class
 	}
 
-	i := &Class{Name: class}
-	if ok := universe.add(i); !ok {
+	if _, ok := universe[class]; ok {
 		p.errorf("type %v already defined in %s", class, p.filename)
 		return nil
 	}
+	i := &Class{Name: class}
+	universe[class] = i
 	p.nextClass = class
 	return i
 }
@@ -486,7 +492,7 @@ func (p *parser) parseFunction(doc token.Token, static bool) {
 		typ = &phptype.Named{Parts: []string{"mixed"}}
 	}
 
-	c := universe.find(p.thisClass)
+	c, _ := universe[p.thisClass]
 	if c == nil {
 		// TODO: Add support for regular functions.
 		return
@@ -553,7 +559,7 @@ func (p *parser) parseParamList() {
 		}
 
 		if isMember {
-			if c := universe.find(p.thisClass); c != nil {
+			if c, _ := universe[p.thisClass]; c != nil {
 				name = strings.TrimPrefix(name, "$")
 				m := Property{Name: name, Type: class}
 				if err := c.addProperty(&m); err != nil {
@@ -592,7 +598,7 @@ func (p *parser) parseProperty(doc token.Token, static bool) {
 		typ = &phptype.Named{Parts: []string{"mixed"}}
 	}
 
-	c := universe.find(p.thisClass)
+	c, _ := universe[p.thisClass]
 	if c == nil {
 		if strings.ContainsRune(string(p.thisClass), '@') {
 			// TODO: Add proper support for anonymous classes.
