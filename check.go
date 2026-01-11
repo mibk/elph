@@ -48,6 +48,9 @@ func (l *linter) check(x any) {
 		l.fileBeingChecked = x.Path
 		l.check(x.Block)
 	case *Class:
+		if strings.Contains(string(x.Name), "Anonymous") {
+			panic(x.Name)
+		}
 		l.thisClass = x
 		// TODO: Clearing the scope should be more subtle.
 		clear(l.scope)
@@ -76,6 +79,9 @@ func (l *linter) check(x any) {
 			l.reportf(x.Pos, "unknown var: %v (DEBUG)", x.Var)
 		}
 	case *NewInstance:
+		if strings.Contains(string(x.Class), "AnonymousClass") {
+			l.scope["$this"] = x.Class
+		}
 		// no check
 	case *Stmt:
 		for _, n := range x.Nodes {

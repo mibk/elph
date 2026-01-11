@@ -710,22 +710,34 @@ func (p *parser) parseNewInstance() Expr {
 	if p.got(token.Static) {
 		return &NewInstance{Class: p.thisClass}
 	}
-	switch {
+	switch class := Ident("stdClass"); {
 	case p.got(token.Class):
 		anonymousCount++
-		p.nextClass = Ident("AnonymousClass@" + fmt.Sprint(anonymousCount))
-		p.got(token.Extends) // ignore
+		class = Ident("AnonymousClass@" + fmt.Sprint(anonymousCount))
+		c := &Class{Name: class}
+		universe[class] = c
+		p.nextClass = class
+
+		if p.got(token.Lparen) {
+			p.parseBlock(token.Lparen, false) // ignore args
+		}
+
+		if p.got(token.Extends) {
+			e := p.parseQualifiedName()
+			c.Extends = p.fullyQualify(e)
+		}
 		fallthrough
 	case p.got(token.Var):
-		return &NewInstance{Class: "stdClass"}
+		return &NewInstance{Class: class}
+	default:
+		name := p.parseQualifiedName()
+		if name == "" {
+			p.expect(token.Ident)
+			return nil
+		}
+		name = p.fullyQualify(name)
+		return &NewInstance{Class: name}
 	}
-	name := p.parseQualifiedName()
-	if name == "" {
-		p.expect(token.Ident)
-		return nil
-	}
-	name = p.fullyQualify(name)
-	return &NewInstance{Class: name}
 }
 
 func (p *parser) parseVarExpr() Expr {
