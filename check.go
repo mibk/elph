@@ -29,6 +29,7 @@ type linter struct {
 	fileBeingChecked string
 
 	thisClass *Class
+	pushScope bool
 }
 
 func (l *linter) reportf(pos token.Pos, format string, args ...any) {
@@ -48,16 +49,19 @@ func (l *linter) check(x any) {
 		l.fileBeingChecked = x.Path
 		l.check(x.Block)
 	case *Class:
-		if strings.Contains(string(x.Name), "Anonymous") {
-			panic(x.Name)
-		}
 		l.thisClass = x
-		// TODO: Clearing the scope should be more subtle.
-		clear(l.scope)
-		l.scope["$this"] = x.Name
+		l.pushScope = true
 	case *Trait:
-		// Ignore
+		l.thisClass = &Class{Name: "stdClass"} // Ignore
+		l.pushScope = true
 	case *Block:
+		if l.pushScope {
+			backup := l.scope
+			l.scope = make(map[string]Ident)
+			defer func() { l.scope = backup }()
+			l.scope["$this"] = l.thisClass.Name
+			l.pushScope = false
+		}
 		for _, p := range x.Params {
 			l.scope[p.Name] = p.Type
 		}
@@ -79,10 +83,7 @@ func (l *linter) check(x any) {
 			l.reportf(x.Pos, "unknown var: %v (DEBUG)", x.Var)
 		}
 	case *NewInstance:
-		if strings.Contains(string(x.Class), "AnonymousClass") {
-			l.scope["$this"] = x.Class
-		}
-		// no check
+		l.check(x.Class)
 	case *Stmt:
 		for _, n := range x.Nodes {
 			l.check(n)
@@ -106,7 +107,7 @@ func (l *linter) findVarType(a *AssignExpr) (class Ident, checked bool) {
 	default:
 		panic(fmt.Sprintf("unsupported type: %T", val))
 	case *NewInstance:
-		class = val.Class
+		class = l.findNewInstanceType(val.Class)
 	case *ValueExpr:
 		class = val.Type
 	case *VarExpr:
@@ -131,6 +132,17 @@ func (l *linter) findVarType(a *AssignExpr) (class Ident, checked bool) {
 	}
 
 	return class, checked
+}
+
+func (l *linter) findNewInstanceType(x any) (class Ident) {
+	switch x := x.(type) {
+	default:
+		panic(fmt.Sprintf("unsupported expr type: %T", x))
+	case *ValueExpr:
+		return x.Type
+	case *Class:
+		return x.Name
+	}
 }
 
 func (l *linter) checkMemberAccess(a *MemberAccess) Ident {

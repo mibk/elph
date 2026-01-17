@@ -242,7 +242,8 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 			s.Nodes = append(s.Nodes, e)
 		case token.New:
 			p.next()
-			p.parseNewInstance()
+			e := p.parseNewInstance()
+			s.Nodes = append(s.Nodes, e)
 		case token.Arrow, token.QmarkArrow, token.DoubleColon, token.Const:
 			p.next()
 			// Keywords after :: (and all the above tokens) are always idents.
@@ -708,7 +709,7 @@ var anonymousCount int
 
 func (p *parser) parseNewInstance() Expr {
 	if p.got(token.Static) {
-		return &NewInstance{Class: p.thisClass}
+		return &NewInstance{Class: &ValueExpr{Type: p.thisClass}}
 	}
 	switch class := Ident("stdClass"); {
 	case p.got(token.Class):
@@ -726,9 +727,11 @@ func (p *parser) parseNewInstance() Expr {
 			e := p.parseQualifiedName()
 			c.Extends = p.fullyQualify(e)
 		}
-		fallthrough
+		// TODO: implements
+		return &NewInstance{Class: c}
 	case p.got(token.Var):
-		return &NewInstance{Class: class}
+		// Just give up; we can't know the type.
+		return &NewInstance{Class: &ValueExpr{Type: "stdClass"}}
 	default:
 		name := p.parseQualifiedName()
 		if name == "" {
@@ -736,7 +739,7 @@ func (p *parser) parseNewInstance() Expr {
 			return nil
 		}
 		name = p.fullyQualify(name)
-		return &NewInstance{Class: name}
+		return &NewInstance{Class: &ValueExpr{Type: name}}
 	}
 }
 

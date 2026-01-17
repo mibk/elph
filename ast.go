@@ -75,7 +75,7 @@ type Expr interface {
 
 type NewInstance struct {
 	New   token.Pos
-	Class Ident
+	Class any
 }
 
 func (e *NewInstance) Pos() token.Pos { return e.New }
