@@ -230,7 +230,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 		memberClass = template
 	}
 
-	for memberClass == "" && c.Extends != "" {
+	if memberClass == "" && c.Extends != "" {
 		parent := c.Extends.unslash()
 		if parent == "stdClass" {
 			// All good.

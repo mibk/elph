@@ -401,7 +401,7 @@ func (p *parser) handleClassDoc(c *Class, b *phpdoc.Block) {
 	}
 }
 
-func (p *parser) parseTrait(doc token.Token) *Trait {
+func (p *parser) parseTrait(_ token.Token) *Trait {
 	p.expect(token.Trait)
 	name := p.tok
 	p.expect(token.Ident)
