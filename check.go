@@ -230,6 +230,10 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 		if m := c.Methods[member]; m != nil {
 			l.checkStaticAccess(pos, member, m.Static, static, true)
 			memberClass = m.Returns
+		} else if p := c.Properties[member]; p != nil {
+			l.checkStaticAccess(pos, member, p.Static, static, false)
+			// TODO: For now, let's assume the property is a callable.
+			memberClass = "mixed"
 		}
 	} else {
 		member, isVar := strings.CutPrefix(member, "$")
