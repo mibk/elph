@@ -5,7 +5,8 @@ a.php:21:1: $x is of type: int (DEBUG)
 b.php:15:1: $x is of type: mixed (DEBUG)
 
 % check c.php
-c.php:34:1: $u is of type: User (DEBUG)
+c.php:36:1: $u is of type: User (DEBUG)
+c.php:39:1: $v is of type: User (DEBUG)
 
 -- a.php --
 <?php
@@ -75,8 +76,13 @@ class User
  */
 class UserRepo extends BaseRepo
 {
+	/** @return Query<User> */
+	public function optimQuery();
 }
 
 $r = new UserRepo;
 $u = $r->query()->find();
 #debugType $u
+
+$v = $r->optimQuery()->find();
+#debugType $v
