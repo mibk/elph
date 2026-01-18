@@ -4,6 +4,8 @@ a.php:21:1: $x is of type: int (DEBUG)
 % check b.php
 b.php:15:1: $x is of type: mixed (DEBUG)
 
+% check c.php
+c.php:34:1: $u is of type: User (DEBUG)
 
 -- a.php --
 <?php
@@ -43,3 +45,38 @@ class List
 $l = new List;
 $x = $l->getFirst($vals);
 #debugType $x
+-- c.php --
+<?php
+
+/**
+ * @template T
+ */
+class BaseRepo
+{
+	/** @return Query<T> */
+	public function query();
+}
+
+/**
+ * @template T
+ */
+class Query
+{
+	/** @return T */
+	public function find();
+}
+
+class User
+{
+}
+
+/**
+ * @extends BaseRepo<User>
+ */
+class UserRepo extends BaseRepo
+{
+}
+
+$r = new UserRepo;
+$u = $r->query()->find();
+#debugType $u

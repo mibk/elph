@@ -189,6 +189,10 @@ func (l *linter) checkMemberAccess(a *MemberAccess) Ident {
 }
 
 func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, member string, methodCall, static bool, template Ident) Ident {
+	if base, t, ok := strings.Cut(string(class), "<>"); ok {
+		class, template = Ident(base), Ident(t)
+	}
+
 	// TODO: Different error if entity exists but is not a class?
 	c, ok := universe[class].(*Class)
 	if !ok {
@@ -247,6 +251,15 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 				memberClass = m.Returns
 			}
 		}
+	}
+
+	// Hack for generics.
+	if m, ok := strings.CutSuffix(string(memberClass), "<>T"); ok {
+		m := Ident(m)
+		if template != "" {
+			m += "<>" + template
+		}
+		memberClass = m
 	}
 
 	if memberClass == TemplateParam && template != "" {

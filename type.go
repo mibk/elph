@@ -96,7 +96,7 @@ func getClass(typ phptype.Type) Ident {
 		// TODO: Not just the first one, I guess.
 		return opts[0]
 	case *phptype.Generic:
-		return getClass(typ.Base)
+		return getClass(typ.Base) + "<>T"
 	case *phptype.Array:
 		// If there's a method on array,
 		// it's not actually an array.
