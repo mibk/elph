@@ -381,6 +381,9 @@ func (p *parser) parseClass() *Class {
 func (p *parser) handleClassDoc(c *Class, b *phpdoc.Block) {
 	for _, line := range b.Lines {
 		switch tag := line.(type) {
+		case *phpdoc.TypeDefTag:
+			adhocType := p.fullyQualify(Ident(tag.Name))
+			universe[adhocType] = &Class{Name: adhocType, Extends: "stdClass"}
 		case *phpdoc.PropertyTag:
 			m := &Property{
 				Name: strings.TrimPrefix(tag.Var, "$"),
