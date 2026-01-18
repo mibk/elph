@@ -98,6 +98,13 @@ func getClass(typ phptype.Type) Ident {
 		}
 		// TODO: Not just the first one, I guess.
 		for _, o := range opts {
+			if o == "mixed" {
+				return o
+			}
+			if isBasicType(o) {
+				// Let's prefer clases.
+				continue
+			}
 			if strings.ToLower(string(o)) != "null" {
 				return o
 			}
