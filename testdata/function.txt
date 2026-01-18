@@ -1,6 +1,6 @@
 % check a.php
 a.php:5:2: $s is of type: string (DEBUG)
-a.php:9:1: $i is of type: <unknown-val> (DEBUG)
+a.php:9:1: $i is of type: mixed (DEBUG)
 # NOTE: Functions aren't supported for now.
 
 % check b.php

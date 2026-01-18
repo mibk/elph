@@ -15,6 +15,7 @@ import (
 func Check(x any) {
 	l := linter{
 		stdout:           os.Stdout,
+		stderr:           os.Stderr,
 		scope:            make(map[string]Ident),
 		fileBeingChecked: "<line>",
 	}
@@ -23,6 +24,7 @@ func Check(x any) {
 
 type linter struct {
 	stdout io.Writer
+	stderr io.Writer
 	scope  map[string]Ident
 
 	// TODO: Fix this.
@@ -111,7 +113,15 @@ func (l *linter) findVarType(a *AssignExpr) (class Ident, checked bool) {
 	case *ValueExpr:
 		class = val.Type
 	case *VarExpr:
-		class = cmp.Or(l.scope[val.Name], "<unknown-val>")
+		if strings.HasPrefix(val.Name, "$") {
+			class = l.scope[val.Name]
+			if class == "" {
+				msg := fmt.Sprintf("unknown value of %s", val.Name)
+				fmt.Fprintf(l.stderr, "%s:%s: [WARN] %v\n", l.fileBeingChecked, a.Right.Pos(), msg)
+			}
+		}
+		// If unknown, hope for the best.
+		class = cmp.Or(class, "mixed")
 	case *MemberAccess:
 		class = l.checkMemberAccess(val)
 		checked = true
