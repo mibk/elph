@@ -200,6 +200,15 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 			if c := p.parseInterface(); c != nil {
 				s.Nodes = append(s.Nodes, c)
 			}
+		case token.Enum:
+			if p.tok.Text != "enum" {
+				// This is a hack to support e.g. constants named Enum etc.
+				p.next()
+				break
+			}
+			if c := p.parseEnum(); c != nil {
+				s.Nodes = append(s.Nodes, c)
+			}
 		case token.Static:
 			p.next()
 			if classRoot {
@@ -244,7 +253,7 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 			p.next()
 			e := p.parseNewInstance()
 			s.Nodes = append(s.Nodes, e)
-		case token.Arrow, token.QmarkArrow, token.DoubleColon, token.Const:
+		case token.Arrow, token.QmarkArrow, token.DoubleColon, token.Const, token.Instanceof:
 			p.next()
 			// Keywords after :: (and all the above tokens) are always idents.
 			if p.tok.Type.IsKeyword() {
@@ -443,6 +452,25 @@ func (p *parser) parseInterface() *Class {
 	universe[class] = i
 	p.nextClass = class
 	return i
+}
+
+func (p *parser) parseEnum() *Class {
+	p.expect(token.Enum)
+	name := p.tok
+	p.expect(token.Ident)
+	enum := Ident(name.Text)
+	if p.namespace != "" {
+		enum = p.namespace + `\` + enum
+	}
+
+	if _, ok := universe[enum]; ok {
+		p.errorf("type %v already defined in %s", enum, p.filename)
+		return nil
+	}
+	e := &Class{Name: enum}
+	universe[enum] = e
+	p.nextClass = enum
+	return e
 }
 
 func (p *parser) parseMember(doc token.Token, static bool) {

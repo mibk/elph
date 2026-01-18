@@ -1,0 +1,14 @@
+% check a.php
+a.php:10:1: $val is of type: \stdClass (DEBUG)
+
+-- a.php --
+<?php
+
+enum Option: string
+{
+	case YES = 'yes';
+	case NO  = 'no';
+}
+
+$val = Option::YES;
+#debugType $val
