@@ -97,6 +97,11 @@ func getClass(typ phptype.Type) Ident {
 			opts = append(opts, c)
 		}
 		// TODO: Not just the first one, I guess.
+		for _, o := range opts {
+			if strings.ToLower(string(o)) != "null" {
+				return o
+			}
+		}
 		return opts[0]
 	case *phptype.Generic:
 		id := getClass(typ.Base) + "<>"
