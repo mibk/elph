@@ -393,6 +393,10 @@ func (p *parser) handleClassDoc(c *Class, b *phpdoc.Block) {
 		case *phpdoc.TypeDefTag:
 			adhocType := p.fullyQualify(Ident(tag.Name))
 			universe[adhocType] = &Class{Name: adhocType, Extends: "stdClass"}
+		case *phpdoc.OtherTag:
+			if tag.Name == "phpstan-import-type" {
+				p.handleImportedPHPStanType(tag.Desc)
+			}
 		case *phpdoc.PropertyTag:
 			m := &Property{
 				Name: strings.TrimPrefix(tag.Var, "$"),
@@ -411,6 +415,24 @@ func (p *parser) handleClassDoc(c *Class, b *phpdoc.Block) {
 				c.Template = p.resolveClass(p.thisClass, g.TypeParams[0])
 			}
 		}
+	}
+}
+
+func (p *parser) handleImportedPHPStanType(s string) {
+	s, alias, _ := strings.Cut(s, " as ")
+	s = strings.TrimSpace(s)
+	alias = strings.TrimSpace(alias)
+
+	typ, class, _ := strings.Cut(s, " from ")
+	typ = strings.TrimSpace(typ)
+	class = strings.TrimSpace(class)
+
+	// TODO: There's many edge cases that I ignored.
+	if i := strings.LastIndex(class, `\`); i >= 0 {
+		importedType := Ident(class[:i] + `\` + typ)
+
+		c := &Class{Name: p.fullyQualify(Ident(alias)), Extends: importedType}
+		universe[c.Name] = c
 	}
 }
 
@@ -512,6 +534,8 @@ func (p *parser) parseFunction(doc token.Token, static bool) {
 				// If there's a template param, just give up.
 				// TODO: Fix that?
 				break Loop
+			case *phpdoc.ParamTag:
+				p.replaceParam(tag.Param)
 			case *phpdoc.ReturnTag:
 				typ = tag.Type
 				break Loop
@@ -604,6 +628,14 @@ func (p *parser) parseParamList() {
 		if !p.got(token.Comma) {
 			p.expect(token.Rparen)
 			return
+		}
+	}
+}
+
+func (p *parser) replaceParam(u *phptype.Param) {
+	for _, param := range p.params {
+		if param.Name == "$"+u.Name {
+			param.Type = p.resolveClass(p.thisClass, u.Type)
 		}
 	}
 }
