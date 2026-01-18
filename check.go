@@ -163,7 +163,8 @@ func (l *linter) checkMemberAccess(a *MemberAccess) Ident {
 	case *ValueExpr:
 		x = r.Type
 	case *VarExpr:
-		x = cmp.Or(l.scope[r.Name], Ident("<unknown-type-of-"+r.Name+">"))
+		// TODO: For now, let's default to mixed.
+		x = cmp.Or(l.scope[r.Name], "mixed")
 	case *MemberAccess:
 		x = l.checkMemberAccess(r)
 	case *IndexExpr:
