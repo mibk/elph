@@ -490,6 +490,8 @@ func (p *parser) parseEnum() *Class {
 		return nil
 	}
 	e := &Class{Name: enum}
+	m := Function{Name: "tryFrom", Returns: "self", Static: true}
+	e.addMethod(&m)
 	universe[enum] = e
 	p.nextClass = enum
 	return e

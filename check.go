@@ -173,7 +173,7 @@ func (l *linter) checkMemberAccess(a *MemberAccess) Ident {
 	}
 
 	if isBasicType(x) {
-		if x == "mixed" {
+		if x == "mixed" || x == "object" {
 			// All member acces allowed on mixed.
 			return x
 		}
@@ -233,6 +233,9 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 		} else if p := c.Properties[member]; p != nil {
 			l.checkStaticAccess(pos, member, p.Static, static, false)
 			// TODO: For now, let's assume the property is a callable.
+			memberClass = "mixed"
+		} else if strings.HasPrefix(member, "$") {
+			// We cannot decide.
 			memberClass = "mixed"
 		}
 	} else {
