@@ -109,6 +109,8 @@ func getClass(typ phptype.Type) Ident {
 		// it's not actually an array.
 		// TODO: Add proper support.
 		return "\\stdClass"
+	case *phptype.ObjectShape:
+		return "\\stdClass"
 	case *phptype.Nullable:
 		return getClass(typ.Type)
 	case *phptype.Named:

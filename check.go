@@ -237,7 +237,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 		}
 	} else {
 		member, isVar := strings.CutPrefix(member, "$")
-		if !isVar && static {
+		if isVar != static {
 			// TODO: Add support for constants.
 			return "\\stdClass"
 		}
