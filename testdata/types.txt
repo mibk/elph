@@ -14,6 +14,9 @@ b.php:17:1: $i is of type: int (DEBUG)
 % check c.php
 c.php:16:1: $i is of type: Employees\Worker (DEBUG)
 
+% check d.php
+d.php:10:3: $x is of type: Utils\Container (DEBUG)
+
 -- a.php --
 <?php
 
@@ -45,7 +48,7 @@ class Foo
 		$val = $this->process($x);
 		#debugType $val
 
-		$y = $this
+		$y = $this;
 		#debugType $y
 		#debugType $this
 	}
@@ -62,7 +65,7 @@ class Bar
 		#debugType $a
 	}
 
-	private function switch($msg = Foo\Bar::BAZ_CONST, $opt = array('R'=>128)): ?int;
+	private function switch($msg = Foo\Bar::BAZ_CONST, $opt = array('R' => 128)): ?int;
 }
 
 $b = new Bar;
@@ -85,3 +88,17 @@ class Worker extends Person
 $w = new Worker;
 $i = $w->identity();
 #debugType $i
+-- d.php --
+<?php
+
+namespace Utils;
+
+class Container
+{
+	static function create(): self
+	{
+		$x = new self;
+		#debugType $x
+		return $x;
+	}
+}

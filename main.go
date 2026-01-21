@@ -17,7 +17,6 @@ func main() {
 	parseFile("stub/")
 
 
-
 	toAnalyze := []string{
 	}
 
