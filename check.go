@@ -200,8 +200,17 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 	// TODO: Different error if entity exists but is not a class?
 	c, ok := universe[class].(*Class)
 	if !ok {
-		l.reportf(pos, "class `%v` not found", class)
-		return "\\stdClass"
+		t, ok := universe[class].(*Trait)
+		if !ok {
+			l.reportf(pos, "class `%v` not found", class)
+			return "\\stdClass"
+		}
+		// Let's check the trait as if it were a class.
+		c = &Class{
+			Name:       t.Name,
+			Properties: t.Properties,
+			Methods:    t.Methods,
+		}
 	}
 
 	for _, name := range c.Traits {
