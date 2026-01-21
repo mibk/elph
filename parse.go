@@ -674,12 +674,21 @@ func (p *parser) parseProperty(doc token.Token, static bool) {
 		return
 	}
 
-	name := strings.TrimPrefix(def.Text, "$")
-	class := p.resolveClass(p.thisClass, typ)
-	m := Property{Name: name, Type: class, Static: static}
-	if err := c.addProperty(&m); err != nil {
-		// TODO: Fix position of error.
-		p.errorf("%v", err)
+	for {
+		name := strings.TrimPrefix(def.Text, "$")
+		class := p.resolveClass(p.thisClass, typ)
+		m := Property{Name: name, Type: class, Static: static}
+		if err := c.addProperty(&m); err != nil {
+			// TODO: Fix position of error.
+			p.errorf("%v", err)
+		}
+		if !p.got(token.Comma) {
+			break
+		}
+		def = p.tok
+		if !p.got(token.Var) {
+			break
+		}
 	}
 }
 
