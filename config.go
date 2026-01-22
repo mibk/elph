@@ -89,6 +89,7 @@ func (c *Config) paths() (paths, ignored []string) {
 func (c *Config) prepareArbiter() (*Arbiter, error) {
 	a := new(Arbiter)
 	for _, p := range c.Ignore {
+		def := p
 		if !strings.HasPrefix(p, "(") {
 			p = strings.ReplaceAll(p, "*", "\x1d")
 			p = regexp.QuoteMeta(p)
@@ -99,13 +100,19 @@ func (c *Config) prepareArbiter() (*Arbiter, error) {
 		if err != nil {
 			return nil, err
 		}
-		a.patterns = append(a.patterns, rx)
+		a.patterns = append(a.patterns, &pattern{def: def, Regexp: rx})
 	}
 	return a, nil
 }
 
 type Arbiter struct {
-	patterns []*regexp.Regexp
+	patterns []*pattern
+}
+
+type pattern struct {
+	def string
+	*regexp.Regexp
+	fired bool
 }
 
 func (a *Arbiter) errorMatched(msg string) bool {
@@ -115,6 +122,7 @@ func (a *Arbiter) errorMatched(msg string) bool {
 	}
 	for _, p := range a.patterns {
 		if p.MatchString(msg) {
+			p.fired = true
 			return true
 		}
 	}

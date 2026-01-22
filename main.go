@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io"
 	"io/fs"
 	"log"
@@ -52,6 +53,12 @@ func main() {
 		if matched {
 			file := parsedFiles[name]
 			Check(file, arbiter, warnOut)
+		}
+	}
+
+	for _, p := range arbiter.patterns {
+		if !p.fired {
+			fmt.Printf("[ERROR] pattern not matched: %s", p.def)
 		}
 	}
 }
