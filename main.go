@@ -11,10 +11,10 @@ import (
 )
 
 func main() {
-	log.SetPrefix("phpqc: ")
+	log.SetPrefix("elph: ")
 	log.SetFlags(0)
 
-	parseFile("stub/")
+	parsePath("stub/")
 
 
 	toAnalyze := []string{
@@ -38,7 +38,7 @@ func main() {
 
 var parsedFiles = make(map[string]*File)
 
-func parseFile(filename string) {
+func parsePath(filename string) {
 	f, err := os.Open(filename)
 	if err != nil {
 		log.Fatal(err)
@@ -79,7 +79,7 @@ func parseDir(filename string) {
 		case ".php":
 		}
 
-		parseFile(path)
+		parsePath(path)
 		return nil
 	})
 	if err != nil {

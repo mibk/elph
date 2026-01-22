@@ -1,4 +1,4 @@
-module mibk.dev/phpqc
+module mibk.dev/elph
 
 go 1.25.4
 
