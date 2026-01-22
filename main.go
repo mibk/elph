@@ -19,9 +19,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	parsePath("stub/")
-	for _, path := range cfg.Scan {
-		parsePath(path)
+	parsePath("stub/", nil)
+	toScan, ignored := cfg.paths()
+	for _, path := range toScan {
+		parsePath(path, ignored)
 	}
 
 	allParsed := slices.Sorted(maps.Keys(parsedFiles))
@@ -42,7 +43,7 @@ func main() {
 
 var parsedFiles = make(map[string]*File)
 
-func parsePath(filename string) {
+func parsePath(filename string, ignored []string) {
 	f, err := os.Open(filename)
 	if err != nil {
 		log.Fatal(err)
@@ -55,7 +56,7 @@ func parsePath(filename string) {
 	}
 
 	if fi.IsDir() {
-		parseDir(filename)
+		parseDir(filename, ignored)
 		return
 	}
 
@@ -69,12 +70,17 @@ func parsePath(filename string) {
 	parsedFiles[filename] = file
 }
 
-func parseDir(filename string) {
+func parseDir(filename string, ignored []string) {
 	err := filepath.WalkDir(filename, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			log.Fatal(err)
 		}
 		if d.IsDir() {
+			for _, p := range ignored {
+				if strings.HasPrefix(path, p) {
+					return fs.SkipDir
+				}
+			}
 			return nil
 		}
 		switch filepath.Ext(d.Name()) {
@@ -83,7 +89,7 @@ func parseDir(filename string) {
 		case ".php":
 		}
 
-		parsePath(path)
+		parsePath(path, ignored)
 		return nil
 	})
 	if err != nil {

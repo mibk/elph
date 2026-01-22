@@ -72,3 +72,15 @@ func loadElphfile(dir string) (*Config, error) {
 
 	return &cfg, nil
 }
+
+func (c *Config) paths() (paths, ignored []string) {
+	for _, path := range c.Scan {
+		if path, ok := strings.CutPrefix(path, "!"); ok {
+			path = strings.TrimSpace(path)
+			ignored = append(ignored, path)
+		} else {
+			paths = append(paths, path)
+		}
+	}
+	return paths, ignored
+}
