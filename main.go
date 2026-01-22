@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"flag"
 	"fmt"
 	"io"
@@ -12,6 +13,9 @@ import (
 	"slices"
 	"strings"
 )
+
+//go:embed stub/*.php
+var stubs embed.FS
 
 func main() {
 	log.SetPrefix("elph: ")
@@ -30,10 +34,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	parsePath("stub/", nil, warnOut)
+	parsePath(stubs, ".", nil, warnOut)
+
 	toScan, ignored := cfg.paths()
+	root := new(rootFS)
 	for _, path := range toScan {
-		parsePath(path, ignored, warnOut)
+		parsePath(root, path, ignored, warnOut)
 	}
 
 	arbiter, err := cfg.prepareArbiter()
@@ -63,10 +69,14 @@ func main() {
 	}
 }
 
+type rootFS struct{}
+
+func (rootFS) Open(name string) (fs.File, error) { return os.Open(name) }
+
 var parsedFiles = make(map[string]*File)
 
-func parsePath(filename string, ignored []string, warnOut io.Writer) {
-	f, err := os.Open(filename)
+func parsePath(fsys fs.FS, filename string, ignored []string, warnOut io.Writer) {
+	f, err := fsys.Open(filename)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -78,7 +88,7 @@ func parsePath(filename string, ignored []string, warnOut io.Writer) {
 	}
 
 	if fi.IsDir() {
-		parseDir(filename, ignored, warnOut)
+		parseDir(fsys, filename, ignored, warnOut)
 		return
 	}
 
@@ -92,8 +102,8 @@ func parsePath(filename string, ignored []string, warnOut io.Writer) {
 	parsedFiles[filename] = file
 }
 
-func parseDir(filename string, ignored []string, warnOut io.Writer) {
-	err := filepath.WalkDir(filename, func(path string, d fs.DirEntry, err error) error {
+func parseDir(fsys fs.FS, filename string, ignored []string, warnOut io.Writer) {
+	err := fs.WalkDir(fsys, filename, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -111,7 +121,7 @@ func parseDir(filename string, ignored []string, warnOut io.Writer) {
 		case ".php":
 		}
 
-		parsePath(path, ignored, warnOut)
+		parsePath(fsys, path, ignored, warnOut)
 		return nil
 	})
 	if err != nil {
