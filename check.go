@@ -111,6 +111,8 @@ func (l *linter) check(x any) {
 		l.check(x.X)
 	case *VarExpr:
 	case *ValueExpr:
+	case *AssertExpr:
+		l.scope[x.Var] = x.Type
 	}
 }
 

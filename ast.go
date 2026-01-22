@@ -119,6 +119,14 @@ type AssignExpr struct {
 
 func (e *AssignExpr) Pos() token.Pos { return e.Left.Pos() }
 
+type AssertExpr struct {
+	Fn   token.Pos
+	Var  string
+	Type Ident
+}
+
+func (e *AssertExpr) Pos() token.Pos { return e.Fn }
+
 ////////////
 
 type typeDecl interface {

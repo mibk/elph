@@ -173,6 +173,14 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 		case token.Use:
 			p.next()
 			if afterFunc || p.got(token.Function) || p.got(token.Const) {
+				for p.tok.Type == token.Ident {
+					// Just ignore it.
+					p.parseQualifiedName()
+					if p.got(token.Comma) {
+						continue
+					}
+					break
+				}
 				continue
 			}
 			for _, use := range p.parseUseStmt() {
@@ -879,13 +887,38 @@ func (p *parser) parseMemberAccess(x Expr, static bool) Expr {
 func (p *parser) tryParseStaticMemberAccess() Expr {
 	x := &ValueExpr{V: p.tok.Pos}
 	x.Type = p.parseQualifiedName()
-	x.Type = p.fullyQualify(x.Type)
 
+	if x.Type == "assert" {
+		return p.parseAssert(p.tok.Pos)
+	}
+
+	x.Type = p.fullyQualify(x.Type)
 	if p.got(token.DoubleColon) {
 		x := p.parseMemberAccess(x, true)
 		return p.parseChainAccess(x)
 	}
 	return nil
+}
+
+func (p *parser) parseAssert(pos token.Pos) (x Expr) {
+	defer func() {
+		if x == nil {
+			x = &ValueExpr{V: p.tok.Pos}
+			p.parseBlock(token.Lparen, false)
+		}
+	}()
+
+	p.expect(token.Lparen)
+	v := p.tok
+	if !p.got(token.Var) || !p.got(token.Instanceof) {
+		return nil
+	}
+	id := p.parseQualifiedName()
+	if !p.got(token.Rparen) {
+		return nil
+	}
+	id = p.fullyQualify(id)
+	return &AssertExpr{Fn: pos, Var: v.Text, Type: id}
 }
 
 func (p *parser) resolveClass(thisClass Ident, typ phptype.Type) Ident {

@@ -17,6 +17,10 @@ c.php:16:1: $i is of type: Employees\Worker (DEBUG)
 % check d.php
 d.php:10:3: $x is of type: Utils\Container (DEBUG)
 
+% check e.php
+e.php:12:3: $a is of type: My\Employees\Person (DEBUG)
+e.php:14:3: $a is of type: My\Employees\Worker (DEBUG)
+
 -- a.php --
 <?php
 
@@ -100,5 +104,22 @@ class Container
 		$x = new self;
 		#debugType $x
 		return $x;
+	}
+}
+-- e.php --
+<?php
+
+namespace Utils;
+
+use My\Employees;
+use function assert;
+
+class Config
+{
+	function pass(Employees\Person $a)
+	{
+		#debugType $a
+		assert($a instanceof Employees\Worker);
+		#debugType $a
 	}
 }
