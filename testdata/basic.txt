@@ -1,10 +1,10 @@
 % check b.php
 b.php:15:3: $name is of type: string (DEBUG)
-b.php:17:10: class property `Foo\Service::userx` does not exist
-b.php:18:16: class property `Another\Bar\User::namex` does not exist
+b.php:17:10: class property Foo\Service::userx does not exist
+b.php:18:16: class property Another\Bar\User::namex does not exist
 b.php:28:3: $p is of type: Another\Bar\Group (DEBUG)
 b.php:32:3: $u is of type: Another\Bar\User (DEBUG)
-b.php:34:8: class `User` not found
+b.php:34:8: class User not found
 b.php:36:13: cannot call method on 'string'
 
 -- a.php --

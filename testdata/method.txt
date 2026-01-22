@@ -1,5 +1,5 @@
 % check a.php
-a.php:4:8: class method `Repo::notExist` does not exist
+a.php:4:8: class method Repo::notExist does not exist
 
 % check b.php
 b.php:18:3: $u is of type: Admin (DEBUG)

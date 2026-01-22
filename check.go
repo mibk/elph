@@ -209,7 +209,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 	if !ok {
 		t, ok := universe[class].(*Trait)
 		if !ok {
-			l.reportf(pos, "class `%v` not found", class)
+			l.reportf(pos, "class %v not found", class)
 			return "\\stdClass"
 		}
 		// Let's check the trait as if it were a class.
@@ -223,7 +223,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 	for _, name := range c.Traits {
 		t, ok := universe[name].(*Trait)
 		if !ok {
-			l.reportf(pos, "trait `%v` not found", name)
+			l.reportf(pos, "trait %v not found", name)
 			continue
 		}
 		for _, m := range t.Properties {
@@ -304,7 +304,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 		return l.checkClassMember(pos, originalClass, parent, member, methodCall, static, template)
 	}
 	if memberClass == "" {
-		l.reportf(pos, "class %s `%v::%v` does not exist", memberType, originalClass, member)
+		l.reportf(pos, "class %s %v::%v does not exist", memberType, originalClass, member)
 		return "\\stdClass"
 	}
 	if memberClass == "static" {
