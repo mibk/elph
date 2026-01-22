@@ -89,11 +89,16 @@ func (c *Config) paths() (paths, ignored []string) {
 func (c *Config) prepareArbiter() (*Arbiter, error) {
 	a := new(Arbiter)
 	for _, p := range c.Ignore {
+		if !strings.HasPrefix(p, "(") {
+			p = strings.ReplaceAll(p, "*", "\x1d")
+			p = regexp.QuoteMeta(p)
+			p = strings.ReplaceAll(p, "\x1d", ".*")
+		}
+
 		rx, err := regexp.Compile(p)
 		if err != nil {
 			return nil, err
 		}
-
 		a.patterns = append(a.patterns, rx)
 	}
 	return a, nil
@@ -104,6 +109,7 @@ type Arbiter struct {
 }
 
 func (a *Arbiter) errorMatched(msg string) bool {
+	// TODO: Support Windows paths.
 	if a == nil {
 		return false
 	}
