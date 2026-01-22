@@ -735,6 +735,10 @@ func (p *parser) parseForeachParam() *Param {
 	if !p.got(token.Var) {
 		return nil
 	}
+	for p.got(token.Arrow) {
+		// Ignore this exotic foreach.
+		p.expect(token.Ident)
+	}
 	if p.got(token.Lbrack) {
 		// Giving up.
 		p.parseBlock(token.Lbrack, false)

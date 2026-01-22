@@ -26,3 +26,5 @@ foreach ($foo->names as $index => &$n) {
 foreach ($foo->names as [$bar, $baz]);
 
 foreach ($foo->names as $xx[$bar]);
+
+foreach ($tokens as $this->position => $token);
