@@ -879,12 +879,7 @@ func (p *parser) parseMemberAccess(x Expr, static bool) Expr {
 func (p *parser) tryParseStaticMemberAccess() Expr {
 	x := &ValueExpr{V: p.tok.Pos}
 	x.Type = p.parseQualifiedName()
-	if x.Type == "self" || x.Type == "parent" {
-		// TODO: Fix this ugly special case?
-		x.Type = p.thisClass
-	} else {
-		x.Type = p.fullyQualify(x.Type)
-	}
+	x.Type = p.fullyQualify(x.Type)
 
 	if p.got(token.DoubleColon) {
 		x := p.parseMemberAccess(x, true)

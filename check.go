@@ -2,7 +2,6 @@ package main
 
 import (
 	"cmp"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -34,6 +33,7 @@ type linter struct {
 	fileBeingChecked string
 
 	thisClass *Class
+	nextClass *Class
 	pushScope bool
 }
 
@@ -49,8 +49,6 @@ func (l *linter) reportf(pos token.Pos, format string, args ...any) {
 }
 
 func (l *linter) check(x any) {
-	dump := json.NewEncoder(os.Stdout)
-	_ = dump
 	switch x := x.(type) {
 	default:
 		panic(fmt.Sprintf("unsupported type: %T", x))
@@ -58,16 +56,21 @@ func (l *linter) check(x any) {
 		l.fileBeingChecked = x.Path
 		l.check(x.Block)
 	case *Class:
-		l.thisClass = x
+		l.nextClass = x
 		l.pushScope = true
 	case *Trait:
-		l.thisClass = &Class{Name: "stdClass"} // Ignore
+		l.nextClass = &Class{Name: "stdClass"} // Ignore
 		l.pushScope = true
 	case *Block:
 		if l.pushScope {
-			backup := l.scope
+			backupClass := l.thisClass
+			l.thisClass = l.nextClass
+			backupScope := l.scope
 			l.scope = make(map[string]Ident)
-			defer func() { l.scope = backup }()
+			defer func() {
+				l.thisClass = backupClass
+				l.scope = backupScope
+			}()
 			l.scope["$this"] = l.thisClass.Name
 			l.pushScope = false
 		}
@@ -183,7 +186,9 @@ func (l *linter) checkMemberAccess(a *MemberAccess) Ident {
 		x = "stdClass"
 	}
 
-	if isBasicType(x) {
+	if x == "self" || x == "parent" {
+		x = l.thisClass.Name
+	} else if isBasicType(x) {
 		if x == "mixed" || x == "object" {
 			// All member acces allowed on mixed.
 			return x

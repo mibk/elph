@@ -1,0 +1,28 @@
+% check a.php
+a.php:22:3: $b is of type: int (DEBUG)
+
+-- a.php --
+<?php
+
+class Foo
+{
+	private static int $bar;
+
+	function do()
+	{
+		return new class() {
+			private string $name;
+
+			function getName(): string
+			{
+				return $this->name;
+			}
+		}
+	}
+
+	function check()
+	{
+		$b = self::$bar;
+		#debugType $b
+	}
+}
