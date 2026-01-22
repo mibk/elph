@@ -380,7 +380,12 @@ func (p *parser) parseClass() *Class {
 		use := p.parseQualifiedName()
 		use = p.fullyQualify(use)
 		c.Traits = append(c.Traits, use)
-		p.expect(token.Semicolon)
+		if p.got(token.Lbrace) {
+			// TODO: Add support for trait config.
+			p.parseBlock(token.Lbrace, false)
+		} else {
+			p.expect(token.Semicolon)
+		}
 	}
 
 	return c
