@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -83,4 +84,33 @@ func (c *Config) paths() (paths, ignored []string) {
 		}
 	}
 	return paths, ignored
+}
+
+func (c *Config) prepareArbiter() (*Arbiter, error) {
+	a := new(Arbiter)
+	for _, p := range c.Ignore {
+		rx, err := regexp.Compile(p)
+		if err != nil {
+			return nil, err
+		}
+
+		a.patterns = append(a.patterns, rx)
+	}
+	return a, nil
+}
+
+type Arbiter struct {
+	patterns []*regexp.Regexp
+}
+
+func (a *Arbiter) errorMatched(msg string) bool {
+	if a == nil {
+		return false
+	}
+	for _, p := range a.patterns {
+		if p.MatchString(msg) {
+			return true
+		}
+	}
+	return false
 }

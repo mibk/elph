@@ -35,6 +35,11 @@ func main() {
 		parsePath(path, ignored, warnOut)
 	}
 
+	arbiter, err := cfg.prepareArbiter()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	allParsed := slices.Sorted(maps.Keys(parsedFiles))
 	for _, name := range allParsed {
 		matched := false
@@ -46,7 +51,7 @@ func main() {
 		}
 		if matched {
 			file := parsedFiles[name]
-			Check(file, warnOut)
+			Check(file, arbiter, warnOut)
 		}
 	}
 }

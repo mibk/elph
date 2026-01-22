@@ -12,10 +12,11 @@ import (
 	"mibk.dev/phpfmt/token"
 )
 
-func Check(x any, warnOut io.Writer) {
+func Check(x any, a *Arbiter, warnOut io.Writer) {
 	l := linter{
 		stdout:           os.Stdout,
 		stderr:           warnOut,
+		arbiter:          a,
 		scope:            make(map[string]Ident),
 		fileBeingChecked: "<line>",
 	}
@@ -23,9 +24,11 @@ func Check(x any, warnOut io.Writer) {
 }
 
 type linter struct {
-	stdout io.Writer
-	stderr io.Writer
-	scope  map[string]Ident
+	stdout  io.Writer
+	stderr  io.Writer
+	arbiter *Arbiter
+
+	scope map[string]Ident
 
 	// TODO: Fix this.
 	fileBeingChecked string
@@ -35,10 +38,14 @@ type linter struct {
 }
 
 func (l *linter) reportf(pos token.Pos, format string, args ...any) {
-	fmt.Fprintf(l.stdout, "%s:%d:%d: %s\n",
+	msg := fmt.Sprintf("%s:%d:%d: %s",
 		l.fileBeingChecked, pos.Line, pos.Column,
 		fmt.Sprintf(format, args...),
 	)
+
+	if !l.arbiter.errorMatched(msg) {
+		fmt.Fprintln(l.stdout, msg)
+	}
 }
 
 func (l *linter) check(x any) {
