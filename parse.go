@@ -167,6 +167,11 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 		case token.DocComment:
 			docComment = p.tok
 			p.next()
+			if p.got(token.Hash) {
+				// Ignore any attributes.
+				p.expect(token.Lbrack)
+				p.parseBlock(token.Lbrack, false)
+			}
 		case token.Namespace:
 			p.next()
 			p.namespace = p.parseQualifiedName()

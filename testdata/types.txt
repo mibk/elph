@@ -21,6 +21,9 @@ d.php:10:3: $x is of type: Utils\Container (DEBUG)
 e.php:12:3: $a is of type: My\Employees\Person (DEBUG)
 e.php:14:3: $a is of type: My\Employees\Worker (DEBUG)
 
+% check f.php
+# No errors.
+
 -- a.php --
 <?php
 
@@ -123,3 +126,16 @@ class Config
 		#debugType $a
 	}
 }
+-- f.php --
+<?php
+
+/**
+ * @property float $balance
+ */
+#[\AllowDynamicProperties]
+class AccountInfo
+{
+}
+
+$i = new AccountInfo;
+$i->balance;
