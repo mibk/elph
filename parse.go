@@ -855,6 +855,10 @@ func (p *parser) parseChainAccess(x Expr) Expr {
 			fallthrough
 		case p.got(token.Arrow), p.got(token.QmarkArrow):
 			x = p.parseMemberAccess(x, static)
+		case p.got(token.Lparen):
+			// TODO: This is a callback call. Support it?
+			p.parseBlock(token.Lparen, false)
+			x = &ValueExpr{V: x.Pos(), Type: "mixed"}
 		default:
 			return x
 		}
