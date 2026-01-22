@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	"mibk.dev/phpfmt/phpdoc"
@@ -37,8 +36,8 @@ type parser struct {
 	params    []*Param
 }
 
-func Parse(r io.Reader, filename string, php74Compat bool) (*File, error) {
-	return parsePHP(r, filename, php74Compat, os.Stderr)
+func Parse(r io.Reader, filename string, php74Compat bool, warnOut io.Writer) (*File, error) {
+	return parsePHP(r, filename, php74Compat, warnOut)
 }
 
 func parsePHP(r io.Reader, filename string, php74Compat bool, warnOut io.Writer) (*File, error) {

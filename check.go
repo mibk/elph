@@ -12,10 +12,10 @@ import (
 	"mibk.dev/phpfmt/token"
 )
 
-func Check(x any) {
+func Check(x any, warnOut io.Writer) {
 	l := linter{
 		stdout:           os.Stdout,
-		stderr:           os.Stderr,
+		stderr:           warnOut,
 		scope:            make(map[string]Ident),
 		fileBeingChecked: "<line>",
 	}

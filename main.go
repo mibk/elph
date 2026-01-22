@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+	"io"
 	"io/fs"
 	"log"
 	"maps"
@@ -14,15 +16,23 @@ func main() {
 	log.SetPrefix("elph: ")
 	log.SetFlags(0)
 
+	ignoreWarn := flag.Bool("W", false, "ignore warnings")
+	flag.Parse()
+
+	var warnOut io.Writer = os.Stderr
+	if *ignoreWarn {
+		warnOut = io.Discard
+	}
+
 	cfg, err := loadElphfile(".")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	parsePath("stub/", nil)
+	parsePath("stub/", nil, warnOut)
 	toScan, ignored := cfg.paths()
 	for _, path := range toScan {
-		parsePath(path, ignored)
+		parsePath(path, ignored, warnOut)
 	}
 
 	allParsed := slices.Sorted(maps.Keys(parsedFiles))
@@ -36,14 +46,14 @@ func main() {
 		}
 		if matched {
 			file := parsedFiles[name]
-			Check(file)
+			Check(file, warnOut)
 		}
 	}
 }
 
 var parsedFiles = make(map[string]*File)
 
-func parsePath(filename string, ignored []string) {
+func parsePath(filename string, ignored []string, warnOut io.Writer) {
 	f, err := os.Open(filename)
 	if err != nil {
 		log.Fatal(err)
@@ -56,11 +66,11 @@ func parsePath(filename string, ignored []string) {
 	}
 
 	if fi.IsDir() {
-		parseDir(filename, ignored)
+		parseDir(filename, ignored, warnOut)
 		return
 	}
 
-	file, err := Parse(f, filename, false)
+	file, err := Parse(f, filename, false, warnOut)
 	if se, ok := err.(*SyntaxError); ok {
 		log.Fatalf("%s:%d:%d: %v", filename, se.Line, se.Column, se.Err)
 	} else if err != nil {
@@ -70,7 +80,7 @@ func parsePath(filename string, ignored []string) {
 	parsedFiles[filename] = file
 }
 
-func parseDir(filename string, ignored []string) {
+func parseDir(filename string, ignored []string, warnOut io.Writer) {
 	err := filepath.WalkDir(filename, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			log.Fatal(err)
@@ -89,7 +99,7 @@ func parseDir(filename string, ignored []string) {
 		case ".php":
 		}
 
-		parsePath(path, ignored)
+		parsePath(path, ignored, warnOut)
 		return nil
 	})
 	if err != nil {
