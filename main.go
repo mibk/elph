@@ -17,16 +17,48 @@ import (
 //go:embed stub/*.php
 var stubs embed.FS
 
+func usage() {
+	fmt.Fprintf(os.Stderr, `usage: elph [-v]
+
+Elph is a static analysis tool for checking your PHP files.
+It performs basic checks. For advanced checks, see PHPStan.
+
+Flags:
+  -v	show warnings
+
+Elph is configured using an Elphfile,
+which is located in the root of the PHP project
+(usually at the same level as, for example, composer.json).
+
+The format is as follows:
+  - The Elphfile is divided into three sections (denoted by brackets: [SECTION]):
+    Scan, Analyze, and Ignore.
+  - Lines beginning with ‘#’ or blank lines are ignored.
+  - The Scan section includes paths that are parsed.
+  - If a line begins with ‘!’, paths prefixed with that value are ignored.
+  - The Analyze section includes paths that are analyzed.
+  - The Ignore section includes patterns of errors to ignore.
+  - If a line is in parentheses, the pattern is considered a regular expression;
+    otherwise, simple glob matching is used (where * matches any characters).
+`)
+	os.Exit(2)
+}
+
 func main() {
 	log.SetPrefix("elph: ")
 	log.SetFlags(0)
 
-	ignoreWarn := flag.Bool("W", false, "ignore warnings")
+	showWarn := flag.Bool("v", false, "show warnings")
+	flag.Usage = usage
 	flag.Parse()
 
-	var warnOut io.Writer = os.Stderr
-	if *ignoreWarn {
-		warnOut = io.Discard
+	if flag.NArg() > 0 {
+		log.Fatalf("unknown command %q\n", flag.Arg(0))
+	}
+
+	warnOut := io.Discard
+	if *showWarn {
+		warnOut = os.Stderr
 	}
 
 	cfg, err := loadElphfile(".")

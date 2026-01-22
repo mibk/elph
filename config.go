@@ -34,7 +34,7 @@ func loadElphfile(dir string) (*Config, error) {
 				continue
 			}
 			// Root.
-			return nil, fmt.Errorf("no %[1]s found; run `elph help %[1]s`", configFileName)
+			return nil, fmt.Errorf("no %s found; run `elph -h`", configFileName)
 		}
 		if err != nil {
 			return nil, err
