@@ -14,16 +14,20 @@ func main() {
 	log.SetPrefix("elph: ")
 	log.SetFlags(0)
 
+	cfg, err := loadElphfile(".")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	parsePath("stub/")
-
-
-	toAnalyze := []string{
+	for _, path := range cfg.Scan {
+		parsePath(path)
 	}
 
 	allParsed := slices.Sorted(maps.Keys(parsedFiles))
 	for _, name := range allParsed {
 		matched := false
-		for _, pattern := range toAnalyze {
+		for _, pattern := range cfg.Analyze {
 			if strings.HasPrefix(name, pattern) {
 				matched = true
 				break
