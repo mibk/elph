@@ -143,7 +143,9 @@ func isBasicType(typ Ident) bool {
 	case TemplateParam:
 		// TODO: This is ugly.
 		return true
-	case "void", "never", "self", "static", "parent", "mixed", "string", "int", "object":
+	case "void", "never", "self", "static", "parent",
+		"mixed", "string", "int", "float", "bool", "true", "false",
+		"object", "array", "callable", "resource":
 		return true
 	default:
 		return false

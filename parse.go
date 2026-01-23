@@ -201,7 +201,7 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 				s.Nodes = append(s.Nodes, b)
 
 				if b := p.parsePHPDoc(doc); b != nil {
-					p.handleClassDoc(c, b)
+					p.handleClassDoc(c, b, doc.Pos)
 				}
 			}
 		case token.Trait:
@@ -404,7 +404,7 @@ func (p *parser) parseClass() *Class {
 	return c
 }
 
-func (p *parser) handleClassDoc(c *Class, b *phpdoc.Block) {
+func (p *parser) handleClassDoc(c *Class, b *phpdoc.Block, pos token.Pos) {
 	for _, line := range b.Lines {
 		switch tag := line.(type) {
 		case *phpdoc.TypeDefTag:
@@ -416,12 +416,14 @@ func (p *parser) handleClassDoc(c *Class, b *phpdoc.Block) {
 			}
 		case *phpdoc.PropertyTag:
 			m := &Property{
+				Pos:  pos,
 				Name: strings.TrimPrefix(tag.Var, "$"),
 				Type: p.resolveClass(c.Name, tag.Type),
 			}
 			c.replaceProperty(m)
 		case *phpdoc.MethodTag:
 			m := &Function{
+				Pos:     pos,
 				Name:    tag.Name,
 				Returns: p.resolveClass(c.Name, tag.Result),
 			}
@@ -534,6 +536,7 @@ func (p *parser) parseFunction(doc token.Token, static bool) {
 		p.tok.Type = token.Ident
 	}
 	name := p.tok.Text
+	pos := p.tok.Pos
 	if !p.got(token.Ident) {
 		// TODO: Prevent adding it as a method to p.thisClass.
 		name = "anonymousFn@" + fmt.Sprint(anonymousCount)
@@ -574,7 +577,7 @@ func (p *parser) parseFunction(doc token.Token, static bool) {
 	}
 
 	class := p.resolveClass(p.thisClass, typ)
-	m := Function{Name: name, Returns: class, Static: static}
+	m := Function{Pos: pos, Name: name, Returns: class, Static: static}
 	if err := c.addMethod(&m); err != nil {
 		// TODO: Fix position of error.
 		p.errorf("%v", err)
@@ -609,6 +612,7 @@ func (p *parser) parseParamList() {
 
 		typ := p.tryParseType()
 		name := p.tok.Text
+		pos := p.tok.Pos
 		if !p.got(token.Var) {
 			// TODO: Unsupported syntax. Giving up.
 			p.next()
@@ -636,7 +640,7 @@ func (p *parser) parseParamList() {
 		if isMember {
 			if c, _ := universe[p.thisClass]; c != nil {
 				name = strings.TrimPrefix(name, "$")
-				m := Property{Name: name, Type: class}
+				m := Property{Pos: pos, Name: name, Type: class}
 				if err := c.addProperty(&m); err != nil {
 					p.errorf("%v", err)
 				}
@@ -694,7 +698,7 @@ func (p *parser) parseProperty(doc token.Token, static bool) {
 	for {
 		name := strings.TrimPrefix(def.Text, "$")
 		class := p.resolveClass(p.thisClass, typ)
-		m := Property{Name: name, Type: class, Static: static}
+		m := Property{Pos: def.Pos, Name: name, Type: class, Static: static}
 		if err := c.addProperty(&m); err != nil {
 			// TODO: Fix position of error.
 			p.errorf("%v", err)

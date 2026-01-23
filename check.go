@@ -63,6 +63,18 @@ func (l *linter) check(x any) {
 	case *Class:
 		l.nextClass = x
 		l.pushScope = true
+
+		for _, p := range x.Properties {
+			if !l.exists(p.Type) {
+				l.reportf(p.Pos, "property %s has non-existing type %s", p.Name, p.Type)
+			}
+		}
+		for _, m := range x.Methods {
+			if !l.exists(m.Returns) {
+				l.reportf(m.Pos, "method %s returns non-existing type %s", m.Name, m.Returns)
+			}
+		}
+
 	case *Trait:
 		l.nextClass = &Class{Name: "stdClass"} // Ignore
 		l.pushScope = true
@@ -119,6 +131,19 @@ func (l *linter) check(x any) {
 	case *AssertExpr:
 		l.scope[x.Var] = x.Type
 	}
+}
+
+func (l *linter) exists(id Ident) bool {
+	id = id.unslash()
+	switch {
+	case isBasicType(id),
+		id == "stdClass",
+		strings.Contains(string(id), "<"), // TODO: Check generics <> too
+		strings.Contains(string(id), "-"): // special PHPStan type
+		return true
+	}
+	_, ok := universe[id]
+	return ok
 }
 
 func (l *linter) findVarType(a *AssignExpr) (class Ident, checked bool) {

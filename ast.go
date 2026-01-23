@@ -53,12 +53,14 @@ type Trait struct {
 }
 
 type Property struct {
+	Pos    token.Pos
 	Name   string
 	Type   Ident
 	Static bool
 }
 
 type Function struct {
+	Pos     token.Pos
 	Name    string
 	Returns Ident
 	Static  bool
