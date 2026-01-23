@@ -18,6 +18,7 @@ func Check(x any, a *Arbiter, warnOut io.Writer) {
 		arbiter:          a,
 		scope:            make(map[string]Ident),
 		fileBeingChecked: "<line>",
+		reported:         make(map[string]bool),
 	}
 	l.check(x)
 }
@@ -31,6 +32,7 @@ type linter struct {
 
 	// TODO: Fix this.
 	fileBeingChecked string
+	reported     map    [string]bool
 
 	thisClass *Class
 	nextClass *Class
@@ -223,7 +225,10 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 	if !ok {
 		t, ok := universe[class].(*Trait)
 		if !ok {
-			l.reportf(pos, "class %v not found", class)
+			if key := string(class) + "·" + l.fileBeingChecked; !l.reported[key] {
+				l.reportf(pos, "class %v not found", class)
+				l.reported[key] = true
+			}
 			return "\\stdClass"
 		}
 		// Let's check the trait as if it were a class.
