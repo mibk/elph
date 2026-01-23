@@ -40,6 +40,16 @@ The format is as follows:
   - The Ignore section includes patterns of errors to ignore.
   - If a line is in parentheses, the pattern is considered a regular expression;
     otherwise, simple glob matching is used (where * matches any characters).
+
+To find out the type of a variable at any given time,
+the special comment can be used (recognized by Elph).
+To find out the type of an expression, one would type:
+
+    $a = /* expr */;
+    #debugType $a
+
+Note: Only a subset of expressions is supported,
+mainly function calls or accessing class members.
 `)
 	os.Exit(2)
 }
