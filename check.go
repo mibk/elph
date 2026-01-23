@@ -11,6 +11,9 @@ import (
 	"mibk.dev/phpfmt/token"
 )
 
+// TODO: Remove this hack.
+var hasErrors = false
+
 func Check(x any, a *Arbiter, warnOut io.Writer) {
 	l := linter{
 		stdout:           os.Stdout,
@@ -32,7 +35,7 @@ type linter struct {
 
 	// TODO: Fix this.
 	fileBeingChecked string
-	reported     map    [string]bool
+	reported         map[string]bool
 
 	thisClass *Class
 	nextClass *Class
@@ -44,9 +47,9 @@ func (l *linter) reportf(pos token.Pos, format string, args ...any) {
 		l.fileBeingChecked, pos.Line, pos.Column,
 		fmt.Sprintf(format, args...),
 	)
-
 	if !l.arbiter.errorMatched(msg) {
 		fmt.Fprintln(l.stdout, msg)
+		hasErrors = true
 	}
 }
 

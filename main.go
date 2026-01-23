@@ -93,7 +93,7 @@ func main() {
 	for _, name := range allParsed {
 		matched := false
 		for _, pattern := range cfg.Analyze {
-			if strings.HasPrefix(name, pattern) {
+			if strings.HasPrefix(name, pattern.Value) {
 				matched = true
 				break
 			}
@@ -106,8 +106,12 @@ func main() {
 
 	for _, p := range arbiter.patterns {
 		if !p.fired {
-			fmt.Printf("[%s] pattern not matched: %s\n", configFileName, p.def)
+			fmt.Printf("%s:%d: pattern not matched: %s\n", configFileName, p.def.Number, p.def.Value)
+			hasErrors = true
 		}
+	}
+	if hasErrors {
+		os.Exit(1)
 	}
 }
 

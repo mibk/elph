@@ -11,10 +11,15 @@ import (
 
 const configFileName = "Elphfile"
 
+type Line struct {
+	Number int
+	Value  string
+}
+
 type Config struct {
-	Scan    []string
-	Analyze []string
-	Ignore  []string
+	Scan    []Line
+	Analyze []Line
+	Ignore  []Line
 }
 
 func loadElphfile(dir string) (*Config, error) {
@@ -43,8 +48,10 @@ func loadElphfile(dir string) (*Config, error) {
 	}
 
 	var cfg Config
-	var section *[]string
+	var section *[]Line
+	lineNumber := 0
 	for b := range bytes.Lines(cfgData) {
+		lineNumber++
 		line := strings.TrimSpace(string(b))
 		if strings.HasPrefix(line, "#") || line == "" {
 			continue
@@ -68,14 +75,15 @@ func loadElphfile(dir string) (*Config, error) {
 		if section == nil {
 			return nil, fmt.Errorf("no %s section; start with [scan]", configFileName)
 		}
-		*section = append(*section, line)
+		*section = append(*section, Line{lineNumber, line})
 	}
 
 	return &cfg, nil
 }
 
 func (c *Config) paths() (paths, ignored []string) {
-	for _, path := range c.Scan {
+	for _, line := range c.Scan {
+		path := line.Value
 		if path, ok := strings.CutPrefix(path, "!"); ok {
 			path = strings.TrimSpace(path)
 			ignored = append(ignored, path)
@@ -90,6 +98,7 @@ func (c *Config) prepareArbiter() (*Arbiter, error) {
 	a := new(Arbiter)
 	for _, p := range c.Ignore {
 		def := p
+		p := p.Value
 		if !strings.HasPrefix(p, "(") {
 			p = strings.ReplaceAll(p, "*", "\x1d")
 			p = regexp.QuoteMeta(p)
@@ -110,7 +119,7 @@ type Arbiter struct {
 }
 
 type pattern struct {
-	def string
+	def Line
 	*regexp.Regexp
 	fired bool
 }
