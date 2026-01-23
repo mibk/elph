@@ -803,8 +803,9 @@ func (p *parser) parseExpr() Expr {
 var anonymousCount int
 
 func (p *parser) parseNewInstance() Expr {
+	pos := p.tok.Pos
 	if p.got(token.Static) {
-		return &NewInstance{Class: &ValueExpr{Type: p.thisClass}}
+		return &NewInstance{Class: &ValueExpr{V: pos, Type: p.thisClass}}
 	}
 	switch class := Ident("stdClass"); {
 	case p.got(token.Class):
@@ -826,7 +827,7 @@ func (p *parser) parseNewInstance() Expr {
 		return &NewInstance{Class: c}
 	case p.got(token.Var):
 		// Just give up; we can't know the type.
-		return &NewInstance{Class: &ValueExpr{Type: "stdClass"}}
+		return &NewInstance{Class: &ValueExpr{V: pos, Type: "stdClass"}}
 	default:
 		name := p.parseQualifiedName()
 		if name == "" {
@@ -834,7 +835,7 @@ func (p *parser) parseNewInstance() Expr {
 			return nil
 		}
 		name = p.fullyQualify(name)
-		return &NewInstance{Class: &ValueExpr{Type: name}}
+		return &NewInstance{Class: &ValueExpr{V: pos, Type: name}}
 	}
 }
 

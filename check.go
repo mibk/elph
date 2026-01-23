@@ -161,9 +161,16 @@ func (l *linter) findNewInstanceType(x any) (class Ident) {
 	default:
 		panic(fmt.Sprintf("unsupported expr type: %T", x))
 	case *ValueExpr:
-		switch x.Type {
+		class := x.Type.unslash()
+		switch class {
 		case "self", "static":
 			return l.thisClass.Name
+		case "stdClass":
+			return x.Type
+		}
+		if _, ok := universe[class].(*Class); !ok {
+			l.reportf(x.V, "class %v not found", class)
+			return "\\stdClass"
 		}
 		return x.Type
 	case *Class:

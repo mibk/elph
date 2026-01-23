@@ -2,6 +2,9 @@
 a.php:11:13: class property Repo::notExist does not exist
 a.php:13:18: class Instance not found
 
+% check b.php
+b.php:3:10: class DoesNotExist not found
+
 -- a.php --
 <?php
 
@@ -34,3 +37,9 @@ class Repo extends Mysql
 class Mysql
 {
 }
+-- b.php --
+<?php
+
+$x = new DoesNotExist;
+$x->foo;
+$x->bar;

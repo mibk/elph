@@ -8,8 +8,8 @@ b.php:12:1: $bar is of type: Path\To\Module\Bar (DEBUG)
 c.php:6:1: $bar is of type: Path\To\Module\Bar (DEBUG)
 
 % check d.php
-d.php:10:1: $x is of type: Path\To\Grouped\BBB\Foo (DEBUG)
-d.php:12:1: $x is of type: Path\To\Grouped\CCC\Foo (DEBUG)
+d.php:9:10: class Path\To\Grouped\BBB\Foo not found
+d.php:10:10: class Path\To\Grouped\CCC\Foo not found
 
 -- a.php --
 <?php
@@ -65,6 +65,4 @@ use Path\To\Grouped\{
 };
 
 $x = new BBB\Foo;
-#debugType $x
 $x = new DDD\Foo;
-#debugType $x
