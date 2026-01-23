@@ -61,6 +61,7 @@ func Test(t *testing.T) {
 				stdout:           &got,
 				scope:            make(map[string]Ident),
 				fileBeingChecked: "<test-line>",
+				reported:         make(map[string]bool),
 			}
 
 			for line := range strings.Lines(string(a.Comment)) {
