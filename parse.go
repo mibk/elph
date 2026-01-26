@@ -730,6 +730,11 @@ Next:
 			if p.got(token.EOF) || p.got(token.Semicolon) {
 				return
 			}
+			if delim := p.tok.Type; p.got(token.Lbrack) || p.got(token.Lparen) {
+				// Ignore array literal.
+				p.parseBlock(delim, false)
+				continue
+			}
 			if p.got(token.Comma) {
 				def = p.tok
 				if !p.got(token.Var) && !p.got(token.Ident) {
