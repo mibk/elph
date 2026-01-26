@@ -350,6 +350,19 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 		memberClass = template
 	}
 
+	if member, isVar := strings.CutPrefix(member, "$"); memberClass == "" && static && !isVar {
+		for _, iface := range c.Implements {
+			i, ok := universe[iface].(*Class)
+			if !ok {
+				// Can this happen?
+				continue
+			}
+			if c := i.Properties["#"+member]; c != nil {
+				memberClass = c.Type
+			}
+		}
+	}
+
 	if memberClass == "" && c.Extends != "" {
 		parent := c.Extends.unslash()
 		if parent == "stdClass" {

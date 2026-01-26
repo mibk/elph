@@ -2,6 +2,9 @@
 a.php:10:3: $name is of type: string (DEBUG)
 a.php:13:3: $cnt is of type: int (DEBUG)
 
+% check b.php
+b.php:8:3: $x is of type: mixed (DEBUG)
+
 -- a.php --
 <?php
 
@@ -26,4 +29,17 @@ interface Stringable
 	public function toString(): string;
 
 	function charCount(): int;
+
+	const SUPPORTED = true;
+}
+-- b.php --
+<?php
+
+class Bar implements Stringable
+{
+	function __construct()
+	{
+		$x = self::SUPPORTED;
+		#debugType $x
+	}
 }

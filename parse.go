@@ -211,6 +211,8 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 		case token.Interface:
 			if c := p.parseInterface(); c != nil {
 				s.Nodes = append(s.Nodes, c)
+				b := p.parseBlock(token.Lbrace, true)
+				s.Nodes = append(s.Nodes, b)
 			}
 		case token.Enum:
 			if p.tok.Text != "enum" {
@@ -387,11 +389,10 @@ func (p *parser) parseClass() *Class {
 		e := p.parseQualifiedName()
 		c.Extends = p.fullyQualify(e)
 	}
-
-	// TODO: Choose a different aproach to skip tokens unil '{'?
 	if p.got(token.Implements) {
 		for {
-			p.parseQualifiedName() // ignore these
+			i := p.parseQualifiedName()
+			c.Implements = append(c.Implements, p.fullyQualify(i))
 			if !p.got(token.Comma) {
 				break
 			}
@@ -502,6 +503,18 @@ func (p *parser) parseInterface() *Class {
 	i := &Class{Name: class}
 	universe[class] = i
 	p.nextClass = class
+
+	if p.got(token.Extends) {
+		for {
+			id := p.parseQualifiedName()
+			i.Implements = append(i.Implements, p.fullyQualify(id))
+			if !p.got(token.Comma) {
+				break
+			}
+		}
+	}
+
+	p.expect(token.Lbrace)
 	return i
 }
 

@@ -41,6 +41,7 @@ type Class struct {
 	Name       Ident
 	Template   Ident // or empty
 	Extends    Ident // or empty
+	Implements []Ident
 	Traits     []Ident
 	Properties map[string]*Property
 	Methods    map[string]*Function
