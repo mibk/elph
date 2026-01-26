@@ -220,6 +220,8 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 			}
 			if c := p.parseEnum(); c != nil {
 				s.Nodes = append(s.Nodes, c)
+				b := p.parseBlock(token.Lbrace, true)
+				s.Nodes = append(s.Nodes, b)
 			}
 		case token.Static:
 			p.next()
@@ -237,6 +239,11 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 			p.parseFunction(docComment, false)
 			// Disarm parsing 'use' stmt after 'function' for now.
 			afterFunc = true
+		case token.Case:
+			p.next()
+			if classRoot {
+				p.parseProperty(docComment, false, true)
+			}
 		case token.Foreach:
 			if f := p.parseForeach(); f != nil {
 				s.Nodes = append(s.Nodes, f)
@@ -511,6 +518,12 @@ func (p *parser) parseEnum() *Class {
 		p.errorf("type %v already defined in %s", enum, p.filename)
 		return nil
 	}
+
+	if p.got(token.Colon) {
+		p.expect(token.Ident)
+	}
+	p.expect(token.Lbrace)
+
 	e := &Class{Name: enum}
 	m := Function{Name: "tryFrom", Returns: "self", Static: true}
 	e.addMethod(&m)
