@@ -351,16 +351,8 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 	}
 
 	if member, isVar := strings.CutPrefix(member, "$"); memberClass == "" && static && !isVar {
-		for _, iface := range c.Implements {
-			i, ok := universe[iface].(*Class)
-			if !ok {
-				// Can this happen?
-				continue
-			}
-			if c := i.Properties["#"+member]; c != nil {
-				memberClass = c.Type
-			}
-		}
+		// Interfaces can define constants.
+		memberClass = findImplementorsConstType(c, member)
 	}
 
 	if memberClass == "" && c.Extends != "" {
@@ -382,6 +374,23 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 		return originalClass
 	}
 	return memberClass
+}
+
+func findImplementorsConstType(c *Class, member string) Ident {
+	for _, iface := range c.Implements {
+		i, ok := universe[iface].(*Class)
+		if !ok {
+			// Can this happen?
+			continue
+		}
+		if c := i.Properties["#"+member]; c != nil {
+			return c.Type
+		}
+		if id := findImplementorsConstType(i, member); id != "" {
+			return id
+		}
+	}
+	return ""
 }
 
 func (l *linter) checkStaticAccess(pos token.Pos, memberName string, isStatic, accessStatic, methodCall bool) {
