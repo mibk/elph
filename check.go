@@ -253,6 +253,10 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 	if !ok {
 		t, ok := universe[class].(*Trait)
 		if !ok {
+			if class == "stdClass" {
+				// TODO: This hack is on too many places. Fix it.
+				return class
+			}
 			if key := string(class) + "·" + l.fileBeingChecked; !l.reported[key] {
 				l.reportf(pos, "class %v not found", class)
 				l.reported[key] = true
@@ -305,7 +309,10 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 			// We cannot decide.
 			memberClass = "mixed"
 		}
-	} else if member, isVar := strings.CutPrefix(member, "$"); !isVar && static {
+	} else if member, isVar := strings.CutPrefix(member, "$"); isVar && !static {
+		// This is stupid dynamic $foo->$bar call. Ignore it.
+		return "mixed"
+	} else if !isVar && static {
 		if member == "class" {
 			// PHP magic constant.
 			return "string"
