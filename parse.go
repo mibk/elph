@@ -229,6 +229,9 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 		case token.Private, token.Protected, token.Public:
 			p.next()
 			p.parseMember(docComment, false)
+		case token.Const:
+			p.next()
+			p.parseProperty(docComment, false, true)
 		case token.Function:
 			p.next()
 			p.parseFunction(docComment, false)
@@ -265,7 +268,7 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 			p.next()
 			e := p.parseNewInstance()
 			s.Nodes = append(s.Nodes, e)
-		case token.Arrow, token.QmarkArrow, token.DoubleColon, token.Const, token.Instanceof:
+		case token.Arrow, token.QmarkArrow, token.DoubleColon, token.Instanceof:
 			p.next()
 			// Keywords after :: (and all the above tokens) are always idents.
 			if p.tok.Type.IsKeyword() {
@@ -521,10 +524,12 @@ func (p *parser) parseMember(doc token.Token, static bool) {
 		static = p.got(token.Static)
 	}
 
-	if p.got(token.Function) {
+	if p.got(token.Const) {
+		p.parseProperty(doc, static, true)
+	} else if p.got(token.Function) {
 		p.parseFunction(doc, static)
 	} else {
-		p.parseProperty(doc, static)
+		p.parseProperty(doc, static, false)
 	}
 }
 
@@ -663,13 +668,27 @@ func (p *parser) replaceParam(u *phptype.Param) {
 	}
 }
 
-func (p *parser) parseProperty(doc token.Token, static bool) {
+func (p *parser) parseProperty(doc token.Token, static, constant bool) {
 	p.got(token.Readonly) // ignore
-	typ := p.tryParseType()
 
-	def := p.tok
-	if !p.got(token.Var) {
-		return
+	// Keywords after :: (and all the above tokens) are always idents.
+	if p.tok.Type.IsKeyword() {
+		p.tok.Type = token.Ident
+	}
+
+	var def token.Token
+	var typ phptype.Type
+	if constant {
+		def = p.tok
+		if !p.got(token.Ident) {
+			return
+		}
+	} else {
+		typ = p.tryParseType()
+		def = p.tok
+		if !p.got(token.Var) {
+			return
+		}
 	}
 
 	if b := p.parsePHPDoc(doc); b != nil {
@@ -698,7 +717,7 @@ func (p *parser) parseProperty(doc token.Token, static bool) {
 	for {
 		name := strings.TrimPrefix(def.Text, "$")
 		class := p.resolveClass(p.thisClass, typ)
-		m := Property{Pos: def.Pos, Name: name, Type: class, Static: static}
+		m := Property{Pos: def.Pos, Name: name, Type: class, Static: static, Const: constant}
 		if err := c.addProperty(&m); err != nil {
 			// TODO: Fix position of error.
 			p.errorf("%v", err)

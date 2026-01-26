@@ -5,6 +5,8 @@ a.php:19:1: $y is of type: string (DEBUG)
 a.php:25:7: cannot access instance property 'a' statically
 a.php:27:7: cannot access static property 'b' via object instance
 a.php:29:1: $z is of type: string (DEBUG)
+a.php:32:7: Foo::a is not a constant
+a.php:33:7: Foo::b is not a constant
 a.php:36:1: $m is of type: string (DEBUG)
 a.php:37:6: class property Foo::$c does not exist
 
@@ -43,7 +45,7 @@ $foo->b;
 $z = $foo::$b;
 #debugType $z
 
-// TODO: Report missing consts.
+// Missing constants are reported too.
 $foo::a;
 $foo::b;
 

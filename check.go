@@ -305,13 +305,15 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 			// We cannot decide.
 			memberClass = "mixed"
 		}
-	} else {
-		member, isVar := strings.CutPrefix(member, "$")
-		if isVar != static {
-			// TODO: Add support for constants.
-			return "\\stdClass"
+	} else if member, isVar := strings.CutPrefix(member, "$"); !isVar && static {
+		memberType = "const"
+		if c := c.Properties[member]; c != nil {
+			if !c.Const {
+				l.reportf(pos, "%s::%s is not a constant", class, member)
+			}
+			memberClass = c.Type
 		}
-
+	} else {
 		memberType = "property"
 		if p := c.Properties[member]; p != nil {
 			l.checkStaticAccess(pos, member, p.Static, static, false)

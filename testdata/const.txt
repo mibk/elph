@@ -1,0 +1,17 @@
+% check a.php
+a.php:10:1: $b is of type: string (DEBUG)
+a.php:12:11: class const Foo::DOES_NOT_EXIST does not exist
+
+-- a.php --
+<?php
+
+class Foo
+{
+	/** @var string */
+	const BAR = 'bar';
+}
+
+$b = Foo::BAR;
+#debugType $b
+
+$b = Foo::DOES_NOT_EXIST;

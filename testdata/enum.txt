@@ -1,4 +1,6 @@
+# TODO: Add support for enum consts
 % check a.php
+a.php:9:16: class const Option::YES does not exist
 a.php:10:1: $val is of type: \stdClass (DEBUG)
 
 -- a.php --
