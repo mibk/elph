@@ -717,7 +717,10 @@ func (p *parser) parseProperty(doc token.Token, static, constant bool) {
 	for {
 		name := strings.TrimPrefix(def.Text, "$")
 		class := p.resolveClass(p.thisClass, typ)
-		m := Property{Pos: def.Pos, Name: name, Type: class, Static: static, Const: constant}
+		m := Property{Pos: def.Pos, Name: name, Type: class, Static: static}
+		if constant {
+			m.Name = "#" + m.Name
+		}
 		if err := c.addProperty(&m); err != nil {
 			// TODO: Fix position of error.
 			p.errorf("%v", err)

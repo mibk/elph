@@ -307,10 +307,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 		}
 	} else if member, isVar := strings.CutPrefix(member, "$"); !isVar && static {
 		memberType = "const"
-		if c := c.Properties[member]; c != nil {
-			if !c.Const {
-				l.reportf(pos, "%s::%s is not a constant", class, member)
-			}
+		if c := c.Properties["#"+member]; c != nil {
 			memberClass = c.Type
 		}
 	} else {

@@ -57,7 +57,6 @@ type Property struct {
 	Name   string
 	Type   Ident
 	Static bool
-	Const bool
 }
 
 type Function struct {
