@@ -714,6 +714,7 @@ func (p *parser) parseProperty(doc token.Token, static, constant bool) {
 		return
 	}
 
+Next:
 	for {
 		name := strings.TrimPrefix(def.Text, "$")
 		class := p.resolveClass(p.thisClass, typ)
@@ -725,12 +726,18 @@ func (p *parser) parseProperty(doc token.Token, static, constant bool) {
 			// TODO: Fix position of error.
 			p.errorf("%v", err)
 		}
-		if !p.got(token.Comma) {
-			break
-		}
-		def = p.tok
-		if !p.got(token.Var) {
-			break
+		for {
+			if p.got(token.EOF) || p.got(token.Semicolon) {
+				return
+			}
+			if p.got(token.Comma) {
+				def = p.tok
+				if !p.got(token.Var) && !p.got(token.Ident) {
+					return
+				}
+				continue Next
+			}
+			p.next()
 		}
 	}
 }

@@ -1,6 +1,7 @@
 % check a.php
 a.php:10:1: $b is of type: string (DEBUG)
 a.php:12:11: class const Foo::DOES_NOT_EXIST does not exist
+a.php:16:1: $z is of type: string (DEBUG)
 
 -- a.php --
 <?php
@@ -8,7 +9,7 @@ a.php:12:11: class const Foo::DOES_NOT_EXIST does not exist
 class Foo
 {
 	/** @var string */
-	const BAR = 'bar';
+	const BAR = 'bar', BAZ = 'baz';
 }
 
 $b = Foo::BAR;
@@ -16,3 +17,6 @@ $b = Foo::BAR;
 
 $b = Foo::DOES_NOT_EXIST;
 $c = Foo::class;
+
+$z = Foo::BAZ;
+#debugType $z
