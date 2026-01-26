@@ -306,6 +306,10 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 			memberClass = "mixed"
 		}
 	} else if member, isVar := strings.CutPrefix(member, "$"); !isVar && static {
+		if member == "class" {
+			// PHP magic constant.
+			return "string"
+		}
 		memberType = "const"
 		if c := c.Properties["#"+member]; c != nil {
 			memberClass = c.Type
