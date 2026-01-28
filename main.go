@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -124,6 +125,10 @@ var parsedFiles = make(map[string]*File)
 func parsePath(fsys fs.FS, filename string, ignored []string, warnOut io.Writer) {
 	f, err := fsys.Open(filename)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			// TODO: For now, ignore missing paths.
+			return
+		}
 		log.Fatal(err)
 	}
 	defer f.Close()
