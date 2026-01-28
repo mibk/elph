@@ -601,7 +601,7 @@ func (p *parser) parseFunction(doc token.Token, static bool) {
 		typ = &phptype.Named{Parts: []string{"mixed"}}
 	}
 
-	c, _ := universe[p.thisClass]
+	c := universe[p.thisClass]
 	if c == nil {
 		// TODO: Add support for regular functions.
 		return
@@ -669,7 +669,7 @@ func (p *parser) parseParamList() {
 		}
 
 		if isMember {
-			if c, _ := universe[p.thisClass]; c != nil {
+			if c := universe[p.thisClass]; c != nil {
 				name = strings.TrimPrefix(name, "$")
 				m := Property{Pos: pos, Name: name, Type: class}
 				if err := c.addProperty(&m); err != nil {
@@ -730,7 +730,7 @@ func (p *parser) parseProperty(doc token.Token, static, constant bool) {
 		typ = &phptype.Named{Parts: []string{"mixed"}}
 	}
 
-	c, _ := universe[p.thisClass]
+	c := universe[p.thisClass]
 	if c == nil {
 		if strings.ContainsRune(string(p.thisClass), '@') {
 			// TODO: Add proper support for anonymous classes.
