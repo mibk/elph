@@ -650,7 +650,7 @@ func (p *parser) parseParamList() {
 			continue
 		}
 		class := p.resolveClass(p.thisClass, typ)
-		p.params = append(p.params, &Param{Name: name, Type: class})
+		p.params = append(p.params, &Param{Pos: pos, Name: name, Type: class})
 		if p.got(token.Assign) {
 		Skip:
 			// TODO: Implement proper parsing of default values.
@@ -813,7 +813,7 @@ func (p *parser) parseForeachParam() *Param {
 		return nil
 	}
 	p.got(token.BitAnd) // ignore
-	param := Param{Name: p.tok.Text, Type: "stdClass"}
+	param := Param{Pos: p.tok.Pos, Name: p.tok.Text, Type: "stdClass"}
 	if !p.got(token.Var) {
 		return nil
 	}
@@ -832,9 +832,10 @@ func (p *parser) parseForeachParam() *Param {
 func (p *parser) parseCatch() *Param {
 	p.expect(token.Catch)
 	p.expect(token.Lparen)
+	pos := p.tok.Pos
 	typ := p.tryParseType()
 	class := p.resolveClass(p.thisClass, typ)
-	param := Param{Type: class}
+	param := Param{Pos: pos, Type: class}
 	name := p.tok.Text
 	if p.got(token.Var) {
 		param.Name = name

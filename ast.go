@@ -24,6 +24,7 @@ type Block struct {
 }
 
 type Param struct {
+	Pos  token.Pos
 	Name string
 	Type Ident
 }

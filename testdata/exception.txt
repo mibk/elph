@@ -1,6 +1,9 @@
 % check a.php
 a.php:10:2: $e is of type: \FooException (DEBUG)
 
+% check b.php
+b.php:4:10: class \UnknownException not found
+
 -- a.php --
 <?php
 
@@ -12,4 +15,10 @@ try {
 } catch (\FooException | Exception $e) {
 	echo $e->getMessage();
 	#debugType $e
+}
+-- b.php --
+<?php
+
+try {
+} catch (\UnknownException $e) {
 }

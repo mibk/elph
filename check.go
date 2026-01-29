@@ -102,8 +102,8 @@ func (l *linter) check(x any) {
 		v := x.Value
 		l.scope[v.Name] = v.Type
 	case *Param:
-		// TODO: Is this just because of "catch"
 		l.scope[x.Name] = x.Type
+		l.checkIdent(x.Pos, x.Type, "class")
 	case *Debug:
 		class := l.scope[x.Var]
 		if class != "" {
@@ -145,6 +145,12 @@ func (l *linter) exists(id Ident) bool {
 	}
 	_, ok := universe[id]
 	return ok
+}
+
+func (l *linter) checkIdent(pos token.Pos, id Ident, typ string) {
+	if !l.exists(id) {
+		l.reportf(pos, "%s %v not found", typ, id)
+	}
 }
 
 func (l *linter) findVarType(a *AssignExpr) (class Ident, checked bool) {
