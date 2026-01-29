@@ -112,6 +112,7 @@ func (l *linter) check(x any) {
 			l.reportf(x.Pos, "unknown var: %v (DEBUG)", x.Var)
 		}
 	case *NewInstance:
+		l.findNewInstanceType(x.Class)
 		l.check(x.Class)
 	case *Stmt:
 		for _, n := range x.Nodes {
@@ -152,6 +153,7 @@ func (l *linter) findVarType(a *AssignExpr) (class Ident, checked bool) {
 		panic(fmt.Sprintf("unsupported type: %T", val))
 	case *NewInstance:
 		class = l.findNewInstanceType(val.Class)
+		checked = true
 	case *ValueExpr:
 		class = val.Type
 	case *VarExpr:

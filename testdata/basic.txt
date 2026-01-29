@@ -6,6 +6,7 @@ b.php:28:3: $p is of type: Another\Bar\Group (DEBUG)
 b.php:32:3: $u is of type: Another\Bar\User (DEBUG)
 b.php:33:13: class User not found
 b.php:36:13: cannot call method on 'string'
+b.php:37:7: class Foo\DoesNotExist not found
 
 -- a.php --
 <?php
@@ -54,6 +55,7 @@ class Service // Comment is ignored
 		$u2->foo;
 
 		$p->name->noMethodsForString();
+		new DoesNotExist;
 	}
 }
 -- c.php --
