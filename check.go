@@ -67,11 +67,13 @@ func (l *linter) check(x any) {
 		for _, p := range x.Properties {
 			if !l.exists(p.Type) {
 				l.reportf(p.Pos, "property %s has non-existing type %s", p.Name, p.Type)
+				p.Type = "mixed" // Do not report the error again.
 			}
 		}
 		for _, m := range x.Methods {
 			if !l.exists(m.Returns) {
 				l.reportf(m.Pos, "method %s returns non-existing type %s", m.Name, m.Returns)
+				m.Returns = "mixed" // Do not report the error again.
 			}
 		}
 

@@ -5,6 +5,9 @@ a.php:13:18: class Instance not found
 % check b.php
 b.php:3:10: class DoesNotExist not found
 
+% check c.php
+c.php:6:10: property foo has non-existing type UnknownClass
+
 -- a.php --
 <?php
 
@@ -43,3 +46,16 @@ class Mysql
 $x = new DoesNotExist;
 $x->foo;
 $x->bar;
+-- c.php --
+<?php
+
+class Baz
+{
+	/** @var UnknownClass */
+	private $foo;
+
+	function process(): void
+	{
+		$this->foo->doNotReportThis();
+	}
+}
