@@ -17,3 +17,11 @@ class Exception
 class RuntimeException extends Exception
 {
 }
+
+class LogicException extends Exception
+{
+}
+
+class InvalidArgumentException extends LogicException
+{
+}
