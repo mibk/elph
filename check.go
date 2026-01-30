@@ -69,6 +69,9 @@ func (l *linter) check(x any) {
 				l.reportf(p.Pos, "property %s has non-existing type %s", p.Name, p.Type)
 				p.Type = "mixed" // Do not report the error again.
 			}
+			if p.DefaultValue != nil {
+				l.check(p.DefaultValue)
+			}
 		}
 		for _, m := range x.Methods {
 			if !l.exists(m.Returns) {
@@ -106,6 +109,9 @@ func (l *linter) check(x any) {
 	case *Param:
 		l.scope[x.Name] = x.Type
 		l.checkIdent(x.Pos, x.Type, "class")
+		if x.DefaultValue != nil {
+			l.check(x.DefaultValue)
+		}
 	case *Debug:
 		class := l.scope[x.Var]
 		if class != "" {
@@ -236,7 +242,8 @@ func (l *linter) checkMemberAccess(a *MemberAccess) Ident {
 	}
 
 	if x == "self" || x == "parent" {
-		x = l.thisClass.Name
+		// TODO: This is definitely a hack. Fix it.
+		x = cmp.Or(l.thisClass, l.nextClass).Name
 	} else if isBasicType(x) {
 		if x == "mixed" || x == "object" {
 			// All member acces allowed on mixed.

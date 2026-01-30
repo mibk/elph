@@ -27,6 +27,8 @@ type Param struct {
 	Pos  token.Pos
 	Name string
 	Type Ident
+
+	DefaultValue *Stmt // or nil
 }
 
 type Debug struct {
@@ -59,6 +61,8 @@ type Property struct {
 	Name   string
 	Type   Ident
 	Static bool
+
+	DefaultValue *Stmt // or nil
 }
 
 type Function struct {

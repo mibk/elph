@@ -151,7 +151,7 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 	afterFunc := false
 	for {
 		switch typ := p.tok.Type; typ {
-		case sep, token.EOF, token.Rparen, token.Rbrace, token.Rbrack:
+		case sep, token.Semicolon, token.EOF, token.Rparen, token.Rbrace, token.Rbrack:
 			return s
 		case token.OpenTag:
 			p.next()
@@ -650,22 +650,11 @@ func (p *parser) parseParamList() {
 			continue
 		}
 		class := p.resolveClass(p.thisClass, typ)
-		p.params = append(p.params, &Param{Pos: pos, Name: name, Type: class})
+		par := &Param{Pos: pos, Name: name, Type: class}
+		p.params = append(p.params, par)
 		if p.got(token.Assign) {
-		Skip:
-			// TODO: Implement proper parsing of default values.
-			for {
-				switch p.tok.Type {
-				case token.EOF, token.Comma, token.Rparen:
-					break Skip
-				case token.Lparen:
-					// It must be array()
-					p.next()
-					p.parseBlock(token.Lparen, false)
-				default:
-					p.next()
-				}
-			}
+			def := p.parseStmt(token.Comma, false)
+			par.DefaultValue = def
 		}
 
 		if isMember {
@@ -740,7 +729,6 @@ func (p *parser) parseProperty(doc token.Token, static, constant bool) {
 		return
 	}
 
-Next:
 	for {
 		name := strings.TrimPrefix(def.Text, "$")
 		class := p.resolveClass(p.thisClass, typ)
@@ -752,23 +740,16 @@ Next:
 			// TODO: Fix position of error.
 			p.errorf("%v", err)
 		}
-		for {
-			if p.got(token.EOF) || p.got(token.Semicolon) {
+		m.DefaultValue = p.parseStmt(token.Comma, false)
+		if p.got(token.EOF) || p.got(token.Semicolon) {
+			return
+		}
+		if p.got(token.Comma) {
+			def = p.tok
+			if !p.got(token.Var) && !p.got(token.Ident) {
 				return
 			}
-			if delim := p.tok.Type; p.got(token.Lbrack) || p.got(token.Lparen) {
-				// Ignore array literal.
-				p.parseBlock(delim, false)
-				continue
-			}
-			if p.got(token.Comma) {
-				def = p.tok
-				if !p.got(token.Var) && !p.got(token.Ident) {
-					return
-				}
-				continue Next
-			}
-			p.next()
+			continue
 		}
 	}
 }
