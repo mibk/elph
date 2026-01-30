@@ -8,6 +8,12 @@ b.php:3:10: class DoesNotExist not found
 % check c.php
 c.php:6:10: property foo has non-existing type UnknownClass
 
+# In the following case, we want all the places we refer
+# to the non-existing class.
+% check d.php
+d.php:3:18: class Module\Foo not found
+d.php:4:18: class Module\Foo not found
+
 -- a.php --
 <?php
 
@@ -59,3 +65,8 @@ class Baz
 		$this->foo->doNotReportThis();
 	}
 }
+-- d.php --
+<?php
+
+$x = Module\Foo::BAR;
+$x = Module\Foo::BAZ;

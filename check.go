@@ -269,7 +269,9 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 			}
 			if key := string(class) + "·" + l.fileBeingChecked; !l.reported[key] {
 				l.reportf(pos, "class %v not found", class)
-				l.reported[key] = true
+				if !static {
+					l.reported[key] = true
+				}
 			}
 			return "\\stdClass"
 		}
