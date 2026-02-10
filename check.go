@@ -210,6 +210,10 @@ func (l *linter) findNewInstanceType(x any) (class Ident) {
 		class := x.Type.unslash()
 		switch class {
 		case "self", "static":
+			if l.thisClass == nil {
+				l.reportf(x.V, "not in class context")
+				return "mixed"
+			}
 			return l.thisClass.Name
 		case "stdClass":
 			return x.Type
