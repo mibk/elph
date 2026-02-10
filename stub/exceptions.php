@@ -18,6 +18,10 @@ class RuntimeException extends Exception
 {
 }
 
+class UnexpectedValueException extends Exception
+{
+}
+
 class LogicException extends Exception
 {
 }

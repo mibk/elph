@@ -1,5 +1,30 @@
 <?php
 
+interface DateTimeInterface
+{
+	const ATOM    = "Y-m-d\\TH:i:sP";
+	const COOKIE  = "l, d-M-Y H:i:s T";
+	const ISO8601 = "Y-m-d\\TH:i:sO";
+	const RFC822  = "D, d M y H:i:s O";
+	const RFC850  = "l, d-M-y H:i:s T";
+	const RFC1036 = "D, d M y H:i:s O";
+	const RFC1123 = "D, d M Y H:i:s O";
+	const RFC7231 = "D, d M Y H:i:s \\G\\M\\T";
+	const RFC2822 = "D, d M Y H:i:s O";
+	const RFC3339 = "Y-m-d\\TH:i:sP";
+	const RSS     = "D, d M Y H:i:s O";
+	const W3C     = "Y-m-d\\TH:i:sP";
+
+	const ISO8601_EXPANDED = "X-m-d\\TH:i:sP";
+	const RFC3339_EXTENDED = "Y-m-d\\TH:i:s.vP";
+
+	function diff(DateTimeInterface $targetObject, bool $absolute = false): DateInterval;
+	function format(string $format): string;
+	function getOffset(): int;
+	function getTimestamp(): int;
+	function getTimezone(): DateTimeZone|false;
+}
+
 class DateTime
 {
 	static function createFromFormat(string $format, string $datetime): DateTime|false;
