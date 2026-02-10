@@ -1,4 +1,4 @@
-invalid_doc.php:7:14: [WARN] expecting ( or basic type, found Var("$throw")
+invalid_doc.php:7:14: [WARN] expecting PHP type, found Var("$throw")
 
 -- invalid_doc.php --
 <?php

@@ -61,9 +61,8 @@ func (l *linter) check(x any) {
 		l.fileBeingChecked = x.Path
 		l.check(x.Block)
 	case *Class:
-		l.nextClass = x
-		l.pushScope = true
-
+		backup := l.thisClass
+		l.thisClass = x
 		for _, p := range x.Properties {
 			if !l.exists(p.Type) {
 				l.reportf(p.Pos, "property %s has non-existing type %s", p.Name, p.Type)
@@ -80,6 +79,9 @@ func (l *linter) check(x any) {
 			}
 		}
 
+		l.thisClass = backup
+		l.nextClass = x
+		l.pushScope = true
 	case *Trait:
 		l.nextClass = &Class{Name: "stdClass"} // Ignore
 		l.pushScope = true

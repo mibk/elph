@@ -1,6 +1,9 @@
 % check a.php
 a.php:22:3: $b is of type: int (DEBUG)
 
+% check b.php
+b.php:10:3: $arg is of type: Tree (DEBUG)
+
 -- a.php --
 <?php
 
@@ -24,5 +27,18 @@ class Foo
 	{
 		$b = self::$bar;
 		#debugType $b
+	}
+}
+-- b.php --
+<?php
+
+class Tree
+{
+	private $tree = [];
+
+	public static function getObject($arg)
+	{
+		$arg = new self($arg);
+		#debugType $arg
 	}
 }
