@@ -77,3 +77,26 @@ class DateInterval
 
 	function format(string $format): string;
 }
+
+class IntlDateFormatter
+{
+	const FULL;
+	const LONG;
+	const MEDIUM;
+	const SHORT;
+	const NONE;
+	const RELATIVE_FULL;
+	const RELATIVE_LONG;
+	const RELATIVE_MEDIUM;
+	const RELATIVE_SHORT;
+	const GREGORIAN;
+	const TRADITIONAL;
+
+	function format(IntlCalendar|DateTimeInterface|array|string|int|float $datetime): string|false;
+
+	function setPattern(string $pattern): bool;
+}
+
+class DatePeriod
+{
+}
