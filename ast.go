@@ -48,12 +48,16 @@ type Class struct {
 	Traits     []Ident
 	Properties map[string]*Property
 	Methods    map[string]*Function
+
+	SourceFile string
 }
 
 type Trait struct {
 	Name       Ident
 	Properties map[string]*Property
 	Methods    map[string]*Function
+
+	SourceFile string
 }
 
 type Property struct {
@@ -138,9 +142,12 @@ func (e *AssertExpr) Pos() token.Pos { return e.Fn }
 ////////////
 
 type typeDecl interface {
+	sourceFile() string
 	addProperty(m *Property) error
 	addMethod(m *Function) error
 }
+
+func (c *Class) sourceFile() string { return c.SourceFile }
 
 func (c *Class) addProperty(p *Property) error {
 	initMap(&c.Properties)
@@ -169,6 +176,8 @@ func (c *Class) replaceMethod(m *Function) {
 	initMap(&c.Methods)
 	c.Methods[m.Name] = m
 }
+
+func (t *Trait) sourceFile() string { return t.SourceFile }
 
 func (t *Trait) addProperty(m *Property) error {
 	initMap(&t.Properties)

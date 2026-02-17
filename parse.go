@@ -377,11 +377,11 @@ func (p *parser) parseClass() *Class {
 		class = p.namespace + `\` + class
 	}
 
-	if _, ok := universe[class]; ok {
-		p.errorf("type %v already defined in %s", class, p.filename)
+	if e, ok := universe[class]; ok {
+		p.errorf("type %v already defined in %s", class, e.sourceFile())
 		return nil
 	}
-	c := &Class{Name: class}
+	c := &Class{Name: class, SourceFile: p.filename}
 	universe[class] = c
 	p.nextClass = class
 
@@ -420,7 +420,7 @@ func (p *parser) handleClassDoc(c *Class, b *phpdoc.Block, pos token.Pos) {
 		switch tag := line.(type) {
 		case *phpdoc.TypeDefTag:
 			adhocType := p.fullyQualify(Ident(tag.Name))
-			universe[adhocType] = &Class{Name: adhocType, Extends: "stdClass"}
+			universe[adhocType] = &Class{Name: adhocType, Extends: "stdClass", SourceFile: c.SourceFile}
 		case *phpdoc.OtherTag:
 			if tag.Name == "phpstan-import-type" {
 				p.handleImportedPHPStanType(tag.Desc)
@@ -461,7 +461,8 @@ func (p *parser) handleImportedPHPStanType(s string) {
 	if i := strings.LastIndex(class, `\`); i >= 0 {
 		importedType := Ident(class[:i] + `\` + typ)
 
-		c := &Class{Name: p.fullyQualify(Ident(alias)), Extends: importedType}
+		// TODO: Probably wrong source file.
+		c := &Class{Name: p.fullyQualify(Ident(alias)), Extends: importedType, SourceFile: p.filename}
 		universe[c.Name] = c
 	}
 }
@@ -475,11 +476,11 @@ func (p *parser) parseTrait(_ token.Token) *Trait {
 		class = p.namespace + `\` + class
 	}
 
-	if _, ok := universe[class]; ok {
-		p.errorf("type %v already defined in %s", class, p.filename)
+	if e, ok := universe[class]; ok {
+		p.errorf("type %v already defined in %s", class, e.sourceFile())
 		return nil
 	}
-	t := &Trait{Name: class}
+	t := &Trait{Name: class, SourceFile: p.filename}
 	universe[class] = t
 	p.nextClass = class
 
@@ -496,11 +497,11 @@ func (p *parser) parseInterface() *Class {
 		class = p.namespace + `\` + class
 	}
 
-	if _, ok := universe[class]; ok {
-		p.errorf("type %v already defined in %s", class, p.filename)
+	if e, ok := universe[class]; ok {
+		p.errorf("type %v already defined in %s", class, e.sourceFile())
 		return nil
 	}
-	i := &Class{Name: class}
+	i := &Class{Name: class, SourceFile: p.filename}
 	universe[class] = i
 	p.nextClass = class
 
@@ -527,8 +528,8 @@ func (p *parser) parseEnum() *Class {
 		enum = p.namespace + `\` + enum
 	}
 
-	if _, ok := universe[enum]; ok {
-		p.errorf("type %v already defined in %s", enum, p.filename)
+	if e, ok := universe[enum]; ok {
+		p.errorf("type %v already defined in %s", enum, e.sourceFile())
 		return nil
 	}
 
@@ -537,7 +538,7 @@ func (p *parser) parseEnum() *Class {
 	}
 	p.expect(token.Lbrace)
 
-	e := &Class{Name: enum}
+	e := &Class{Name: enum, SourceFile: p.filename}
 	m := Function{Name: "tryFrom", Returns: "self", Static: true}
 	e.addMethod(&m)
 	universe[enum] = e
@@ -857,7 +858,7 @@ func (p *parser) parseNewInstance() Expr {
 	case p.got(token.Class):
 		anonymousCount++
 		class = Ident("AnonymousClass@" + fmt.Sprint(anonymousCount))
-		c := &Class{Name: class}
+		c := &Class{Name: class, SourceFile: p.filename}
 		universe[class] = c
 		p.nextClass = class
 
