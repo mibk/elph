@@ -277,6 +277,8 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 			p.next()
 			e := p.parseNewInstance()
 			s.Nodes = append(s.Nodes, e)
+		case token.If:
+			p.tryParseInstanceofGuard(s)
 		case token.Arrow, token.QmarkArrow, token.DoubleColon, token.Instanceof:
 			p.next()
 			// Keywords after :: (and all the above tokens) are always idents.
@@ -976,6 +978,68 @@ func (p *parser) parseAssert(pos token.Pos) (x Expr) {
 	}
 	id = p.fullyQualify(id)
 	return &AssertExpr{Fn: pos, Var: v.Text, Type: id}
+}
+
+// tryParseInstanceofGuard tries to match:
+//
+//	if (!$var instanceof Type) { ... }
+//
+// and emits an AssertExpr so that $var is narrowed to Type after the if-block.
+func (p *parser) tryParseInstanceofGuard(s *Stmt) {
+	p.next() // consume 'if'
+	if !p.got(token.Lparen) {
+		return
+	}
+
+	negated := p.got(token.Not)
+
+	v := p.tok
+	if !p.got(token.Var) {
+		p.parseBlock(token.Lparen, false)
+		return
+	}
+	if !p.got(token.Instanceof) {
+		p.parseBlock(token.Lparen, false)
+		return
+	}
+	if p.tok.Type != token.Ident && p.tok.Type != token.Backslash && !p.tok.Type.IsKeyword() {
+		p.parseBlock(token.Lparen, false)
+		return
+	}
+	id := p.parseQualifiedName()
+	if id == "" || !p.got(token.Rparen) {
+		p.parseBlock(token.Lparen, false)
+		return
+	}
+	id = p.fullyQualify(id)
+
+	if negated {
+		if p.got(token.Lbrace) {
+			p.parseBlock(token.Lbrace, false)
+		}
+		p.skipElseChain()
+		s.Nodes = append(s.Nodes, &AssertExpr{Fn: v.Pos, Var: v.Text, Type: id})
+		return
+	}
+
+	// Non-negated: just consume the body for now.
+	if p.got(token.Lbrace) {
+		p.parseBlock(token.Lbrace, false)
+	}
+	p.skipElseChain()
+}
+
+func (p *parser) skipElseChain() {
+	for p.got(token.Else) {
+		if p.got(token.If) {
+			if p.got(token.Lparen) {
+				p.parseBlock(token.Lparen, false)
+			}
+		}
+		if p.got(token.Lbrace) {
+			p.parseBlock(token.Lbrace, false)
+		}
+	}
 }
 
 func (p *parser) resolveClass(thisClass Ident, typ phptype.Type) Ident {

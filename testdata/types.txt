@@ -24,6 +24,10 @@ e.php:14:3: $a is of type: My\Employees\Worker (DEBUG)
 % check f.php
 # No errors.
 
+% check g.php
+g.php:13:3: $a is of type: Guards\Animal (DEBUG)
+g.php:17:3: $a is of type: Guards\Dog (DEBUG)
+
 -- a.php --
 <?php
 
@@ -139,3 +143,23 @@ class AccountInfo
 
 $i = new AccountInfo;
 $i->balance;
+-- g.php --
+<?php
+namespace Guards;
+
+class Animal {
+	public string $name;
+}
+class Dog extends Animal {
+	public string $breed;
+}
+
+class Checker {
+	function check(Animal $a) {
+		#debugType $a
+		if (!$a instanceof Dog) {
+			throw new \Exception('not a dog');
+		}
+		#debugType $a
+	}
+}
