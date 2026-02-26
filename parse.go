@@ -980,11 +980,12 @@ func (p *parser) parseAssert(pos token.Pos) (x Expr) {
 	return &AssertExpr{Fn: pos, Var: v.Text, Type: id}
 }
 
-// tryParseInstanceofGuard tries to match:
+// tryParseInstanceofGuard tries to match one of:
 //
-//	if (!$var instanceof Type) { ... }
+//	if (!$var instanceof Type) { ... }   → narrows after the if-block
+//	if ($var instanceof Type) { ... }    → narrows inside the if-body
 //
-// and emits an AssertExpr so that $var is narrowed to Type after the if-block.
+// and appends the appropriate nodes to s.
 func (p *parser) tryParseInstanceofGuard(s *Stmt) {
 	p.next() // consume 'if'
 	if !p.got(token.Lparen) {
@@ -1012,19 +1013,26 @@ func (p *parser) tryParseInstanceofGuard(s *Stmt) {
 		return
 	}
 	id = p.fullyQualify(id)
+	assert := &AssertExpr{Fn: v.Pos, Var: v.Text, Type: id}
 
 	if negated {
+		// if (!$var instanceof Type) { ... } — narrow after the block.
 		if p.got(token.Lbrace) {
 			p.parseBlock(token.Lbrace, false)
 		}
 		p.skipElseChain()
-		s.Nodes = append(s.Nodes, &AssertExpr{Fn: v.Pos, Var: v.Text, Type: id})
+		s.Nodes = append(s.Nodes, assert)
 		return
 	}
 
-	// Non-negated: just consume the body for now.
+	// if ($var instanceof Type) { ... } — narrow inside the body.
 	if p.got(token.Lbrace) {
-		p.parseBlock(token.Lbrace, false)
+		b := p.parseBlock(token.Lbrace, false)
+		// Prepend the assert so the narrowed type is visible
+		// to all statements in the block.
+		assertStmt := &Stmt{Nodes: []any{assert}}
+		b.Stmts = append([]*Stmt{assertStmt}, b.Stmts...)
+		s.Nodes = append(s.Nodes, b)
 	}
 	p.skipElseChain()
 }
