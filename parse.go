@@ -1028,11 +1028,11 @@ func (p *parser) tryParseInstanceofGuard(s *Stmt) {
 	// if ($var instanceof Type) { ... } — narrow inside the body.
 	if p.got(token.Lbrace) {
 		b := p.parseBlock(token.Lbrace, false)
-		// Prepend the assert so the narrowed type is visible
-		// to all statements in the block.
-		assertStmt := &Stmt{Nodes: []any{assert}}
-		b.Stmts = append([]*Stmt{assertStmt}, b.Stmts...)
-		s.Nodes = append(s.Nodes, b)
+		s.Nodes = append(s.Nodes, &NarrowBlock{
+			Var:   assert.Var,
+			Type:  assert.Type,
+			Block: b,
+		})
 	}
 	p.skipElseChain()
 }

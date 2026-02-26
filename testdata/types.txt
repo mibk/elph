@@ -29,7 +29,7 @@ g.php:13:3: $a is of type: Guards\Animal (DEBUG)
 g.php:17:3: $a is of type: Guards\Dog (DEBUG)
 g.php:21:3: $a is of type: Guards\Animal (DEBUG)
 g.php:23:4: $a is of type: Guards\Dog (DEBUG)
-g.php:25:3: $a is of type: Guards\Dog (DEBUG)
+g.php:25:3: $a is of type: Guards\Animal (DEBUG)
 
 -- a.php --
 <?php

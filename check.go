@@ -141,6 +141,11 @@ func (l *linter) check(x any) {
 	case *ValueExpr:
 	case *AssertExpr:
 		l.scope[x.Var] = x.Type
+	case *NarrowBlock:
+		backup := l.scope[x.Var]
+		l.scope[x.Var] = x.Type
+		l.check(x.Block)
+		l.scope[x.Var] = backup
 	}
 }
 
