@@ -59,28 +59,35 @@ func (l *linter) check(x any) {
 	case *Class:
 		backup := l.thisClass
 		l.thisClass = x
+		tparam := Ident(x.TemplateParam)
 		for _, p := range x.Properties {
-			if !l.exists(p.Type) {
-				l.reportf(p.Pos, "property %s has non-existing type %s", p.Name, p.Type)
-				p.Type = "mixed" // Do not report the error again.
+			if tparam == "" || p.Type != tparam {
+				if !l.exists(p.Type) {
+					l.reportf(p.Pos, "property %s has non-existing type %s", p.Name, p.Type)
+					p.Type = "mixed" // Do not report the error again.
+				}
 			}
 			if p.DefaultValue != nil {
 				l.check(p.DefaultValue)
 			}
 		}
 		for _, p := range x.Constants {
-			if !l.exists(p.Type) {
-				l.reportf(p.Pos, "constant %s has non-existing type %s", p.Name, p.Type)
-				p.Type = "mixed" // Do not report the error again.
+			if tparam == "" || p.Type != tparam {
+				if !l.exists(p.Type) {
+					l.reportf(p.Pos, "constant %s has non-existing type %s", p.Name, p.Type)
+					p.Type = "mixed" // Do not report the error again.
+				}
 			}
 			if p.DefaultValue != nil {
 				l.check(p.DefaultValue)
 			}
 		}
 		for _, m := range x.Methods {
-			if !l.exists(m.Returns) {
-				l.reportf(m.Pos, "method %s returns non-existing type %s", m.Name, m.Returns)
-				m.Returns = "mixed" // Do not report the error again.
+			if tparam == "" || m.Returns != tparam {
+				if !l.exists(m.Returns) {
+					l.reportf(m.Pos, "method %s returns non-existing type %s", m.Name, m.Returns)
+					m.Returns = "mixed" // Do not report the error again.
+				}
 			}
 		}
 
@@ -384,15 +391,17 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 	}
 
 	// Hack for generics.
-	if m, ok := strings.CutSuffix(string(memberClass), "<>T"); ok {
-		m := Ident(m)
-		if template != "" {
-			m += "<>" + template
+	if c.TemplateParam != "" {
+		if m, ok := strings.CutSuffix(string(memberClass), "<>"+c.TemplateParam); ok {
+			m := Ident(m)
+			if template != "" {
+				m += "<>" + template
+			}
+			memberClass = m
 		}
-		memberClass = m
 	}
 
-	if memberClass == TemplateParam && template != "" {
+	if c.TemplateParam != "" && memberClass == Ident(c.TemplateParam) && template != "" {
 		memberClass = template
 	}
 

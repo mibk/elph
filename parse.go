@@ -420,6 +420,8 @@ func (p *parser) parseClass() *Class {
 func (p *parser) handleClassDoc(c *Class, b *phpdoc.Block, pos token.Pos) {
 	for _, line := range b.Lines {
 		switch tag := line.(type) {
+		case *phpdoc.TemplateTag:
+			c.TemplateParam = tag.Param
 		case *phpdoc.TypeDefTag:
 			adhocType := p.fullyQualify(Ident(tag.Name))
 			universe[adhocType] = &Class{Name: adhocType, Extends: "stdClass", SourceFile: c.SourceFile}
@@ -442,7 +444,6 @@ func (p *parser) handleClassDoc(c *Class, b *phpdoc.Block, pos token.Pos) {
 			}
 			c.replaceMethod(m)
 		case *phpdoc.ExtendsTag:
-			// TODO: Add support for arbitrary @template.
 			if g, ok := tag.Class.(*phptype.Generic); ok && len(g.TypeParams) == 1 {
 				c.Template = p.resolveClass(p.thisClass, g.TypeParams[0])
 			}

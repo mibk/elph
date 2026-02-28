@@ -1,5 +1,5 @@
 % check a.php
-a.php:21:1: $x is of type: int (DEBUG)
+a.php:24:1: $x is of type: int (DEBUG)
 
 % check b.php
 b.php:15:1: $x is of type: mixed (DEBUG)
@@ -8,9 +8,15 @@ b.php:15:1: $x is of type: mixed (DEBUG)
 c.php:36:1: $u is of type: User (DEBUG)
 c.php:39:1: $v is of type: User (DEBUG)
 
+% check d.php
+d.php:19:1: $x is of type: int (DEBUG)
+
 -- a.php --
 <?php
 
+/**
+ * @template T
+ */
 class Foo
 {
 	private $val;
@@ -86,3 +92,23 @@ $u = $r->query()->find();
 
 $v = $r->optimQuery()->find();
 #debugType $v
+-- d.php --
+<?php
+
+/**
+ * @template TItem
+ */
+class Collection
+{
+	/** @return TItem */
+	public function first();
+}
+
+/** @extends Collection<int> */
+class IntCollection extends Collection
+{
+}
+
+$c = new IntCollection;
+$x = $c->first();
+#debugType $x
