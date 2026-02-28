@@ -14,16 +14,16 @@ import (
 // TODO: Remove this hack.
 var hasErrors = false
 
-func Check(x any, a *Arbiter, warnOut io.Writer) {
+func Check(file *File, a *Arbiter, warnOut io.Writer) {
 	l := linter{
 		stdout:           os.Stdout,
 		stderr:           warnOut,
 		arbiter:          a,
 		scope:            make(map[string]Ident),
-		fileBeingChecked: "<line>",
+		fileBeingChecked: file.Path,
 		reported:         make(map[string]bool),
 	}
-	l.check(x)
+	l.check(file.Block)
 }
 
 type linter struct {
@@ -33,7 +33,6 @@ type linter struct {
 
 	scope map[string]Ident
 
-	// TODO: Fix this.
 	fileBeingChecked string
 	reported         map[string]bool
 
@@ -57,15 +56,21 @@ func (l *linter) check(x any) {
 	switch x := x.(type) {
 	default:
 		panic(fmt.Sprintf("unsupported type: %T", x))
-	case *File:
-		l.fileBeingChecked = x.Path
-		l.check(x.Block)
 	case *Class:
 		backup := l.thisClass
 		l.thisClass = x
 		for _, p := range x.Properties {
 			if !l.exists(p.Type) {
 				l.reportf(p.Pos, "property %s has non-existing type %s", p.Name, p.Type)
+				p.Type = "mixed" // Do not report the error again.
+			}
+			if p.DefaultValue != nil {
+				l.check(p.DefaultValue)
+			}
+		}
+		for _, p := range x.Constants {
+			if !l.exists(p.Type) {
+				l.reportf(p.Pos, "constant %s has non-existing type %s", p.Name, p.Type)
 				p.Type = "mixed" // Do not report the error again.
 			}
 			if p.DefaultValue != nil {
@@ -264,7 +269,7 @@ func (l *linter) checkMemberAccess(a *MemberAccess) Ident {
 		x = cmp.Or(l.thisClass, l.nextClass).Name
 	} else if isBasicType(x) {
 		if x == "mixed" || x == "object" {
-			// All member acces allowed on mixed.
+			// All member access allowed on mixed.
 			return x
 		}
 		l.reportf(a.NamePos, "cannot call method on '%s'", x)
@@ -304,6 +309,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 		c = &Class{
 			Name:       t.Name,
 			Properties: t.Properties,
+			Constants:  t.Constants,
 			Methods:    t.Methods,
 		}
 	}
@@ -317,6 +323,9 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 		for _, m := range t.Properties {
 			// TODO: Check whether property not already defined?
 			c.addProperty(m)
+		}
+		for _, m := range t.Constants {
+			c.addConstant(m)
 		}
 		for _, m := range t.Methods {
 			// TODO: Check whether method not already defined?
@@ -355,7 +364,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 			return "string"
 		}
 		memberType = "const"
-		if c := c.Properties["#"+member]; c != nil {
+		if c := c.Constants[member]; c != nil {
 			memberClass = c.Type
 		}
 	} else {
@@ -420,7 +429,7 @@ func findImplementorsConstType(c *Class, member string) Ident {
 			// Can this happen?
 			continue
 		}
-		if c := i.Properties["#"+member]; c != nil {
+		if c := i.Constants[member]; c != nil {
 			return c.Type
 		}
 		if id := findImplementorsConstType(i, member); id != "" {

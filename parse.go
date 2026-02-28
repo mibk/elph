@@ -737,11 +737,15 @@ func (p *parser) parseProperty(doc token.Token, static, constant bool) {
 		class := p.resolveClass(p.thisClass, typ)
 		m := Property{Pos: def.Pos, Name: name, Type: class, Static: static}
 		if constant {
-			m.Name = "#" + m.Name
-		}
-		if err := c.addProperty(&m); err != nil {
-			// TODO: Fix position of error.
-			p.errorf("%v", err)
+			if err := c.addConstant(&m); err != nil {
+				// TODO: Fix position of error.
+				p.errorf("%v", err)
+			}
+		} else {
+			if err := c.addProperty(&m); err != nil {
+				// TODO: Fix position of error.
+				p.errorf("%v", err)
+			}
 		}
 		m.DefaultValue = p.parseStmt(token.Comma, false)
 		if p.got(token.EOF) || p.got(token.Semicolon) {

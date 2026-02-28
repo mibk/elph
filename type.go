@@ -102,7 +102,7 @@ func getClass(typ phptype.Type) Ident {
 				return o
 			}
 			if isBasicType(o) {
-				// Let's prefer clases.
+				// Let's prefer classes.
 				continue
 			}
 			if strings.ToLower(string(o)) != "null" {

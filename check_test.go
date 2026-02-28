@@ -79,7 +79,8 @@ func Test(t *testing.T) {
 					if f == nil {
 						t.Fatalf("%s: no such file", arg)
 					}
-					l.check(f)
+					l.fileBeingChecked = f.Path
+				l.check(f.Block)
 				}
 			}
 			if got, want := got.String(), want.String(); got != want {

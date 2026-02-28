@@ -47,6 +47,7 @@ type Class struct {
 	Implements []Ident
 	Traits     []Ident
 	Properties map[string]*Property
+	Constants  map[string]*Property
 	Methods    map[string]*Function
 
 	SourceFile string
@@ -55,6 +56,7 @@ type Class struct {
 type Trait struct {
 	Name       Ident
 	Properties map[string]*Property
+	Constants  map[string]*Property
 	Methods    map[string]*Function
 
 	SourceFile string
@@ -161,6 +163,7 @@ type NarrowBlock struct {
 type typeDecl interface {
 	sourceFile() string
 	addProperty(m *Property) error
+	addConstant(m *Property) error
 	addMethod(m *Function) error
 }
 
@@ -179,6 +182,16 @@ func (c *Class) replaceProperty(p *Property) {
 	initMap(&c.Properties)
 	c.Properties[p.Name] = p
 }
+
+func (c *Class) addConstant(p *Property) error {
+	initMap(&c.Constants)
+	if _, ok := c.Constants[p.Name]; ok {
+		return fmt.Errorf("class %s already has constant %s", c.Name, p.Name)
+	}
+	c.Constants[p.Name] = p
+	return nil
+}
+
 
 func (c *Class) addMethod(m *Function) error {
 	initMap(&c.Methods)
@@ -205,10 +218,19 @@ func (t *Trait) addProperty(m *Property) error {
 	return nil
 }
 
+func (t *Trait) addConstant(p *Property) error {
+	initMap(&t.Constants)
+	if _, ok := t.Constants[p.Name]; ok {
+		return fmt.Errorf("trait %s already has constant %s", t.Name, p.Name)
+	}
+	t.Constants[p.Name] = p
+	return nil
+}
+
 func (t *Trait) addMethod(m *Function) error {
 	initMap(&t.Methods)
 	if _, ok := t.Methods[m.Name]; ok {
-		return fmt.Errorf("class %s already has method %s", t.Name, m.Name)
+		return fmt.Errorf("trait %s already has method %s", t.Name, m.Name)
 	}
 	t.Methods[m.Name] = m
 	return nil
