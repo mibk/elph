@@ -192,7 +192,6 @@ func (c *Class) addConstant(p *Property) error {
 	return nil
 }
 
-
 func (c *Class) addMethod(m *Function) error {
 	initMap(&c.Methods)
 	if _, ok := c.Methods[m.Name]; ok {
@@ -212,7 +211,7 @@ func (t *Trait) sourceFile() string { return t.SourceFile }
 func (t *Trait) addProperty(m *Property) error {
 	initMap(&t.Properties)
 	if _, ok := t.Properties[m.Name]; ok {
-		return fmt.Errorf("trait %s already has %s", t.Name, m.Name)
+		return fmt.Errorf("trait %s already has property %s", t.Name, m.Name)
 	}
 	t.Properties[m.Name] = m
 	return nil

@@ -337,7 +337,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 			c.addMethod(&m)
 		}
 	}
-	c.Traits = nil // Mark as process.
+	c.Traits = nil // Mark as processed.
 
 	var memberClass Ident
 	var memberType Ident
@@ -416,7 +416,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 		return "\\stdClass"
 	}
 	if memberClass == "static" {
-		// TODO: Doesn't file like the right place for this.
+		// TODO: Doesn't feel like the right place for this.
 		return originalClass
 	}
 	return memberClass
