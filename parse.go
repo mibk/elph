@@ -938,7 +938,7 @@ func (p *parser) parseMemberAccess(x Expr, static bool) Expr {
 			return &ValueExpr{V: x.Pos(), Type: "callable"}
 		}
 		a.MethodCall = true
-		p.parseBlock(token.Lparen, false)
+		a.Args = p.parseBlock(token.Lparen, false)
 	}
 	return a
 }

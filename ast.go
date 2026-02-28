@@ -118,6 +118,7 @@ type MemberAccess struct {
 	Rcvr       Expr
 	NamePos    token.Pos
 	Name       string
+	Args       *Block // method call arguments, or nil
 	MethodCall bool
 	Static     bool
 }

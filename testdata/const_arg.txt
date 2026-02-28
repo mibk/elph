@@ -1,0 +1,25 @@
+% check a.php
+a.php:17:42: class const Catalog\Item::NONEXISTENT does not exist
+a.php:20:22: class const Catalog\Item::ALSO_MISSING does not exist
+
+-- a.php --
+<?php
+
+namespace Catalog;
+
+class Item
+{
+	/** @var string */
+	const STATUS_ACTIVE = 'active';
+}
+
+class ItemService
+{
+	function register(string $name, string $label, $options): void;
+}
+
+$svc = new ItemService;
+$svc->register('status', 'Status', Item::NONEXISTENT);
+
+// Also detect missing const when it's the first argument.
+$svc->register(Item::ALSO_MISSING, 'Label', 'opts');

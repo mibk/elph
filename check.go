@@ -135,6 +135,9 @@ func (l *linter) check(x any) {
 		}
 	case *MemberAccess:
 		l.checkMemberAccess(x)
+		if x.Args != nil {
+			l.check(x.Args)
+		}
 	case *IndexExpr:
 		l.check(x.X)
 	case *VarExpr:
