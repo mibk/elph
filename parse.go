@@ -950,6 +950,9 @@ func (p *parser) tryParseStaticMemberAccess() Expr {
 	if x.Type == "assert" {
 		return p.parseAssert(p.tok.Pos)
 	}
+	if x.Type == "unset" {
+		return p.parseUnset(x.V)
+	}
 
 	x.Type = p.fullyQualify(x.Type)
 	if p.got(token.DoubleColon) {
@@ -978,6 +981,24 @@ func (p *parser) parseAssert(pos token.Pos) (x Expr) {
 	}
 	id = p.fullyQualify(id)
 	return &AssertExpr{Fn: pos, Var: v.Text, Type: id}
+}
+
+func (p *parser) parseUnset(pos token.Pos) Expr {
+	p.expect(token.Lparen)
+	u := &UnsetExpr{Fn: pos}
+	for {
+		v := p.tok
+		if !p.got(token.Var) {
+			p.parseBlock(token.Lparen, false)
+			return u
+		}
+		u.Vars = append(u.Vars, v.Text)
+		if !p.got(token.Comma) {
+			break
+		}
+	}
+	p.expect(token.Rparen)
+	return u
 }
 
 // tryParseInstanceofGuard tries to match one of:

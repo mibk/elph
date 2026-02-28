@@ -1,0 +1,40 @@
+% check a.php
+a.php:12:1: $a is of type: Warehouse\Box (DEBUG)
+a.php:15:1: unknown var: $a (DEBUG)
+a.php:16:1: $b is of type: Warehouse\Box (DEBUG)
+
+% check b.php
+b.php:9:1: unknown var: $x (DEBUG)
+b.php:10:1: unknown var: $y (DEBUG)
+b.php:11:1: $z is of type: Warehouse\Box (DEBUG)
+
+-- a.php --
+<?php
+
+namespace Warehouse;
+
+class Box
+{
+	function seal(): void;
+}
+
+$a = new Box;
+$b = new Box;
+#debugType $a
+
+unset($a);
+#debugType $a
+#debugType $b
+
+-- b.php --
+<?php
+
+use Warehouse\Box;
+
+$x = new Box;
+$y = new Box;
+$z = new Box;
+unset($x, $y);
+#debugType $x
+#debugType $y
+#debugType $z

@@ -139,6 +139,13 @@ type AssertExpr struct {
 
 func (e *AssertExpr) Pos() token.Pos { return e.Fn }
 
+type UnsetExpr struct {
+	Fn   token.Pos
+	Vars []string
+}
+
+func (e *UnsetExpr) Pos() token.Pos { return e.Fn }
+
 // NarrowBlock is a block where a variable is temporarily narrowed
 // to a more specific type. The checker restores the original type
 // after the block.
