@@ -35,7 +35,6 @@ func (p *parser) tryParseType() phptype.Type {
 type Ident string
 
 func (id Ident) unslash() Ident {
-	// TODO: Do we need this method?
 	return Ident(strings.TrimPrefix(string(id), `\`))
 }
 

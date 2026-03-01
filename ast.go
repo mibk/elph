@@ -93,8 +93,6 @@ type NewInstance struct {
 
 func (e *NewInstance) Pos() token.Pos { return e.New }
 
-// TODO: Do the names make sense?
-
 type ValueExpr struct {
 	V    token.Pos
 	Type Ident

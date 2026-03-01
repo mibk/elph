@@ -292,7 +292,6 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 	}
 }
 
-// TODO: Is this global var necessary/convenient?
 var universe = make(map[Ident]typeDecl)
 
 func (p *parser) parsePHPDoc(doc token.Token) *phpdoc.Block {
