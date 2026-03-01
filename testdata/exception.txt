@@ -1,8 +1,8 @@
 % check a.php
-a.php:10:2: $e is of type: \FooException (DEBUG)
+a.php:10:2: $e is of type: FooException (DEBUG)
 
 % check b.php
-b.php:4:10: class \UnknownException not found
+b.php:4:10: class UnknownException not found
 
 -- a.php --
 <?php

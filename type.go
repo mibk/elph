@@ -34,10 +34,6 @@ func (p *parser) tryParseType() phptype.Type {
 
 type Ident string
 
-func (id Ident) unslash() Ident {
-	return Ident(strings.TrimPrefix(string(id), `\`))
-}
-
 func (p *parser) parseQualifiedName() Ident {
 	var id strings.Builder
 	if p.got(token.Backslash) {
@@ -64,7 +60,10 @@ func (p *parser) fullyQualify(id Ident) Ident {
 		return p.fullyQualify(Ident(base)) + "<>" + p.fullyQualify(Ident(typ))
 	}
 	name := string(id)
-	if strings.HasPrefix(name, `\`) || isBasicType(id) {
+	if strings.HasPrefix(name, `\`) {
+		return Ident(name[1:])
+	}
+	if isBasicType(id) {
 		return id
 	}
 	if ns, rest, ok := strings.Cut(name, `\`); ok {
@@ -90,7 +89,7 @@ func getClass(typ phptype.Type) Ident {
 		for _, s := range typ.Types {
 			c := getClass(s)
 			// TODO: Fix this. The namespace isn't taken into account.
-			if c == "\\stdClass" {
+			if c == `\stdClass` {
 				return c
 			}
 			opts = append(opts, c)
@@ -119,11 +118,11 @@ func getClass(typ phptype.Type) Ident {
 		// If there's a method on array,
 		// it's not actually an array.
 		// TODO: Add proper support.
-		return "\\stdClass"
+		return `\stdClass`
 	case *phptype.ArrayShape:
-		return "\\stdClass"
+		return `\stdClass`
 	case *phptype.ObjectShape:
-		return "\\stdClass"
+		return `\stdClass`
 	case *phptype.Nullable:
 		return getClass(typ.Type)
 	case *phptype.Named:

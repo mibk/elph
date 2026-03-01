@@ -461,7 +461,7 @@ func (p *parser) handleImportedPHPStanType(s string) {
 
 	// TODO: There's many edge cases that I ignored.
 	if i := strings.LastIndex(class, `\`); i >= 0 {
-		importedType := Ident(class[:i] + `\` + typ)
+		importedType := p.fullyQualify(Ident(class[:i] + `\` + typ))
 
 		// TODO: Probably wrong source file.
 		c := &Class{Name: p.fullyQualify(Ident(alias)), Extends: importedType, SourceFile: p.filename}

@@ -8,7 +8,7 @@ a.php:32:3: $y is of type: Foo (DEBUG)
 a.php:33:3: $this is of type: Foo (DEBUG)
 
 % check b.php
-b.php:9:3: $a is of type: \stdClass (DEBUG)
+b.php:9:3: $a is of type: stdClass (DEBUG)
 b.php:17:1: $i is of type: int (DEBUG)
 
 % check c.php

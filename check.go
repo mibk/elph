@@ -169,7 +169,6 @@ func (l *linter) check(x any) {
 }
 
 func (l *linter) exists(id Ident) bool {
-	id = id.unslash()
 	switch {
 	case isBasicType(id),
 		id == "stdClass",
@@ -233,7 +232,7 @@ func (l *linter) findNewInstanceType(x any) (class Ident) {
 	default:
 		panic(fmt.Sprintf("unsupported expr type: %T", x))
 	case *ValueExpr:
-		class := x.Type.unslash()
+		class := x.Type
 		switch class {
 		case "self", "static":
 			if l.thisClass == nil {
@@ -246,7 +245,7 @@ func (l *linter) findNewInstanceType(x any) (class Ident) {
 		}
 		if _, ok := universe[class].(*Class); !ok {
 			l.reportf(x.V, "class %v not found", class)
-			return "\\stdClass"
+			return "stdClass"
 		}
 		return x.Type
 	case *Class:
@@ -283,7 +282,7 @@ func (l *linter) checkMemberAccess(a *MemberAccess) Ident {
 		return "<not-a-class>"
 	}
 
-	if x = x.unslash(); x == "stdClass" {
+	if x == "stdClass" {
 		// All member access allowed.
 		return x
 	}
@@ -310,7 +309,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 					l.reported[key] = true
 				}
 			}
-			return "\\stdClass"
+			return "stdClass"
 		}
 		// Let's check the trait as if it were a class.
 		c = &Class{
@@ -411,7 +410,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 	}
 
 	if memberClass == "" && c.Extends != "" {
-		parent := c.Extends.unslash()
+		parent := c.Extends
 		if parent == "stdClass" {
 			// All good.
 			// TODO: Really?
@@ -422,7 +421,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 	}
 	if memberClass == "" {
 		l.reportf(pos, "class %s %v::%v does not exist", memberType, originalClass, member)
-		return "\\stdClass"
+		return "stdClass"
 	}
 	if memberClass == "static" {
 		// TODO: Doesn't feel like the right place for this.
