@@ -1,7 +1,7 @@
 % check a.php
 a.php:10:1: $y is of type: string (DEBUG)
-a.php:13:1: $m is of type: stdClass (DEBUG)
-a.php:16:1: $n is of type: stdClass (DEBUG)
+a.php:13:1: $m is of type: mixed (DEBUG)
+a.php:16:1: $n is of type: mixed (DEBUG)
 
 
 -- a.php --

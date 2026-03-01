@@ -801,7 +801,7 @@ func (p *parser) parseForeachParam() *Param {
 		return nil
 	}
 	p.got(token.BitAnd) // ignore
-	param := Param{Pos: p.tok.Pos, Name: p.tok.Text, Type: "stdClass"}
+	param := Param{Pos: p.tok.Pos, Name: p.tok.Text, Type: "mixed"}
 	if !p.got(token.Var) {
 		return nil
 	}
@@ -860,7 +860,7 @@ func (p *parser) parseNewInstance() Expr {
 	if p.got(token.Static) {
 		return &NewInstance{Class: &ValueExpr{V: pos, Type: p.thisClass}}
 	}
-	switch class := Ident("stdClass"); {
+	switch class := Ident("mixed"); {
 	case p.got(token.Class):
 		anonymousCount++
 		class = Ident("AnonymousClass@" + fmt.Sprint(anonymousCount))
@@ -880,7 +880,7 @@ func (p *parser) parseNewInstance() Expr {
 		return &NewInstance{Class: c}
 	case p.got(token.Var):
 		// Just give up; we can't know the type.
-		return &NewInstance{Class: &ValueExpr{V: pos, Type: "stdClass"}}
+		return &NewInstance{Class: &ValueExpr{V: pos, Type: "mixed"}}
 	default:
 		name := p.parseQualifiedName()
 		if name == "" {

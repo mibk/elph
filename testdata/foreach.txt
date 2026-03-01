@@ -1,7 +1,7 @@
 % check a.php
-a.php:11:2: $name is of type: stdClass (DEBUG)
-a.php:17:2: $n is of type: stdClass (DEBUG)
-# For now, it is just stdClass. TODO: Fix that.
+a.php:11:2: $name is of type: mixed (DEBUG)
+a.php:17:2: $n is of type: mixed (DEBUG)
+# For now, it is just mixed. TODO: Fix that.
 
 -- a.php --
 <?php

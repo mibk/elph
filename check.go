@@ -212,12 +212,12 @@ func (l *linter) findVarType(a *AssignExpr) (class Ident, checked bool) {
 		class, checked = l.findVarType(val)
 	case *IndexExpr:
 		// TODO: Fix this.
-		class = "stdClass"
+		class = "mixed"
 	}
 
 	if class == "void" {
 		l.reportf(a.Right.Pos(), "cannot assign '%s'", class)
-		class = "stdClass"
+		class = "mixed"
 	}
 
 	if v, ok := a.Left.(*VarExpr); ok {
@@ -240,12 +240,12 @@ func (l *linter) findNewInstanceType(x any) (class Ident) {
 				return "mixed"
 			}
 			return l.thisClass.Name
-		case "stdClass":
+		case "stdClass", "mixed":
 			return x.Type
 		}
 		if _, ok := universe[class].(*Class); !ok {
 			l.reportf(x.V, "class %v not found", class)
-			return "stdClass"
+			return "mixed"
 		}
 		return x.Type
 	case *Class:
@@ -267,7 +267,7 @@ func (l *linter) checkMemberAccess(a *MemberAccess) Ident {
 		x = l.checkMemberAccess(r)
 	case *IndexExpr:
 		// TODO: Implement later.
-		x = "stdClass"
+		x = "mixed"
 	}
 
 	if x == "self" || x == "parent" {
@@ -309,7 +309,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 					l.reported[key] = true
 				}
 			}
-			return "stdClass"
+			return "mixed"
 		}
 		// Let's check the trait as if it were a class.
 		c = &Class{
@@ -421,7 +421,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 	}
 	if memberClass == "" {
 		l.reportf(pos, "class %s %v::%v does not exist", memberType, originalClass, member)
-		return "stdClass"
+		return "mixed"
 	}
 	if memberClass == "static" {
 		// TODO: Doesn't feel like the right place for this.

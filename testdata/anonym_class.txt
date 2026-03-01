@@ -1,6 +1,6 @@
 % check a.php
 a.php:5:1: $x is of type: AnonymousClass@1 (DEBUG)
-a.php:9:1: $y is of type: stdClass (DEBUG)
+a.php:9:1: $y is of type: mixed (DEBUG)
 
 % check b.php
 b.php:32:1: $c is of type: string (DEBUG)
