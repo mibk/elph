@@ -14,6 +14,9 @@ d.php:19:1: $x is of type: int (DEBUG)
 % check e.php
 e.php:28:1: $x is of type: Ns\Item (DEBUG)
 
+% check f.php
+f.php:19:1: $x is of type: P (DEBUG)
+
 -- a.php --
 <?php
 
@@ -143,4 +146,24 @@ class ItemRepo extends Repo {}
 
 $r = new ItemRepo;
 $x = $r->query()->find();
+#debugType $x
+-- f.php --
+<?php
+
+class SomeClass {}
+
+/**
+ * @template P of SomeClass
+ */
+class Manager
+{
+	/** @return P */
+	public function get(P $item)
+	{
+		return $item;
+	}
+}
+
+$m = new Manager;
+$x = $m->get(new SomeClass);
 #debugType $x

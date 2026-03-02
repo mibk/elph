@@ -439,6 +439,9 @@ func (p *parser) extractTemplateParam(c *Class, b *phpdoc.Block) {
 	for _, line := range b.Lines {
 		if tag, ok := line.(*phpdoc.TemplateTag); ok {
 			c.TemplateParam = tag.Param
+			if tag.Bound != nil {
+				c.TemplateBound = p.resolveClass(c.Name, tag.Bound)
+			}
 		}
 	}
 }
@@ -448,6 +451,9 @@ func (p *parser) handleClassDoc(c *Class, b *phpdoc.Block, pos token.Pos) {
 		switch tag := line.(type) {
 		case *phpdoc.TemplateTag:
 			c.TemplateParam = tag.Param
+			if tag.Bound != nil {
+				c.TemplateBound = p.resolveClass(c.Name, tag.Bound)
+			}
 		case *phpdoc.TypeDefTag:
 			adhocType := p.fullyQualify(Ident(tag.Name))
 			universe[adhocType] = &Class{Name: adhocType, Extends: "stdClass", SourceFile: c.SourceFile}

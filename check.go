@@ -122,7 +122,9 @@ func (l *linter) check(x any) {
 		l.scope[v.Name] = v.Type
 	case *Param:
 		l.scope[x.Name] = x.Type
-		l.checkIdent(x.Pos, x.Type, "class")
+		if l.thisClass == nil || l.thisClass.TemplateParam == "" || x.Type != Ident(l.thisClass.TemplateParam) {
+			l.checkIdent(x.Pos, x.Type, "class")
+		}
 		if x.DefaultValue != nil {
 			l.check(x.DefaultValue)
 		}
@@ -268,6 +270,14 @@ func (l *linter) checkMemberAccess(a *MemberAccess) Ident {
 	case *IndexExpr:
 		// TODO: Implement later.
 		x = "mixed"
+	}
+
+	if l.thisClass != nil && l.thisClass.TemplateParam != "" && x == Ident(l.thisClass.TemplateParam) {
+		if l.thisClass.TemplateBound != "" {
+			x = l.thisClass.TemplateBound
+		} else {
+			return "mixed"
+		}
 	}
 
 	if x == "self" || x == "parent" {

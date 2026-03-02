@@ -41,6 +41,7 @@ type Stmt struct {
 type Class struct {
 	Name          Ident
 	TemplateParam string // declared via @template (e.g. "T", "TItem")
+	TemplateBound Ident  // bound from @template T of X, or empty
 	Template      Ident  // concrete type from @extends, or empty
 	Extends       Ident  // or empty
 	Implements []Ident
