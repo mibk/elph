@@ -12,3 +12,17 @@ enum Option: string
 
 $val = Option::YES;
 #debugType $val
+
+% check b.php
+
+-- b.php --
+<?php
+
+enum Status: int
+{
+	case ACTIVE = 1;
+	case INACTIVE = 0;
+}
+
+$s = Status::from(1);
+$t = Status::tryFrom(1);

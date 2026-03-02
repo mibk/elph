@@ -571,6 +571,8 @@ func (p *parser) parseEnum() *Class {
 	e := &Class{Name: enum, SourceFile: p.filename}
 	m := Function{Name: "tryFrom", Returns: "self", Static: true}
 	e.addMethod(&m)
+	m = Function{Name: "from", Returns: "self", Static: true}
+	e.addMethod(&m)
 	universe[enum] = e
 	p.nextClass = enum
 	return e
