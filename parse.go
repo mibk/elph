@@ -313,7 +313,12 @@ func (p *parser) parsePHPDoc(doc token.Token) *phpdoc.Block {
 		return nil
 	}
 
-	b, err := phpdoc.Parse(strings.NewReader(doc.Text))
+	// The phpdoc parser doesn't support array literal defaults
+	// like "= []" in @method params. Replace with "= null".
+	//
+	// TODO: Remove this hack once we update to newest version of package phpfmt.
+	text := strings.ReplaceAll(doc.Text, "= []", "= null")
+	b, err := phpdoc.Parse(strings.NewReader(text))
 	if err != nil {
 		pos := doc.Pos
 		if se, ok := err.(*phpdoc.SyntaxError); ok {
@@ -462,6 +467,7 @@ func (p *parser) handleClassDoc(c *Class, b *phpdoc.Block, pos token.Pos) {
 				Pos:     pos,
 				Name:    tag.Name,
 				Returns: p.resolveClass(c.Name, tag.Result),
+				Static:  tag.Static,
 			}
 			c.replaceMethod(m)
 		case *phpdoc.ExtendsTag:
