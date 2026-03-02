@@ -884,9 +884,25 @@ func (p *parser) parseExpr() Expr {
 		default:
 			v = p.parseExpr()
 		}
+		if isBinaryOp(p.tok.Type) {
+			v = &ValueExpr{V: v.Pos(), Type: "mixed"}
+		}
 		e = &AssignExpr{e, v}
 	}
 	return e
+}
+
+func isBinaryOp(t token.Type) bool {
+	switch t {
+	case token.Eq, token.Neq, token.Identical, token.NotIdentical,
+		token.Lt, token.Gt, token.Leq, token.Geq, token.Spaceship,
+		token.And, token.Or,
+		token.Add, token.Sub, token.Mul, token.Quo, token.Rem, token.Pow,
+		token.BitAnd, token.BitOr, token.BitXor, token.BitShl, token.BitShr,
+		token.Concat, token.Coalesce, token.Qmark:
+		return true
+	}
+	return false
 }
 
 var anonymousCount int

@@ -1,0 +1,21 @@
+% check a.php
+a.php:10:3: $x is of type: mixed (DEBUG)
+
+-- a.php --
+<?php
+
+class Foo
+{
+	function bar(?int $id)
+	{
+		$x = $id !== null
+			? $this->baz($id)
+			: null;
+		#debugType $x
+	}
+
+	function baz(int $id): self
+	{
+		return $this;
+	}
+}
