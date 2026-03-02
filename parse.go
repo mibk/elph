@@ -992,12 +992,14 @@ func (p *parser) parseUnset(pos token.Pos) Expr {
 			p.parseBlock(token.Lparen, false)
 			return u
 		}
-		if p.got(token.Lbrack) {
-			// unset($arr[$k]) — skip the subscript, don't
-			// remove $arr from scope (it still exists).
-			p.parseBlock(token.Lbrack, false)
-		} else {
+		if p.tok.Type == token.Comma || p.tok.Type == token.Rparen {
 			u.Vars = append(u.Vars, v.Text)
+		} else {
+			// Compound target (e.g. $arr[$k], $obj->prop,
+			// $a[$i][$j]) — skip it; the variable itself
+			// stays in scope.
+			p.parseBlock(token.Lparen, false)
+			return u
 		}
 		if !p.got(token.Comma) {
 			break

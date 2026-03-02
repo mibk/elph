@@ -9,7 +9,8 @@ b.php:10:1: unknown var: $y (DEBUG)
 b.php:11:1: $z is of type: Warehouse\Box (DEBUG)
 
 % check c.php
-c.php:8:1: $res is of type: Warehouse\Box (DEBUG)
+c.php:9:1: $data is of type: Warehouse\Box (DEBUG)
+c.php:12:1: $res is of type: Warehouse\Box (DEBUG)
 
 -- a.php --
 <?php
@@ -47,7 +48,11 @@ unset($x, $y);
 
 use Warehouse\Box;
 
+$data = new Box;
 $res = new Box;
 $k = 'foo';
+unset($data->subjects);
+#debugType $data
+
 unset($res[$k]);
 #debugType $res
