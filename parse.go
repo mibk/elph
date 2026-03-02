@@ -992,7 +992,13 @@ func (p *parser) parseUnset(pos token.Pos) Expr {
 			p.parseBlock(token.Lparen, false)
 			return u
 		}
-		u.Vars = append(u.Vars, v.Text)
+		if p.got(token.Lbrack) {
+			// unset($arr[$k]) — skip the subscript, don't
+			// remove $arr from scope (it still exists).
+			p.parseBlock(token.Lbrack, false)
+		} else {
+			u.Vars = append(u.Vars, v.Text)
+		}
 		if !p.got(token.Comma) {
 			break
 		}
