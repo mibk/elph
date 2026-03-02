@@ -25,7 +25,7 @@ interface DateTimeInterface
 	function getTimezone(): DateTimeZone|false;
 }
 
-class DateTime
+class DateTime implements DateTimeInterface
 {
 	static function createFromFormat(string $format, string $datetime): DateTime|false;
 
@@ -48,7 +48,7 @@ class DateTime
 	function getLastErrors(): array|false
 }
 
-class DateTimeImmutable
+class DateTimeImmutable implements DateTimeInterface
 {
 	static function createFromFormat(string $format, string $datetime): DateTimeImmutable|false;
 
