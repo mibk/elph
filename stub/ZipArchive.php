@@ -2,6 +2,8 @@
 
 class ZipArchive
 {
+	const CM_DEFAULT;
+
 	function open(string $filename, int $flags = 0): bool|int;
 
 	function close(): bool;
