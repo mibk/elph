@@ -66,6 +66,9 @@ func (p *parser) fullyQualify(id Ident) Ident {
 	if isBasicType(id) {
 		return id
 	}
+	if p.templateParam != "" && name == p.templateParam {
+		return id
+	}
 	if ns, rest, ok := strings.Cut(name, `\`); ok {
 		if tr, ok := p.use[ns]; ok {
 			return tr + Ident(`\`+rest)

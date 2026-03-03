@@ -29,11 +29,12 @@ type parser struct {
 	err error
 	tok token.Token
 
-	namespace Ident
-	use       map[string]Ident
-	thisClass Ident
-	nextClass Ident
-	params    []*Param
+	namespace     Ident
+	use           map[string]Ident
+	thisClass     Ident
+	nextClass     Ident
+	templateParam string
+	params        []*Param
 }
 
 func Parse(r io.Reader, filename string, php74Compat bool, warnOut io.Writer) (*File, error) {
@@ -197,22 +198,35 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 			doc := docComment
 			if c := p.parseClass(); c != nil {
 				s.Nodes = append(s.Nodes, c)
+				if b := p.parsePHPDoc(doc); b != nil {
+					p.extractTemplateParam(c, b)
+				}
+				backupTP := p.templateParam
+				p.templateParam = c.TemplateParam
 				b := p.parseBlock(token.Lbrace, true)
 				s.Nodes = append(s.Nodes, b)
 
 				if b := p.parsePHPDoc(doc); b != nil {
 					p.handleClassDoc(c, b, doc.Pos)
 				}
+				p.templateParam = backupTP
 			}
 		case token.Trait:
 			if c := p.parseTrait(docComment); c != nil {
 				s.Nodes = append(s.Nodes, c)
 			}
 		case token.Interface:
+			doc := docComment
 			if c := p.parseInterface(); c != nil {
 				s.Nodes = append(s.Nodes, c)
+				if b := p.parsePHPDoc(doc); b != nil {
+					p.extractTemplateParam(c, b)
+				}
+				backupTP := p.templateParam
+				p.templateParam = c.TemplateParam
 				b := p.parseBlock(token.Lbrace, true)
 				s.Nodes = append(s.Nodes, b)
+				p.templateParam = backupTP
 			}
 		case token.Enum:
 			if p.tok.Text != "enum" {
@@ -414,6 +428,14 @@ func (p *parser) parseClass() *Class {
 	}
 
 	return c
+}
+
+func (p *parser) extractTemplateParam(c *Class, b *phpdoc.Block) {
+	for _, line := range b.Lines {
+		if tag, ok := line.(*phpdoc.TemplateTag); ok {
+			c.TemplateParam = tag.Param
+		}
+	}
 }
 
 func (p *parser) handleClassDoc(c *Class, b *phpdoc.Block, pos token.Pos) {
@@ -1088,6 +1110,9 @@ func (p *parser) resolveClass(thisClass Ident, typ phptype.Type) Ident {
 	class := getClass(typ)
 	if class == "self" {
 		return thisClass
+	}
+	if c, ok := universe[thisClass].(*Class); ok && c.TemplateParam != "" && string(class) == c.TemplateParam {
+		return class
 	}
 	class = p.fullyQualify(class)
 	return class

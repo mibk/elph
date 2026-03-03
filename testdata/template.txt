@@ -11,6 +11,9 @@ c.php:39:1: $v is of type: User (DEBUG)
 % check d.php
 d.php:19:1: $x is of type: int (DEBUG)
 
+% check e.php
+e.php:28:1: $x is of type: Ns\Item (DEBUG)
+
 -- a.php --
 <?php
 
@@ -111,4 +114,33 @@ class IntCollection extends Collection
 
 $c = new IntCollection;
 $x = $c->first();
+#debugType $x
+-- e.php --
+<?php
+
+namespace Ns;
+
+/**
+ * @template T
+ */
+class Repo
+{
+	/** @return Query<T> */
+	public function query();
+}
+
+/** @template T */
+class Query
+{
+	/** @return T */
+	public function find();
+}
+
+class Item {}
+
+/** @extends Repo<Item> */
+class ItemRepo extends Repo {}
+
+$r = new ItemRepo;
+$x = $r->query()->find();
 #debugType $x
