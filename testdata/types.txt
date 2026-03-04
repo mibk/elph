@@ -133,6 +133,29 @@ class Config
 		#debugType $a
 	}
 }
+-- assert-prop.php --
+<?php
+
+namespace AssertProp;
+
+class Foo
+{
+	/** @var mixed */
+	public $bar;
+
+	function test(): void
+	{
+		assert($this->bar instanceof \Utils\Config);
+		#debugType $this->bar
+	}
+
+	function testIf(): void
+	{
+		if ($this->bar instanceof \Utils\Config) {
+			#debugType $this->bar
+		}
+	}
+}
 -- f.php --
 <?php
 

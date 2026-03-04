@@ -1028,7 +1028,18 @@ func (p *parser) parseAssert(pos token.Pos) (x Expr) {
 
 	p.expect(token.Lparen)
 	v := p.tok
-	if !p.got(token.Var) || !p.got(token.Instanceof) {
+	if !p.got(token.Var) {
+		return nil
+	}
+	varName := v.Text
+	if p.got(token.Arrow) {
+		prop := p.tok
+		if !p.got(token.Ident) {
+			return nil
+		}
+		varName = varName + "->" + prop.Text
+	}
+	if !p.got(token.Instanceof) {
 		return nil
 	}
 	id := p.parseQualifiedName()
@@ -1036,7 +1047,7 @@ func (p *parser) parseAssert(pos token.Pos) (x Expr) {
 		return nil
 	}
 	id = p.fullyQualify(id)
-	return &AssertExpr{Fn: pos, Var: v.Text, Type: id}
+	return &AssertExpr{Fn: pos, Var: varName, Type: id}
 }
 
 func (p *parser) parseUnset(pos token.Pos) Expr {
@@ -1084,6 +1095,15 @@ func (p *parser) tryParseInstanceofGuard(s *Stmt) {
 		p.parseBlock(token.Lparen, false)
 		return
 	}
+	varName := v.Text
+	if p.got(token.Arrow) {
+		prop := p.tok
+		if !p.got(token.Ident) {
+			p.parseBlock(token.Lparen, false)
+			return
+		}
+		varName = varName + "->" + prop.Text
+	}
 	if !p.got(token.Instanceof) {
 		p.parseBlock(token.Lparen, false)
 		return
@@ -1098,7 +1118,7 @@ func (p *parser) tryParseInstanceofGuard(s *Stmt) {
 		return
 	}
 	id = p.fullyQualify(id)
-	assert := &AssertExpr{Fn: v.Pos, Var: v.Text, Type: id}
+	assert := &AssertExpr{Fn: v.Pos, Var: varName, Type: id}
 
 	if negated {
 		// if (!$var instanceof Type) { ... } — narrow after the block.

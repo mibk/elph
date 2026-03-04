@@ -263,6 +263,9 @@ func (l *linter) checkMemberAccess(a *MemberAccess) Ident {
 	case *ValueExpr:
 		x = r.Type
 	case *VarExpr:
+		if override, ok := l.scope[r.Name+"->"+a.Name]; ok {
+			return override
+		}
 		// TODO: For now, let's default to mixed.
 		x = cmp.Or(l.scope[r.Name], "mixed")
 	case *MemberAccess:
