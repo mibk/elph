@@ -1,0 +1,36 @@
+% check a.php
+# No errors.
+
+% check b.php
+# No errors.
+
+% check c.php
+c.php:5:5: class property Box::notExist does not exist
+c.php:7:5: class property Box::notExist does not exist
+
+-- defs.php --
+<?php
+
+class Box
+{
+	public string $name;
+}
+-- a.php --
+<?php
+
+$b = new Box;
+// @phpstan-ignore property.notFound
+$b->notExist;
+-- b.php --
+<?php
+
+$b = new Box;
+$b->notExist; // @phpstan-ignore property.notFound
+-- c.php --
+<?php
+
+$b = new Box;
+// @phpstan-ignore method.notFound
+$b->notExist;
+
+$b->notExist;

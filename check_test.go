@@ -80,7 +80,8 @@ func Test(t *testing.T) {
 						t.Fatalf("%s: no such file", arg)
 					}
 					l.fileBeingChecked = f.Path
-				l.check(f.Block)
+					l.ignoreLines = f.IgnoreLines
+					l.check(f.Block)
 				}
 			}
 			if got, want := got.String(), want.String(); got != want {

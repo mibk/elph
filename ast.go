@@ -7,8 +7,9 @@ import (
 )
 
 type File struct {
-	Path  string
-	Block *Block
+	Path        string
+	Block       *Block
+	IgnoreLines map[int]string // line number → @phpstan-ignore tag
 }
 
 type UseStmt struct {
@@ -44,11 +45,11 @@ type Class struct {
 	TemplateBound Ident  // bound from @template T of X, or empty
 	Template      Ident  // concrete type from @extends, or empty
 	Extends       Ident  // or empty
-	Implements []Ident
-	Traits     []Ident
-	Properties map[string]*Property
-	Constants  map[string]*Property
-	Methods    map[string]*Function
+	Implements    []Ident
+	Traits        []Ident
+	Properties    map[string]*Property
+	Constants     map[string]*Property
+	Methods       map[string]*Function
 
 	SourceFile string
 }

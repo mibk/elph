@@ -22,6 +22,7 @@ func Check(file *File, a *Arbiter, warnOut io.Writer) {
 		scope:            make(map[string]Ident),
 		fileBeingChecked: file.Path,
 		reported:         make(map[string]bool),
+		ignoreLines:      file.IgnoreLines,
 	}
 	l.check(file.Block)
 }
@@ -35,16 +36,28 @@ type linter struct {
 
 	fileBeingChecked string
 	reported         map[string]bool
+	ignoreLines      map[int]string
 
 	thisClass *Class
 	nextClass *Class
 	pushScope bool
 }
 
+var ignoreTagPatterns = map[string]string{
+	"property.notFound": "class property ",
+	"method.notFound":   "class method ",
+}
+
 func (l *linter) reportf(pos token.Pos, format string, args ...any) {
+	detail := fmt.Sprintf(format, args...)
+	if tag := l.ignoreLines[pos.Line]; tag != "" {
+		if prefix, ok := ignoreTagPatterns[tag]; ok && strings.HasPrefix(detail, prefix) {
+			return
+		}
+	}
 	msg := fmt.Sprintf("%s:%d:%d: %s",
 		l.fileBeingChecked, pos.Line, pos.Column,
-		fmt.Sprintf(format, args...),
+		detail,
 	)
 	if !l.arbiter.errorMatched(msg) {
 		fmt.Fprintln(l.stdout, msg)

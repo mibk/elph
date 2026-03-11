@@ -35,6 +35,7 @@ type parser struct {
 	nextClass     Ident
 	templateParam string
 	params        []*Param
+	ignoreLines   map[int]string
 }
 
 func Parse(r io.Reader, filename string, php74Compat bool, warnOut io.Writer) (*File, error) {
@@ -44,11 +45,13 @@ func Parse(r io.Reader, filename string, php74Compat bool, warnOut io.Writer) (*
 func parsePHP(r io.Reader, filename string, php74Compat bool, warnOut io.Writer) (*File, error) {
 	p := &parser{scan: token.NewScanner(r, php74Compat), filename: filename, warnOut: warnOut}
 	p.use = make(map[string]Ident)
+	p.ignoreLines = make(map[int]string)
 	p.next() // init
 	doc := p.parseFile()
 	if p.err != nil {
 		return nil, p.err
 	}
+	doc.IgnoreLines = p.ignoreLines
 	return doc, nil
 }
 
@@ -64,6 +67,14 @@ func (p *parser) next() {
 			// Hopefully the code in the wild doesn't use it in awkward places.
 			if strings.HasPrefix(p.tok.Text, debugTypeCmd) {
 				return
+			}
+			if tag, ok := strings.CutPrefix(p.tok.Text, "// @phpstan-ignore "); ok {
+				tag = strings.TrimSpace(tag)
+				if i := strings.IndexAny(tag, " ,"); i >= 0 {
+					tag = tag[:i]
+				}
+				p.ignoreLines[p.tok.Pos.Line] = tag
+				p.ignoreLines[p.tok.Pos.Line+1] = tag
 			}
 		case token.Whitespace:
 		}
