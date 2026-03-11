@@ -727,9 +727,18 @@ func (p *parser) parseProperty(doc token.Token, static, constant bool) {
 	var def token.Token
 	var typ phptype.Type
 	if constant {
-		def = p.tok
-		if !p.got(token.Ident) {
-			return
+		saved := p.tok
+		typ = p.tryParseType()
+		if typ != nil && p.tok.Type == token.Ident {
+			// Typed constant (e.g., const int FOO).
+			def = p.tok
+			if !p.got(token.Ident) {
+				return
+			}
+		} else {
+			// Untyped constant; tryParseType consumed the name.
+			def = saved
+			typ = nil
 		}
 	} else {
 		typ = p.tryParseType()
