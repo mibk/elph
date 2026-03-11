@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 
+	"mibk.dev/elph/resolved"
 	"mibk.dev/phpfmt/phpdoc"
 	"mibk.dev/phpfmt/phpdoc/phptype"
 	"mibk.dev/phpfmt/token"
@@ -483,14 +484,14 @@ func (p *parser) handleClassDoc(c *Class, b *phpdoc.Block, pos token.Pos) {
 			m := &Property{
 				Pos:  pos,
 				Name: strings.TrimPrefix(tag.Var, "$"),
-				Type: p.resolveClass(c.Name, tag.Type),
+				Type: p.resolveType(c.Name, tag.Type),
 			}
 			c.replaceProperty(m)
 		case *phpdoc.MethodTag:
 			m := &Function{
 				Pos:     pos,
 				Name:    tag.Name,
-				Returns: p.resolveClass(c.Name, tag.Result),
+				Returns: p.resolveType(c.Name, tag.Result),
 				Static:  tag.Static,
 			}
 			c.replaceMethod(m)
@@ -592,9 +593,9 @@ func (p *parser) parseEnum() *Class {
 	p.expect(token.Lbrace)
 
 	e := &Class{Name: enum, SourceFile: p.filename}
-	m := Function{Name: "tryFrom", Returns: "self", Static: true}
+	m := Function{Name: "tryFrom", Returns: &resolved.Basic{Name: "self"}, Static: true}
 	e.addMethod(&m)
-	m = Function{Name: "from", Returns: "self", Static: true}
+	m = Function{Name: "from", Returns: &resolved.Basic{Name: "self"}, Static: true}
 	e.addMethod(&m)
 	universe[enum] = e
 	p.nextClass = enum
@@ -671,8 +672,8 @@ func (p *parser) parseFunction(doc token.Token, static bool) {
 		return
 	}
 
-	class := p.resolveClass(p.thisClass, typ)
-	m := Function{Pos: pos, Name: name, Returns: class, Static: static}
+	classTyp := p.resolveType(p.thisClass, typ)
+	m := Function{Pos: pos, Name: name, Returns: classTyp, Static: static}
 	if err := c.addMethod(&m); err != nil {
 		// TODO: Fix position of error.
 		p.errorf("%v", err)
@@ -712,8 +713,8 @@ func (p *parser) parseParamList() {
 			p.next()
 			continue
 		}
-		class := p.resolveClass(p.thisClass, typ)
-		par := &Param{Pos: pos, Name: name, Type: class}
+		classTyp := p.resolveType(p.thisClass, typ)
+		par := &Param{Pos: pos, Name: name, Type: classTyp}
 		p.params = append(p.params, par)
 		if p.got(token.Assign) {
 			def := p.parseStmt(token.Comma, false)
@@ -723,7 +724,7 @@ func (p *parser) parseParamList() {
 		if isMember {
 			if c := universe[p.thisClass]; c != nil {
 				name = strings.TrimPrefix(name, "$")
-				m := Property{Pos: pos, Name: name, Type: class}
+				m := Property{Pos: pos, Name: name, Type: classTyp}
 				if err := c.addProperty(&m); err != nil {
 					p.errorf("%v", err)
 				}
@@ -741,7 +742,7 @@ func (p *parser) parseParamList() {
 func (p *parser) replaceParam(u *phptype.Param) {
 	for _, param := range p.params {
 		if param.Name == "$"+u.Name {
-			param.Type = p.resolveClass(p.thisClass, u.Type)
+			param.Type = p.resolveType(p.thisClass, u.Type)
 		}
 	}
 }
@@ -801,8 +802,8 @@ func (p *parser) parseProperty(doc token.Token, static, constant bool) {
 
 	for {
 		name := strings.TrimPrefix(def.Text, "$")
-		class := p.resolveClass(p.thisClass, typ)
-		m := Property{Pos: def.Pos, Name: name, Type: class, Static: static}
+		classTyp := p.resolveType(p.thisClass, typ)
+		m := Property{Pos: def.Pos, Name: name, Type: classTyp, Static: static}
 		if constant {
 			if err := c.addConstant(&m); err != nil {
 				// TODO: Fix position of error.
@@ -868,7 +869,7 @@ func (p *parser) parseForeachParam() *Param {
 		return nil
 	}
 	p.got(token.BitAnd) // ignore
-	param := Param{Pos: p.tok.Pos, Name: p.tok.Text, Type: "mixed"}
+	param := Param{Pos: p.tok.Pos, Name: p.tok.Text, Type: &resolved.Basic{Name: "mixed"}}
 	if !p.got(token.Var) {
 		return nil
 	}
@@ -889,8 +890,8 @@ func (p *parser) parseCatch() *Param {
 	p.expect(token.Lparen)
 	pos := p.tok.Pos
 	typ := p.tryParseType()
-	class := p.resolveClass(p.thisClass, typ)
-	param := Param{Pos: pos, Type: class}
+	classTyp := p.resolveType(p.thisClass, typ)
+	param := Param{Pos: pos, Type: classTyp}
 	name := p.tok.Text
 	if p.got(token.Var) {
 		param.Name = name
@@ -916,7 +917,7 @@ func (p *parser) parseExpr() Expr {
 			v = p.parseExpr()
 		}
 		if isBinaryOp(p.tok.Type) {
-			v = &ValueExpr{V: v.Pos(), Type: "mixed"}
+			v = &ValueExpr{V: v.Pos(), Type: &resolved.Basic{Name: "mixed"}}
 		}
 		e = &AssignExpr{e, v}
 	}
@@ -941,7 +942,7 @@ var anonymousCount int
 func (p *parser) parseNewInstance() Expr {
 	pos := p.tok.Pos
 	if p.got(token.Static) {
-		return &NewInstance{Class: &ValueExpr{V: pos, Type: p.thisClass}}
+		return &NewInstance{Class: &ValueExpr{V: pos, Type: toType(p.thisClass)}}
 	}
 	switch class := Ident("mixed"); {
 	case p.got(token.Class):
@@ -963,7 +964,7 @@ func (p *parser) parseNewInstance() Expr {
 		return &NewInstance{Class: c}
 	case p.got(token.Var):
 		// Just give up; we can't know the type.
-		return &NewInstance{Class: &ValueExpr{V: pos, Type: "mixed"}}
+		return &NewInstance{Class: &ValueExpr{V: pos, Type: &resolved.Basic{Name: "mixed"}}}
 	default:
 		name := p.parseQualifiedName()
 		if name == "" {
@@ -971,7 +972,7 @@ func (p *parser) parseNewInstance() Expr {
 			return nil
 		}
 		name = p.fullyQualify(name)
-		return &NewInstance{Class: &ValueExpr{V: pos, Type: name}}
+		return &NewInstance{Class: &ValueExpr{V: pos, Type: toType(name)}}
 	}
 }
 
@@ -1000,7 +1001,7 @@ func (p *parser) parseChainAccess(x Expr) Expr {
 		case p.got(token.Lparen):
 			// TODO: This is a callback call. Support it?
 			p.parseBlock(token.Lparen, false)
-			x = &ValueExpr{V: x.Pos(), Type: "mixed"}
+			x = &ValueExpr{V: x.Pos(), Type: &resolved.Basic{Name: "mixed"}}
 		default:
 			return x
 		}
@@ -1019,7 +1020,7 @@ func (p *parser) parseMemberAccess(x Expr, static bool) Expr {
 	if p.got(token.Lparen) {
 		if p.got(token.Ellipsis) && p.got(token.Rparen) {
 			// TODO: Return concrete callback type?
-			return &ValueExpr{V: x.Pos(), Type: "callable"}
+			return &ValueExpr{V: x.Pos(), Type: &resolved.Basic{Name: "callable"}}
 		}
 		a.MethodCall = true
 		a.Args = p.parseBlock(token.Lparen, false)
@@ -1029,16 +1030,16 @@ func (p *parser) parseMemberAccess(x Expr, static bool) Expr {
 
 func (p *parser) tryParseStaticMemberAccess() Expr {
 	x := &ValueExpr{V: p.tok.Pos}
-	x.Type = p.parseQualifiedName()
+	id := p.parseQualifiedName()
 
-	if x.Type == "assert" {
+	if id == "assert" {
 		return p.parseAssert(p.tok.Pos)
 	}
-	if x.Type == "unset" {
+	if id == "unset" {
 		return p.parseUnset(x.V)
 	}
 
-	x.Type = p.fullyQualify(x.Type)
+	x.Type = toType(p.fullyQualify(id))
 	if p.got(token.DoubleColon) {
 		x := p.parseMemberAccess(x, true)
 		return p.parseChainAccess(x)
@@ -1049,7 +1050,7 @@ func (p *parser) tryParseStaticMemberAccess() Expr {
 func (p *parser) parseAssert(pos token.Pos) (x Expr) {
 	defer func() {
 		if x == nil {
-			x = &ValueExpr{V: p.tok.Pos}
+			x = &ValueExpr{V: p.tok.Pos, Type: &resolved.Basic{Name: "mixed"}}
 			p.parseBlock(token.Lparen, false)
 		}
 	}()
@@ -1075,7 +1076,7 @@ func (p *parser) parseAssert(pos token.Pos) (x Expr) {
 		return nil
 	}
 	id = p.fullyQualify(id)
-	return &AssertExpr{Fn: pos, Var: varName, Type: id}
+	return &AssertExpr{Fn: pos, Var: varName, Type: toType(id)}
 }
 
 func (p *parser) parseUnset(pos token.Pos) Expr {
@@ -1146,7 +1147,7 @@ func (p *parser) tryParseInstanceofGuard(s *Stmt) {
 		return
 	}
 	id = p.fullyQualify(id)
-	assert := &AssertExpr{Fn: v.Pos, Var: varName, Type: id}
+	assert := &AssertExpr{Fn: v.Pos, Var: varName, Type: toType(id)}
 
 	if negated {
 		// if (!$var instanceof Type) { ... } — narrow after the block.
@@ -1195,4 +1196,10 @@ func (p *parser) resolveClass(thisClass Ident, typ phptype.Type) Ident {
 	}
 	class = p.fullyQualify(class)
 	return class
+}
+
+// resolveType converts a phptype.Type to an resolved.Type,
+// resolving names via the parser's namespace/use context.
+func (p *parser) resolveType(thisClass Ident, typ phptype.Type) resolved.Type {
+	return toType(p.resolveClass(thisClass, typ))
 }

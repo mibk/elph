@@ -8,6 +8,7 @@ import (
 	"strings"
 	"unicode"
 
+	"mibk.dev/elph/resolved"
 	"mibk.dev/phpfmt/token"
 )
 
@@ -19,7 +20,7 @@ func Check(file *File, a *Arbiter, warnOut io.Writer) {
 		stdout:           os.Stdout,
 		stderr:           warnOut,
 		arbiter:          a,
-		scope:            make(map[string]Ident),
+		scope:            make(map[string]resolved.Type),
 		fileBeingChecked: file.Path,
 		reported:         make(map[string]bool),
 		ignoreLines:      file.IgnoreLines,
@@ -32,7 +33,7 @@ type linter struct {
 	stderr  io.Writer
 	arbiter *Arbiter
 
-	scope map[string]Ident
+	scope map[string]resolved.Type
 
 	fileBeingChecked string
 	reported         map[string]bool
@@ -72,12 +73,11 @@ func (l *linter) check(x any) {
 	case *Class:
 		backup := l.thisClass
 		l.thisClass = x
-		tparam := Ident(x.TemplateParam)
 		for _, p := range x.Properties {
-			if tparam == "" || p.Type != tparam {
-				if !l.exists(p.Type) {
+			if x.TemplateParam == "" || p.Type.String() != x.TemplateParam {
+				if !l.existsType(p.Type) {
 					l.reportf(p.Pos, "property %s has non-existing type %s", p.Name, p.Type)
-					p.Type = "mixed" // Do not report the error again.
+					p.Type = &resolved.Basic{Name: "mixed"} // Do not report the error again.
 				}
 			}
 			if p.DefaultValue != nil {
@@ -85,10 +85,10 @@ func (l *linter) check(x any) {
 			}
 		}
 		for _, p := range x.Constants {
-			if tparam == "" || p.Type != tparam {
-				if !l.exists(p.Type) {
+			if x.TemplateParam == "" || p.Type.String() != x.TemplateParam {
+				if !l.existsType(p.Type) {
 					l.reportf(p.Pos, "constant %s has non-existing type %s", p.Name, p.Type)
-					p.Type = "mixed" // Do not report the error again.
+					p.Type = &resolved.Basic{Name: "mixed"} // Do not report the error again.
 				}
 			}
 			if p.DefaultValue != nil {
@@ -96,10 +96,10 @@ func (l *linter) check(x any) {
 			}
 		}
 		for _, m := range x.Methods {
-			if tparam == "" || m.Returns != tparam {
-				if !l.exists(m.Returns) {
+			if x.TemplateParam == "" || m.Returns.String() != x.TemplateParam {
+				if !l.existsType(m.Returns) {
 					l.reportf(m.Pos, "method %s returns non-existing type %s", m.Name, m.Returns)
-					m.Returns = "mixed" // Do not report the error again.
+					m.Returns = &resolved.Basic{Name: "mixed"} // Do not report the error again.
 				}
 			}
 		}
@@ -115,12 +115,12 @@ func (l *linter) check(x any) {
 			backupClass := l.thisClass
 			l.thisClass = l.nextClass
 			backupScope := l.scope
-			l.scope = make(map[string]Ident)
+			l.scope = make(map[string]resolved.Type)
 			defer func() {
 				l.thisClass = backupClass
 				l.scope = backupScope
 			}()
-			l.scope["$this"] = l.thisClass.Name
+			l.scope["$this"] = toType(l.thisClass.Name)
 			l.pushScope = false
 		}
 		for _, p := range x.Params {
@@ -132,23 +132,23 @@ func (l *linter) check(x any) {
 	case *Foreach:
 		typ := l.resolveExprType(x.X)
 		v := x.Value
-		if elem, ok := arrayElemType(typ); ok {
+		if elem, ok := resolved.ArrayElem(typ); ok {
 			l.scope[v.Name] = elem
 		} else {
 			l.scope[v.Name] = v.Type // fallback to "mixed"
 		}
 	case *Param:
 		l.scope[x.Name] = x.Type
-		if l.thisClass == nil || l.thisClass.TemplateParam == "" || x.Type != Ident(l.thisClass.TemplateParam) {
-			l.checkIdent(x.Pos, x.Type, "class")
+		if l.thisClass == nil || l.thisClass.TemplateParam == "" || x.Type.String() != l.thisClass.TemplateParam {
+			l.checkType(x.Pos, x.Type, "class")
 		}
 		if x.DefaultValue != nil {
 			l.check(x.DefaultValue)
 		}
 	case *Debug:
-		class := l.scope[x.Var]
-		if class != "" {
-			l.reportf(x.Pos, "%v is of type: %v (DEBUG)", x.Var, class)
+		typ := l.scope[x.Var]
+		if typ != nil {
+			l.reportf(x.Pos, "%v is of type: %v (DEBUG)", x.Var, typ)
 		} else {
 			l.reportf(x.Pos, "unknown var: %v (DEBUG)", x.Var)
 		}
@@ -184,138 +184,135 @@ func (l *linter) check(x any) {
 		l.scope[x.Var] = x.Type
 		l.check(x.Block)
 		if x.EarlyExit {
-			l.scope[x.Var] = subtractType(backup, x.Type)
+			if backup != nil {
+				l.scope[x.Var] = resolved.SubtractType(backup, x.Type)
+			}
 		} else {
 			l.scope[x.Var] = backup
 		}
 	}
 }
 
-func subtractType(union, excluded Ident) Ident {
-	parts := strings.Split(string(union), "|")
-	var remaining []string
-	for _, p := range parts {
-		if p != string(excluded) {
-			remaining = append(remaining, p)
+func (l *linter) existsType(typ resolved.Type) bool {
+	switch t := typ.(type) {
+	case *resolved.Basic:
+		return true
+	case *resolved.Named:
+		if t.Name == "stdClass" || strings.Contains(t.Name, "-") {
+			return true
 		}
-	}
-	if len(remaining) == 0 {
-		return "mixed"
-	}
-	return Ident(strings.Join(remaining, "|"))
-}
-
-func (l *linter) exists(id Ident) bool {
-	if strings.Contains(string(id), "|") {
-		for _, part := range strings.Split(string(id), "|") {
-			if !l.exists(Ident(part)) {
+		_, ok := universe[Ident(t.Name)]
+		return ok
+	case *resolved.Union:
+		for _, m := range t.Types {
+			if !l.existsType(m) {
 				return false
 			}
 		}
 		return true
-	}
-	switch {
-	case isBasicType(id),
-		id == "stdClass",
-		strings.Contains(string(id), "<"), // TODO: Check generics <> too
-		strings.Contains(string(id), "-"): // special PHPStan type
+	case *resolved.Array:
+		return l.existsType(t.Elem)
+	case *resolved.Generic:
+		return true // TODO: Check generics too
+	case *resolved.TypeVar:
 		return true
 	}
-	if elem, ok := arrayElemType(id); ok {
-		return l.exists(elem)
-	}
-	_, ok := universe[id]
-	return ok
+	return false
 }
 
-func (l *linter) checkIdent(pos token.Pos, id Ident, typ string) {
-	if !l.exists(id) {
-		l.reportf(pos, "%s %v not found", typ, id)
+func (l *linter) checkType(pos token.Pos, typ resolved.Type, kind string) {
+	if !l.existsType(typ) {
+		l.reportf(pos, "%s %v not found", kind, typ)
 	}
 }
 
-func (l *linter) findVarType(a *AssignExpr) (class Ident, checked bool) {
+func (l *linter) findVarType(a *AssignExpr) (typ resolved.Type, checked bool) {
 	switch val := a.Right.(type) {
 	default:
 		panic(fmt.Sprintf("unsupported type: %T", val))
 	case *NewInstance:
-		class = l.findNewInstanceType(val.Class)
+		typ = l.findNewInstanceType(val.Class)
 		checked = true
 	case *ValueExpr:
-		class = val.Type
+		typ = val.Type
 	case *VarExpr:
 		if strings.HasPrefix(val.Name, "$") {
-			class = l.scope[val.Name]
-			if class == "" {
+			typ = l.scope[val.Name]
+			if typ == nil {
 				msg := fmt.Sprintf("unknown value of %s", val.Name)
 				fmt.Fprintf(l.stderr, "%s:%s: [WARN] %v\n", l.fileBeingChecked, a.Right.Pos(), msg)
 			}
 		}
 		// If unknown, hope for the best.
-		class = cmp.Or(class, "mixed")
+		if typ == nil {
+			typ = &resolved.Basic{Name: "mixed"}
+		}
 	case *MemberAccess:
-		class = l.checkMemberAccess(val)
+		typ = l.checkMemberAccess(val)
 		checked = true
 	case *AssignExpr:
-		class, checked = l.findVarType(val)
+		typ, checked = l.findVarType(val)
 	case *IndexExpr:
 		// TODO: Fix this.
-		class = "mixed"
+		typ = &resolved.Basic{Name: "mixed"}
 	}
 
-	if class == "void" {
-		l.reportf(a.Right.Pos(), "cannot assign '%s'", class)
-		class = "mixed"
+	if typ.String() == "void" {
+		l.reportf(a.Right.Pos(), "cannot assign '%s'", typ)
+		typ = &resolved.Basic{Name: "mixed"}
 	}
 
 	if v, ok := a.Left.(*VarExpr); ok {
-		l.scope[v.Name] = class
+		l.scope[v.Name] = typ
 	}
 
-	return class, checked
+	return typ, checked
 }
 
-func (l *linter) findNewInstanceType(x any) (class Ident) {
+func (l *linter) findNewInstanceType(x any) resolved.Type {
+	mixed := &resolved.Basic{Name: "mixed"}
 	switch x := x.(type) {
 	default:
 		panic(fmt.Sprintf("unsupported expr type: %T", x))
 	case *ValueExpr:
-		class := x.Type
-		switch class {
+		s := x.Type.String()
+		switch s {
 		case "self", "static":
 			if l.thisClass == nil {
 				l.reportf(x.V, "not in class context")
-				return "mixed"
+				return mixed
 			}
-			return l.thisClass.Name
+			return toType(l.thisClass.Name)
 		case "stdClass", "mixed":
 			return x.Type
 		}
-		if _, ok := universe[class].(*Class); !ok {
-			l.reportf(x.V, "class %v not found", class)
-			return "mixed"
+		if _, ok := universe[Ident(s)].(*Class); !ok {
+			l.reportf(x.V, "class %v not found", x.Type)
+			return mixed
 		}
 		return x.Type
 	case *Class:
-		return x.Name
+		return toType(x.Name)
 	}
 }
 
-func (l *linter) resolveExprType(x any) Ident {
+func (l *linter) resolveExprType(x any) resolved.Type {
+	mixed := &resolved.Basic{Name: "mixed"}
 	switch x := x.(type) {
 	case *VarExpr:
-		if t := l.scope[x.Name]; t != "" {
+		if t := l.scope[x.Name]; t != nil {
 			return t
 		}
 	case *MemberAccess:
 		return l.checkMemberAccess(x)
 	}
 	l.check(x)
-	return "mixed"
+	return mixed
 }
 
-func (l *linter) checkMemberAccess(a *MemberAccess) Ident {
-	var x Ident
+func (l *linter) checkMemberAccess(a *MemberAccess) resolved.Type {
+	mixed := &resolved.Basic{Name: "mixed"}
+	var x resolved.Type
 	switch r := a.Rcvr.(type) {
 	default:
 		panic(fmt.Sprintf("unsupported type: %T", r))
@@ -326,68 +323,75 @@ func (l *linter) checkMemberAccess(a *MemberAccess) Ident {
 			return override
 		}
 		// TODO: For now, let's default to mixed.
-		x = cmp.Or(l.scope[r.Name], "mixed")
+		x = l.scope[r.Name]
+		if x == nil {
+			x = mixed
+		}
 	case *MemberAccess:
 		x = l.checkMemberAccess(r)
 	case *IndexExpr:
-		if t := l.resolveExprType(r.X); t != "" {
-			if elem, ok := arrayElemType(t); ok {
-				x = elem
-				break
-			}
+		t := l.resolveExprType(r.X)
+		if elem, ok := resolved.ArrayElem(t); ok {
+			x = elem
+		} else {
+			x = mixed
 		}
-		x = "mixed"
 	}
 
-	if strings.Contains(string(x), "|") {
-		for _, part := range strings.Split(string(x), "|") {
-			p := Ident(part)
-			if isBasicType(p) {
+	if u, ok := x.(*resolved.Union); ok {
+		for _, m := range u.Types {
+			if resolved.IsBasic(m) {
 				continue
 			}
-			if _, ok := arrayElemType(p); ok {
+			if _, ok := m.(*resolved.Array); ok {
 				continue
 			}
-			result := l.checkClassMember(a.NamePos, p, p, a.Name, a.MethodCall, a.Static, "")
-			if result != "mixed" {
+			name := toIdent(m)
+			result := l.checkClassMember(a.NamePos, name, name, a.Name, a.MethodCall, a.Static, "")
+			if result.String() != "mixed" {
 				return result
 			}
 		}
-		return "mixed"
+		return mixed
 	}
 
-	if l.thisClass != nil && l.thisClass.TemplateParam != "" && x == Ident(l.thisClass.TemplateParam) {
+	s := x.String()
+	if l.thisClass != nil && l.thisClass.TemplateParam != "" && s == l.thisClass.TemplateParam {
 		if l.thisClass.TemplateBound != "" {
-			x = l.thisClass.TemplateBound
+			x = toType(l.thisClass.TemplateBound)
+			s = x.String()
 		} else {
-			return "mixed"
+			return mixed
 		}
 	}
 
-	if x == "self" || x == "parent" {
+	if s == "self" || s == "parent" {
 		// TODO: This is definitely a hack. Fix it.
-		x = cmp.Or(l.thisClass, l.nextClass).Name
-	} else if isBasicType(x) {
-		if x == "mixed" || x == "object" {
+		x = toType(cmp.Or(l.thisClass, l.nextClass).Name)
+		s = x.String()
+	} else if resolved.IsBasic(x) {
+		if s == "mixed" || s == "object" {
 			// All member access allowed on mixed.
 			return x
 		}
 		l.reportf(a.NamePos, "cannot call method on '%s'", x)
-		return "<not-a-class>"
+		return &resolved.Named{Name: "<not-a-class>"}
 	}
 
-	if x == "stdClass" {
+	if s == "stdClass" {
 		// All member access allowed.
 		return x
 	}
-	if _, ok := arrayElemType(x); ok {
+	if _, ok := x.(*resolved.Array); ok {
 		// Member access on an array is allowed (e.g., $arr->count()).
-		return "mixed"
+		return mixed
 	}
-	return l.checkClassMember(a.NamePos, x, x, a.Name, a.MethodCall, a.Static, "")
+	id := toIdent(x)
+	return l.checkClassMember(a.NamePos, id, id, a.Name, a.MethodCall, a.Static, "")
 }
 
-func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, member string, methodCall, static bool, template Ident) Ident {
+func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, member string, methodCall, static bool, template Ident) resolved.Type {
+	mixed := &resolved.Basic{Name: "mixed"}
 	if base, t, ok := strings.Cut(string(class), "<>"); ok {
 		class, template = Ident(base), Ident(t)
 	}
@@ -399,7 +403,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 		if !ok {
 			if class == "stdClass" {
 				// TODO: This hack is on too many places. Fix it.
-				return class
+				return toType(class)
 			}
 			if key := string(class) + "·" + l.fileBeingChecked; !l.reported[key] {
 				l.reportf(pos, "class %v not found", class)
@@ -407,7 +411,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 					l.reported[key] = true
 				}
 			}
-			return "mixed"
+			return mixed
 		}
 		// Let's check the trait as if it were a class.
 		c = &Class{
@@ -434,101 +438,103 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 		for _, m := range t.Methods {
 			// TODO: Check whether method not already defined?
 			m := *m
-			if m.Returns == t.Name {
+			if m.Returns.String() == string(t.Name) {
 				// TODO: This is hacky, and ugly.
-				m.Returns = c.Name
+				m.Returns = toType(c.Name)
 			}
 			c.addMethod(&m)
 		}
 	}
 	c.Traits = nil // Mark as processed.
 
-	var memberClass Ident
-	var memberType Ident
+	var memberTyp resolved.Type
+	var memberKind string
 
 	if methodCall {
-		memberType = "method"
+		memberKind = "method"
 		if m := c.Methods[member]; m != nil {
 			l.checkStaticAccess(pos, member, m.Static, static, true)
-			memberClass = m.Returns
+			memberTyp = m.Returns
 		} else if p := c.Properties[member]; p != nil {
 			l.checkStaticAccess(pos, member, p.Static, static, false)
 			// TODO: For now, let's assume the property is a callable.
-			memberClass = "mixed"
+			memberTyp = mixed
 		} else if strings.HasPrefix(member, "$") {
 			// We cannot decide.
-			memberClass = "mixed"
+			memberTyp = mixed
 		}
 	} else if member, isVar := strings.CutPrefix(member, "$"); isVar && !static {
 		// This is stupid dynamic $foo->$bar call. Ignore it.
-		return "mixed"
+		return mixed
 	} else if !isVar && static {
 		if member == "class" {
 			// PHP magic constant.
-			return "string"
+			return &resolved.Basic{Name: "string"}
 		}
-		memberType = "const"
+		memberKind = "const"
 		if c := c.Constants[member]; c != nil {
-			memberClass = c.Type
+			memberTyp = c.Type
 		}
 	} else {
-		memberType = "property"
+		memberKind = "property"
 		if p := c.Properties[member]; p != nil {
 			l.checkStaticAccess(pos, member, p.Static, static, false)
-			memberClass = p.Type
+			memberTyp = p.Type
 		} else {
 			// TODO: Let's assume, for now,
 			// that any property might be a get method.
 			getter := []rune(member)
 			getter[0] = unicode.ToUpper(getter[0])
 			if m := c.Methods["get"+string(getter)]; m != nil && m.Static == static {
-				memberClass = m.Returns
+				memberTyp = m.Returns
 			}
 		}
 	}
 
 	// Hack for generics.
-	if c.TemplateParam != "" {
-		if m, ok := strings.CutSuffix(string(memberClass), "<>"+c.TemplateParam); ok {
-			m := Ident(m)
-			if template != "" {
-				m += "<>" + template
+	if c.TemplateParam != "" && memberTyp != nil {
+		if g, ok := memberTyp.(*resolved.Generic); ok {
+			if g.Param.String() == c.TemplateParam {
+				if template != "" {
+					memberTyp = &resolved.Generic{Base: g.Base, Param: toType(template)}
+				} else {
+					memberTyp = g.Base
+				}
 			}
-			memberClass = m
 		}
 	}
 
-	if c.TemplateParam != "" && memberClass == Ident(c.TemplateParam) && template != "" {
-		memberClass = template
+	if c.TemplateParam != "" && memberTyp != nil && memberTyp.String() == c.TemplateParam && template != "" {
+		memberTyp = toType(template)
 	}
 
-	if member, isVar := strings.CutPrefix(member, "$"); memberClass == "" && static && !isVar {
+	if member, isVar := strings.CutPrefix(member, "$"); memberTyp == nil && static && !isVar {
 		// Interfaces can define constants.
-		memberClass = findImplementorsConstType(c, member)
+		memberTyp = findImplementorsConstType(c, member)
 	}
 
-	if memberClass == "" && c.Extends != "" {
+	if memberTyp == nil && c.Extends != "" {
 		parent := c.Extends
 		if parent == "stdClass" {
 			// All good.
 			// TODO: Really?
-			return parent
+			return toType(parent)
 		}
 		template = cmp.Or(template, c.Template)
 		return l.checkClassMember(pos, originalClass, parent, member, methodCall, static, template)
 	}
-	if memberClass == "" {
-		l.reportf(pos, "class %s %v::%v does not exist", memberType, originalClass, member)
-		return "mixed"
+	if memberTyp == nil {
+		l.reportf(pos, "class %s %v::%v does not exist", memberKind, originalClass, member)
+		return mixed
 	}
-	if memberClass == "static" {
+	if memberTyp.String() == "static" {
 		// TODO: Doesn't feel like the right place for this.
-		return originalClass
+		return toType(originalClass)
 	}
-	return memberClass
+	return memberTyp
 }
 
-func findImplementorsConstType(c *Class, member string) Ident {
+func findImplementorsConstType(c *Class, member string) resolved.Type {
 	for _, iface := range c.Implements {
 		i, ok := universe[iface].(*Class)
 		if !ok {
@@ -538,11 +544,11 @@ func findImplementorsConstType(c *Class, member string) Ident {
 		if c := i.Constants[member]; c != nil {
 			return c.Type
 		}
-		if id := findImplementorsConstType(i, member); id != "" {
-			return id
+		if typ := findImplementorsConstType(i, member); typ != nil {
+			return typ
 		}
 	}
-	return ""
+	return nil
 }
 
 func (l *linter) checkStaticAccess(pos token.Pos, memberName string, isStatic, accessStatic, methodCall bool) {

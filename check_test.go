@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"golang.org/x/tools/txtar"
+	"mibk.dev/elph/resolved"
 	"rsc.io/diff"
 )
 
@@ -59,7 +60,7 @@ func Test(t *testing.T) {
 
 			l := linter{
 				stdout:           &got,
-				scope:            make(map[string]Ident),
+				scope:            make(map[string]resolved.Type),
 				fileBeingChecked: "<test-line>",
 				reported:         make(map[string]bool),
 			}

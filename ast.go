@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"mibk.dev/elph/resolved"
 	"mibk.dev/phpfmt/token"
 )
 
@@ -25,7 +26,7 @@ type Block struct {
 type Param struct {
 	Pos  token.Pos
 	Name string
-	Type Ident
+	Type resolved.Type
 
 	DefaultValue *Stmt // or nil
 }
@@ -66,7 +67,7 @@ type Trait struct {
 type Property struct {
 	Pos    token.Pos
 	Name   string
-	Type   Ident
+	Type   resolved.Type
 	Static bool
 
 	DefaultValue *Stmt // or nil
@@ -75,7 +76,7 @@ type Property struct {
 type Function struct {
 	Pos     token.Pos
 	Name    string
-	Returns Ident
+	Returns resolved.Type
 	Static  bool
 }
 
@@ -97,7 +98,7 @@ func (e *NewInstance) Pos() token.Pos { return e.New }
 
 type ValueExpr struct {
 	V    token.Pos
-	Type Ident
+	Type resolved.Type
 }
 
 func (e *ValueExpr) Pos() token.Pos { return e.V }
@@ -136,7 +137,7 @@ func (e *AssignExpr) Pos() token.Pos { return e.Left.Pos() }
 type AssertExpr struct {
 	Fn   token.Pos
 	Var  string
-	Type Ident
+	Type resolved.Type
 }
 
 func (e *AssertExpr) Pos() token.Pos { return e.Fn }
@@ -153,7 +154,7 @@ func (e *UnsetExpr) Pos() token.Pos { return e.Fn }
 // after the block.
 type NarrowBlock struct {
 	Var       string
-	Type      Ident
+	Type      resolved.Type
 	Block     *Block
 	EarlyExit bool
 }

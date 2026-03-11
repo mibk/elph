@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"mibk.dev/elph/resolved"
 	"mibk.dev/phpfmt/phpdoc/phptype"
 	"mibk.dev/phpfmt/token"
 )
@@ -159,33 +160,64 @@ func getClass(typ phptype.Type) Ident {
 	}
 }
 
-func arrayElemType(id Ident) (elem Ident, ok bool) {
-	if strings.Contains(string(id), "|") {
-		parts := strings.Split(string(id), "|")
-		var elems []string
-		for _, p := range parts {
-			if e, ok := strings.CutPrefix(p, "[]"); ok {
-				elems = append(elems, e)
-			}
-		}
-		if len(elems) == 0 {
-			return "", false
-		}
-		return Ident(strings.Join(elems, "|")), true
-	}
-	if e, ok := strings.CutPrefix(string(id), "[]"); ok {
-		return Ident(e), true
-	}
-	return "", false
+func isBasicType(typ Ident) bool {
+	return resolved.IsBasicName(string(typ))
 }
 
-func isBasicType(typ Ident) bool {
-	switch typ {
-	case "void", "never", "self", "static", "parent",
-		"mixed", "string", "int", "float", "bool", "true", "false",
-		"object", "array", "callable", "resource":
-		return true
+// toType converts a string-encoded Ident into a structured resolved.Type.
+func toType(id Ident) resolved.Type {
+	s := string(id)
+	if s == "" || s == "mixed" {
+		return &resolved.Basic{Name: "mixed"}
+	}
+	// Union
+	if strings.Contains(s, "|") {
+		parts := strings.Split(s, "|")
+		types := make([]resolved.Type, len(parts))
+		for i, p := range parts {
+			types[i] = toType(Ident(p))
+		}
+		return resolved.NewUnion(types...)
+	}
+	// Array
+	if elem, ok := strings.CutPrefix(s, "[]"); ok {
+		return &resolved.Array{Elem: toType(Ident(elem))}
+	}
+	// Generic
+	if base, param, ok := strings.Cut(s, "<>"); ok {
+		return &resolved.Generic{
+			Base:  toType(Ident(base)),
+			Param: toType(Ident(param)),
+		}
+	}
+	// Basic
+	if resolved.IsBasicName(s) {
+		return &resolved.Basic{Name: s}
+	}
+	// Named class
+	return &resolved.Named{Name: s}
+}
+
+// toIdent converts a structured resolved.Type back to a string-encoded Ident.
+func toIdent(typ resolved.Type) Ident {
+	switch t := typ.(type) {
+	case *resolved.Named:
+		return Ident(t.Name)
+	case *resolved.Basic:
+		return Ident(t.Name)
+	case *resolved.TypeVar:
+		return Ident(t.Name)
+	case *resolved.Union:
+		parts := make([]string, len(t.Types))
+		for i, m := range t.Types {
+			parts[i] = string(toIdent(m))
+		}
+		return Ident(strings.Join(parts, "|"))
+	case *resolved.Array:
+		return "[]" + toIdent(t.Elem)
+	case *resolved.Generic:
+		return toIdent(t.Base) + "<>" + toIdent(t.Param)
 	default:
-		return false
+		return "mixed"
 	}
 }
