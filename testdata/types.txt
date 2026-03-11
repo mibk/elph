@@ -24,6 +24,9 @@ e.php:14:3: $a is of type: My\Employees\Worker (DEBUG)
 % check f.php
 # No errors.
 
+% check conditional.php
+conditional.php:14:2: $x is of type: Cond\Foo (DEBUG)
+
 % check g.php
 g.php:13:3: $a is of type: Guards\Animal (DEBUG)
 g.php:17:3: $a is of type: Guards\Dog (DEBUG)
@@ -175,6 +178,22 @@ class AccountInfo
 
 $i = new AccountInfo;
 $i->balance;
+-- conditional.php --
+<?php
+namespace Cond;
+
+class Foo
+{
+	/**
+	 * @return ($throw is true ? self : ?self)
+	 */
+	public function clone(bool $throw = true): ?self {}
+}
+
+function test(Foo $f) {
+	$x = $f->clone();
+	#debugType $x
+}
 -- g.php --
 <?php
 namespace Guards;
