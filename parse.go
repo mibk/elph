@@ -569,6 +569,19 @@ func (p *parser) parseEnum() *Class {
 	e.addMethod(&m)
 	universe[enum] = e
 	p.nextClass = enum
+
+	for p.got(token.Use) {
+		use := p.parseQualifiedName()
+		use = p.fullyQualify(use)
+		e.Traits = append(e.Traits, use)
+		if p.got(token.Lbrace) {
+			// TODO: Add support for trait config.
+			p.parseBlock(token.Lbrace, false)
+		} else {
+			p.expect(token.Semicolon)
+		}
+	}
+
 	return e
 }
 

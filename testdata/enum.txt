@@ -26,3 +26,27 @@ enum Status: int
 
 $s = Status::from(1);
 $t = Status::tryFrom(1);
+
+% check c.php
+
+-- c.php --
+<?php
+
+trait HasLabel
+{
+	public function label(): string
+	{
+		return 'label';
+	}
+}
+
+enum Color
+{
+	use HasLabel;
+
+	case RED;
+	case GREEN;
+}
+
+$c = Color::RED;
+$l = $c->label();
