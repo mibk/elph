@@ -388,7 +388,7 @@ func (p *parser) parseClass() *Class {
 		p.tok.Type = token.Ident
 	}
 	if p.got(token.Colon) {
-		// TODO: hack
+		// Bail out: "class" used as a named argument, e.g. foo(class: ...).
 		return nil
 	}
 	p.expect(token.Ident)
@@ -520,7 +520,6 @@ func (p *parser) parseTrait(_ token.Token) *Trait {
 	universe[class] = t
 	p.nextClass = class
 
-	// TODO: Doc comment.
 	return t
 }
 
@@ -624,7 +623,6 @@ func (p *parser) parseFunction(doc token.Token, static bool) {
 			switch tag := line.(type) {
 			case *phpdoc.TemplateTag:
 				// If there's a template param, just give up.
-				// TODO: Fix that?
 				break Loop
 			case *phpdoc.ParamTag:
 				p.replaceParam(tag.Param)
@@ -636,7 +634,6 @@ func (p *parser) parseFunction(doc token.Token, static bool) {
 	}
 
 	if typ == nil {
-		// TODO: Ensure this makes sense.
 		typ = &phptype.Named{Parts: []string{"mixed"}}
 	}
 
@@ -668,7 +665,6 @@ func (p *parser) parseParamList() {
 		}
 		if p.got(token.Hash) {
 			// Attrs are ignored for now.
-			// TODO: Fix that?
 			p.expect(token.Lbrack)
 			p.parseBlock(token.Lbrack, false)
 		}
@@ -684,7 +680,7 @@ func (p *parser) parseParamList() {
 		name := p.tok.Text
 		pos := p.tok.Pos
 		if !p.got(token.Var) {
-			// TODO: Unsupported syntax. Giving up.
+			// Unsupported syntax. Giving up.
 			p.next()
 			continue
 		}
@@ -754,7 +750,6 @@ func (p *parser) parseProperty(doc token.Token, static, constant bool) {
 		}
 	}
 	if typ == nil {
-		// TODO: again, not true
 		typ = &phptype.Named{Parts: []string{"mixed"}}
 	}
 

@@ -11,7 +11,7 @@ import (
 	"mibk.dev/phpfmt/token"
 )
 
-// TODO: Remove this hack.
+// hasErrors is set to true when any error is reported.
 var hasErrors = false
 
 func Check(file *File, a *Arbiter, warnOut io.Writer) {

@@ -125,7 +125,7 @@ type pattern struct {
 }
 
 func (a *Arbiter) errorMatched(msg string) bool {
-	// TODO: Support Windows paths.
+	// Note: Windows paths are not supported.
 	if a == nil {
 		return false
 	}
