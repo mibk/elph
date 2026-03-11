@@ -160,6 +160,19 @@ func getClass(typ phptype.Type) Ident {
 }
 
 func arrayElemType(id Ident) (elem Ident, ok bool) {
+	if strings.Contains(string(id), "|") {
+		parts := strings.Split(string(id), "|")
+		var elems []string
+		for _, p := range parts {
+			if e, ok := strings.CutPrefix(p, "[]"); ok {
+				elems = append(elems, e)
+			}
+		}
+		if len(elems) == 0 {
+			return "", false
+		}
+		return Ident(strings.Join(elems, "|")), true
+	}
 	if e, ok := strings.CutPrefix(string(id), "[]"); ok {
 		return Ident(e), true
 	}

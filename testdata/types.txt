@@ -39,6 +39,12 @@ h.php:15:2: $p is of type: Guards\Dog|Guards\Cat (DEBUG)
 h.php:17:3: $p is of type: Guards\Dog (DEBUG)
 h.php:20:2: $p is of type: Guards\Cat (DEBUG)
 
+% check union-member.php
+# No errors.
+
+% check union-foreach.php
+union-foreach.php:19:3: $item is of type: UnionForeach\Alpha|UnionForeach\Beta (DEBUG)
+
 -- a.php --
 <?php
 
@@ -248,4 +254,44 @@ function checkUnion(Vet $v) {
 		return;
 	}
 	#debugType $p
+}
+-- union-member.php --
+<?php
+namespace UnionMember;
+
+class Company {
+	public string $name;
+}
+
+class Service {
+	/** @return int|Company */
+	function getResult(): mixed {}
+}
+
+function test(Service $s) {
+	$r = $s->getResult();
+	$r->name;
+}
+-- union-foreach.php --
+<?php
+namespace UnionForeach;
+
+class Alpha {
+	public string $name;
+}
+
+class Beta {
+	public string $name;
+}
+
+class Repo {
+	/** @return Alpha[]|Beta[] */
+	function getItems(): array {}
+}
+
+function test(Repo $r) {
+	foreach ($r->getItems() as $item) {
+		#debugType $item
+		$item->name;
+	}
 }

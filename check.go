@@ -341,7 +341,14 @@ func (l *linter) checkMemberAccess(a *MemberAccess) Ident {
 
 	if strings.Contains(string(x), "|") {
 		for _, part := range strings.Split(string(x), "|") {
-			result := l.checkClassMember(a.NamePos, Ident(part), Ident(part), a.Name, a.MethodCall, a.Static, "")
+			p := Ident(part)
+			if isBasicType(p) {
+				continue
+			}
+			if _, ok := arrayElemType(p); ok {
+				continue
+			}
+			result := l.checkClassMember(a.NamePos, p, p, a.Name, a.MethodCall, a.Static, "")
 			if result != "mixed" {
 				return result
 			}
