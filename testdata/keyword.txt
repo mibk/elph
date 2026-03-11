@@ -7,10 +7,25 @@ $x = $this::class;
 $y = self::foo()->class;
 
 // Apparently "Enum" as a name is allowed.
-class Enum
+// The scanner demotes "Enum" to Ident after "class" via lastType.
+class Enum implements \JsonSerializable
 {
 	const INTERFACE = 'Interface';
+
+	public function jsonSerialize(): mixed
+	{
+		return null;
+	}
 }
 
 // Keyword is allowed as a named param.
 register(class: 'Enum');
+
+// Keywords are allowed as enum case names.
+enum Suit: string
+{
+	case Class  = 'class';
+}
+
+// Keywords in qualified names after "new".
+$q = new Match();

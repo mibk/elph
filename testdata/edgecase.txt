@@ -1,16 +1,3 @@
-invalid_doc.php:7:14: [WARN] expecting PHP type, found Var("$throw")
-
--- invalid_doc.php --
-<?php
-
-class Foo
-{
-	/**
-	 * Returns form.
-	 * @return ($throw is true ? self : ?self)
-	 */
-	public function clone(bool $throw = true): ?self
-}
 -- no_php_tag.php --
 <p>no PHP</p>
 __ awkward_comments.txt --

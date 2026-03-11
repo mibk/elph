@@ -295,10 +295,6 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 			p.tryParseInstanceofGuard(s)
 		case token.Arrow, token.QmarkArrow, token.DoubleColon, token.Instanceof:
 			p.next()
-			// Keywords after :: (and all the above tokens) are always idents.
-			if p.tok.Type.IsKeyword() {
-				p.tok.Type = token.Ident
-			}
 		default:
 			p.next()
 			docComment = token.Token{Type: token.Illegal}
@@ -313,12 +309,7 @@ func (p *parser) parsePHPDoc(doc token.Token) *phpdoc.Block {
 		return nil
 	}
 
-	// The phpdoc parser doesn't support array literal defaults
-	// like "= []" in @method params. Replace with "= null".
-	//
-	// TODO: Remove this hack once we update to newest version of package phpfmt.
-	text := strings.ReplaceAll(doc.Text, "= []", "= null")
-	b, err := phpdoc.Parse(strings.NewReader(text))
+	b, err := phpdoc.Parse(strings.NewReader(doc.Text))
 	if err != nil {
 		pos := doc.Pos
 		if se, ok := err.(*phpdoc.SyntaxError); ok {
@@ -382,9 +373,7 @@ func (p *parser) parseGroupedUseStmt(prefix Ident) []UseStmt {
 func (p *parser) parseClass() *Class {
 	p.expect(token.Class)
 	name := p.tok
-	switch p.tok.Type {
-	case token.Enum:
-		// TODO: Are any other keywords allowed?
+	if p.tok.Type.IsReserved() {
 		p.tok.Type = token.Ident
 	}
 	if p.got(token.Colon) {
@@ -601,9 +590,6 @@ func (p *parser) parseFunction(doc token.Token, static bool) {
 	// We don't care whether the function returns a reference, or not.
 	p.got(token.BitAnd) // ignore
 
-	if p.tok.Type.IsKeyword() {
-		p.tok.Type = token.Ident
-	}
 	name := p.tok.Text
 	pos := p.tok.Pos
 	if !p.got(token.Ident) {
@@ -721,8 +707,7 @@ func (p *parser) replaceParam(u *phptype.Param) {
 func (p *parser) parseProperty(doc token.Token, static, constant bool) {
 	p.got(token.Readonly) // ignore
 
-	// Keywords after :: (and all the above tokens) are always idents.
-	if p.tok.Type.IsKeyword() {
+	if p.tok.Type.IsReserved() {
 		p.tok.Type = token.Ident
 	}
 
@@ -973,9 +958,6 @@ func (p *parser) parseChainAccess(x Expr) Expr {
 
 func (p *parser) parseMemberAccess(x Expr, static bool) Expr {
 	a := &MemberAccess{Rcvr: x, NamePos: p.tok.Pos, Name: p.tok.Text, Static: static}
-	if p.tok.Type.IsKeyword() {
-		p.tok.Type = token.Ident
-	}
 
 	if !p.got(token.Ident) && !p.got(token.Var) {
 		// TODO: This doesn't seem like a good default.
@@ -1029,9 +1011,6 @@ func (p *parser) parseAssert(pos token.Pos) (x Expr) {
 	varName := v.Text
 	if p.got(token.Arrow) {
 		prop := p.tok
-		if p.tok.Type.IsKeyword() {
-			p.tok.Type = token.Ident
-		}
 		if !p.got(token.Ident) {
 			return nil
 		}
@@ -1096,9 +1075,6 @@ func (p *parser) tryParseInstanceofGuard(s *Stmt) {
 	varName := v.Text
 	if p.got(token.Arrow) {
 		prop := p.tok
-		if p.tok.Type.IsKeyword() {
-			p.tok.Type = token.Ident
-		}
 		if !p.got(token.Ident) {
 			p.parseBlock(token.Lparen, false)
 			return
@@ -1109,7 +1085,7 @@ func (p *parser) tryParseInstanceofGuard(s *Stmt) {
 		p.parseBlock(token.Lparen, false)
 		return
 	}
-	if p.tok.Type != token.Ident && p.tok.Type != token.Backslash && !p.tok.Type.IsKeyword() {
+	if p.tok.Type != token.Ident && p.tok.Type != token.Backslash {
 		p.parseBlock(token.Lparen, false)
 		return
 	}

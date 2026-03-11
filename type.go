@@ -42,7 +42,7 @@ func (p *parser) parseQualifiedName() Ident {
 	// TODO: Do not allow { in all contexts.
 	for p.tok.Type != token.Lbrace {
 		id.WriteString(p.tok.Text)
-		if p.tok.Type.IsKeyword() {
+		if p.tok.Type.IsReserved() {
 			p.tok.Type = token.Ident
 		}
 		p.expect(token.Ident)
