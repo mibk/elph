@@ -155,6 +155,12 @@ class Foo
 			#debugType $this->bar
 		}
 	}
+
+	function testKeywordProp(): void
+	{
+		assert($this->class instanceof \Utils\Config);
+		#debugType $this->class
+	}
 }
 -- f.php --
 <?php

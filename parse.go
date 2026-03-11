@@ -1034,6 +1034,9 @@ func (p *parser) parseAssert(pos token.Pos) (x Expr) {
 	varName := v.Text
 	if p.got(token.Arrow) {
 		prop := p.tok
+		if p.tok.Type.IsKeyword() {
+			p.tok.Type = token.Ident
+		}
 		if !p.got(token.Ident) {
 			return nil
 		}
@@ -1098,6 +1101,9 @@ func (p *parser) tryParseInstanceofGuard(s *Stmt) {
 	varName := v.Text
 	if p.got(token.Arrow) {
 		prop := p.tok
+		if p.tok.Type.IsKeyword() {
+			p.tok.Type = token.Ident
+		}
 		if !p.got(token.Ident) {
 			p.parseBlock(token.Lparen, false)
 			return
