@@ -17,6 +17,9 @@ e.php:28:1: $x is of type: Ns\Item (DEBUG)
 % check f.php
 f.php:19:1: $x is of type: P (DEBUG)
 
+% check g.php
+g.php:18:5: class property Shelf<Apple>::notExist does not exist
+
 -- a.php --
 <?php
 
@@ -167,3 +170,22 @@ class Manager
 $m = new Manager;
 $x = $m->get(new SomeClass);
 #debugType $x
+-- g.php --
+<?php
+
+/** @template T */
+class Shelf
+{
+}
+
+class Apple {}
+
+class Crate
+{
+	/** @return Shelf<Apple> */
+	public function getShelf();
+}
+
+$c = new Crate;
+$s = $c->getShelf();
+$s->notExist;

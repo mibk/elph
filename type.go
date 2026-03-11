@@ -34,6 +34,13 @@ func (p *parser) tryParseType() phptype.Type {
 
 type Ident string
 
+func (id Ident) String() string {
+	if base, typ, ok := strings.Cut(string(id), "<>"); ok {
+		return base + "<" + typ + ">"
+	}
+	return string(id)
+}
+
 func (p *parser) parseQualifiedName() Ident {
 	var id strings.Builder
 	if p.got(token.Backslash) {
