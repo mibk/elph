@@ -56,6 +56,9 @@ func (p *parser) parseQualifiedName() Ident {
 }
 
 func (p *parser) fullyQualify(id Ident) Ident {
+	if elem, ok := strings.CutPrefix(string(id), "[]"); ok {
+		return "[]" + p.fullyQualify(Ident(elem))
+	}
 	if base, typ, ok := strings.Cut(string(id), "<>"); ok {
 		return p.fullyQualify(Ident(base)) + "<>" + p.fullyQualify(Ident(typ))
 	}

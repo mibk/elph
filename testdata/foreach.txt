@@ -2,6 +2,9 @@
 a.php:11:2: $name is of type: string (DEBUG)
 a.php:17:2: $n is of type: string (DEBUG)
 
+% check b.php
+b.php:14:2: $item is of type: App\Item (DEBUG)
+
 -- a.php --
 <?php
 
@@ -27,3 +30,20 @@ foreach ($foo->names as [$bar, $baz]);
 foreach ($foo->names as $xx[$bar]);
 
 foreach ($tokens as $this->position => $token);
+
+-- b.php --
+<?php
+namespace App;
+
+class Item {}
+
+class Box
+{
+	/** @var Item[] */
+	public $items;
+}
+
+$box = new Box;
+foreach ($box->items as $item) {
+	#debugType $item
+}
