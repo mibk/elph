@@ -16,6 +16,20 @@ function convert(string $s): int
 
 $i = convert('three');
 #debugType $i
+% check c.php
+# No errors.
+
+-- c.php --
+<?php
+
+class Fruit
+{
+	public string $name;
+}
+
+/** @var Fruit $d */
+
+$items = array_map(fn($d) => $d->getDate(), []);
 -- b.php --
 <?php
 

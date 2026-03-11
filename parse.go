@@ -291,6 +291,19 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 			p.next()
 			b := p.parseBlock(typ, false)
 			s.Nodes = append(s.Nodes, b)
+		case token.Fn:
+			p.next()
+			p.parseParamList()
+			if p.got(token.Colon) {
+				p.tryParseType()
+			}
+			p.got(token.Arrow)
+			b := &Block{Params: p.params}
+			p.params = nil
+			body := p.parseStmt(sep, classRoot)
+			b.Stmts = append(b.Stmts, body)
+			s.Nodes = append(s.Nodes, b)
+			continue
 		case token.Backslash, token.Ident:
 			if a := p.tryParseStaticMemberAccess(); a != nil {
 				s.Nodes = append(s.Nodes, a)
