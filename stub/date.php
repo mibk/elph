@@ -45,7 +45,9 @@ class DateTime implements DateTimeInterface
 
 	function setTime(int $hour, int $minute, int $second = 0, int $microsecond = 0): DateTime;
 
-	function getLastErrors(): array|false
+	function getLastErrors(): array|false;
+
+	function setTimezone(DateTimeZone $timezone): DateTime;
 }
 
 class DateTimeImmutable implements DateTimeInterface
@@ -99,4 +101,22 @@ class IntlDateFormatter
 
 class DatePeriod
 {
+}
+
+class DateTimeZone
+{
+	const AFRICA;
+	const AMERICA;
+	const ANTARCTICA;
+	const ARCTIC;
+	const ASIA;
+	const ATLANTIC;
+	const AUSTRALIA;
+	const EUROPE;
+	const INDIAN;
+	const PACIFIC;
+	const UTC;
+	const ALL;
+	const ALL_WITH_BC;
+	const PER_COUNTRY;
 }
