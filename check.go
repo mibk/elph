@@ -183,11 +183,37 @@ func (l *linter) check(x any) {
 		backup := l.scope[x.Var]
 		l.scope[x.Var] = x.Type
 		l.check(x.Block)
-		l.scope[x.Var] = backup
+		if x.EarlyExit {
+			l.scope[x.Var] = subtractType(backup, x.Type)
+		} else {
+			l.scope[x.Var] = backup
+		}
 	}
 }
 
+func subtractType(union, excluded Ident) Ident {
+	parts := strings.Split(string(union), "|")
+	var remaining []string
+	for _, p := range parts {
+		if p != string(excluded) {
+			remaining = append(remaining, p)
+		}
+	}
+	if len(remaining) == 0 {
+		return "mixed"
+	}
+	return Ident(strings.Join(remaining, "|"))
+}
+
 func (l *linter) exists(id Ident) bool {
+	if strings.Contains(string(id), "|") {
+		for _, part := range strings.Split(string(id), "|") {
+			if !l.exists(Ident(part)) {
+				return false
+			}
+		}
+		return true
+	}
 	switch {
 	case isBasicType(id),
 		id == "stdClass",
@@ -311,6 +337,16 @@ func (l *linter) checkMemberAccess(a *MemberAccess) Ident {
 			}
 		}
 		x = "mixed"
+	}
+
+	if strings.Contains(string(x), "|") {
+		for _, part := range strings.Split(string(x), "|") {
+			result := l.checkClassMember(a.NamePos, Ident(part), Ident(part), a.Name, a.MethodCall, a.Static, "")
+			if result != "mixed" {
+				return result
+			}
+		}
+		return "mixed"
 	}
 
 	if l.thisClass != nil && l.thisClass.TemplateParam != "" && x == Ident(l.thisClass.TemplateParam) {

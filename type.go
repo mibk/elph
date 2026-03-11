@@ -63,6 +63,13 @@ func (p *parser) parseQualifiedName() Ident {
 }
 
 func (p *parser) fullyQualify(id Ident) Ident {
+	if strings.Contains(string(id), "|") {
+		parts := strings.Split(string(id), "|")
+		for i, part := range parts {
+			parts[i] = string(p.fullyQualify(Ident(part)))
+		}
+		return Ident(strings.Join(parts, "|"))
+	}
 	if elem, ok := strings.CutPrefix(string(id), "[]"); ok {
 		return "[]" + p.fullyQualify(Ident(elem))
 	}
@@ -98,29 +105,31 @@ func getClass(typ phptype.Type) Ident {
 	case nil:
 		return "mixed"
 	case *phptype.Union:
-		var opts []Ident
+		var classes []Ident
 		for _, s := range typ.Types {
 			c := getClass(s)
-			// TODO: Fix this. The namespace isn't taken into account.
 			if c == `\stdClass` {
 				return c
 			}
-			opts = append(opts, c)
-		}
-		// TODO: Not just the first one, I guess.
-		for _, o := range opts {
-			if o == "mixed" {
-				return o
+			if c == "mixed" {
+				return c
 			}
-			if isBasicType(o) {
-				// Let's prefer classes.
+			if strings.ToLower(string(c)) == "null" {
 				continue
 			}
-			if strings.ToLower(string(o)) != "null" {
-				return o
-			}
+			classes = append(classes, c)
 		}
-		return opts[0]
+		if len(classes) == 0 {
+			return "mixed"
+		}
+		if len(classes) == 1 {
+			return classes[0]
+		}
+		var parts []string
+		for _, c := range classes {
+			parts = append(parts, string(c))
+		}
+		return Ident(strings.Join(parts, "|"))
 	case *phptype.Generic:
 		id := getClass(typ.Base) + "<>"
 		if len(typ.TypeParams) > 1 {

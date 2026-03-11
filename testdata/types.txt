@@ -34,6 +34,11 @@ g.php:21:3: $a is of type: Guards\Animal (DEBUG)
 g.php:23:4: $a is of type: Guards\Dog (DEBUG)
 g.php:25:3: $a is of type: Guards\Animal (DEBUG)
 
+% check h.php
+h.php:15:2: $p is of type: Guards\Dog|Guards\Cat (DEBUG)
+h.php:17:3: $p is of type: Guards\Dog (DEBUG)
+h.php:20:2: $p is of type: Guards\Cat (DEBUG)
+
 -- a.php --
 <?php
 
@@ -221,4 +226,26 @@ class Checker {
 		}
 		#debugType $a
 	}
+}
+-- h.php --
+<?php
+namespace Guards;
+
+class Cat extends Animal {
+	public string $color;
+}
+
+class Vet {
+	/** @return Dog|Cat */
+	function getPatient(): Animal {}
+}
+
+function checkUnion(Vet $v) {
+	$p = $v->getPatient();
+	#debugType $p
+	if ($p instanceof Dog) {
+		#debugType $p
+		return;
+	}
+	#debugType $p
 }

@@ -152,9 +152,10 @@ func (e *UnsetExpr) Pos() token.Pos { return e.Fn }
 // to a more specific type. The checker restores the original type
 // after the block.
 type NarrowBlock struct {
-	Var   string
-	Type  Ident
-	Block *Block
+	Var       string
+	Type      Ident
+	Block     *Block
+	EarlyExit bool
 }
 
 ////////////

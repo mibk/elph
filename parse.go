@@ -36,6 +36,7 @@ type parser struct {
 	templateParam string
 	params        []*Param
 	ignoreLines   map[int]string
+	earlyExit     bool
 }
 
 func Parse(r io.Reader, filename string, php74Compat bool, warnOut io.Writer) (*File, error) {
@@ -159,6 +160,7 @@ func (p *parser) parseBlock(open token.Type, classRoot bool) *Block {
 
 func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 	s = new(Stmt)
+	p.earlyExit = false
 	var docComment token.Token
 	afterFunc := false
 	for {
@@ -318,6 +320,9 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 		case token.If:
 			p.tryParseInstanceofGuard(s)
 		case token.Arrow, token.QmarkArrow, token.DoubleColon, token.Instanceof:
+			p.next()
+		case token.Continue, token.Return, token.Break, token.Throw:
+			p.earlyExit = true
 			p.next()
 		default:
 			p.next()
@@ -1157,9 +1162,10 @@ func (p *parser) tryParseInstanceofGuard(s *Stmt) {
 	if p.got(token.Lbrace) {
 		b := p.parseBlock(token.Lbrace, false)
 		s.Nodes = append(s.Nodes, &NarrowBlock{
-			Var:   assert.Var,
-			Type:  assert.Type,
-			Block: b,
+			Var:       assert.Var,
+			Type:      assert.Type,
+			Block:     b,
+			EarlyExit: p.earlyExit,
 		})
 	}
 	p.skipElseChain()
