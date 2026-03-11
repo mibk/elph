@@ -117,9 +117,13 @@ func (l *linter) check(x any) {
 			l.check(stmt)
 		}
 	case *Foreach:
-		l.check(x.X)
+		typ := l.resolveExprType(x.X)
 		v := x.Value
-		l.scope[v.Name] = v.Type
+		if elem, ok := arrayElemType(typ); ok {
+			l.scope[v.Name] = elem
+		} else {
+			l.scope[v.Name] = v.Type // fallback to "mixed"
+		}
 	case *Param:
 		l.scope[x.Name] = x.Type
 		if l.thisClass == nil || l.thisClass.TemplateParam == "" || x.Type != Ident(l.thisClass.TemplateParam) {
@@ -177,6 +181,9 @@ func (l *linter) exists(id Ident) bool {
 		strings.Contains(string(id), "<"), // TODO: Check generics <> too
 		strings.Contains(string(id), "-"): // special PHPStan type
 		return true
+	}
+	if elem, ok := arrayElemType(id); ok {
+		return l.exists(elem)
 	}
 	_, ok := universe[id]
 	return ok
@@ -255,6 +262,19 @@ func (l *linter) findNewInstanceType(x any) (class Ident) {
 	}
 }
 
+func (l *linter) resolveExprType(x any) Ident {
+	switch x := x.(type) {
+	case *VarExpr:
+		if t := l.scope[x.Name]; t != "" {
+			return t
+		}
+	case *MemberAccess:
+		return l.checkMemberAccess(x)
+	}
+	l.check(x)
+	return "mixed"
+}
+
 func (l *linter) checkMemberAccess(a *MemberAccess) Ident {
 	var x Ident
 	switch r := a.Rcvr.(type) {
@@ -271,7 +291,12 @@ func (l *linter) checkMemberAccess(a *MemberAccess) Ident {
 	case *MemberAccess:
 		x = l.checkMemberAccess(r)
 	case *IndexExpr:
-		// TODO: Implement later.
+		if t := l.resolveExprType(r.X); t != "" {
+			if elem, ok := arrayElemType(t); ok {
+				x = elem
+				break
+			}
+		}
 		x = "mixed"
 	}
 
@@ -298,6 +323,10 @@ func (l *linter) checkMemberAccess(a *MemberAccess) Ident {
 	if x == "stdClass" {
 		// All member access allowed.
 		return x
+	}
+	if _, ok := arrayElemType(x); ok {
+		// Member access on an array is allowed (e.g., $arr->count()).
+		return "mixed"
 	}
 	return l.checkClassMember(a.NamePos, x, x, a.Name, a.MethodCall, a.Static, "")
 }

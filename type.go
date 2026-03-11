@@ -118,10 +118,7 @@ func getClass(typ phptype.Type) Ident {
 		}
 		return id + getClass(typ.TypeParams[0])
 	case *phptype.Array:
-		// If there's a method on array,
-		// it's not actually an array.
-		// TODO: Add proper support.
-		return `\stdClass`
+		return "[]" + getClass(typ.Elem)
 	case *phptype.ArrayShape:
 		return `\stdClass`
 	case *phptype.ObjectShape:
@@ -141,6 +138,13 @@ func getClass(typ phptype.Type) Ident {
 	default:
 		return Ident(fmt.Sprintf("<unsupported-%T>", typ))
 	}
+}
+
+func arrayElemType(id Ident) (elem Ident, ok bool) {
+	if e, ok := strings.CutPrefix(string(id), "[]"); ok {
+		return Ident(e), true
+	}
+	return "", false
 }
 
 func isBasicType(typ Ident) bool {
