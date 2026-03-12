@@ -4,30 +4,26 @@ import (
 	"strings"
 
 	"mibk.dev/elph/resolved"
-	"mibk.dev/phpfmt/phpdoc/phptype"
 	"mibk.dev/phpfmt/token"
 )
 
-func (p *parser) tryParseType() phptype.Type {
+func (p *parser) tryParseType() resolved.Type {
 	if p.got(token.Qmark) {
-		typ := p.tryParseType()
-		if typ == nil {
-			p.errorf("expecting type def; found %s", p.tok)
-			return nil
-		}
-		return &phptype.Nullable{Type: typ}
+		return p.tryParseType() // nullable just unwraps
 	}
 	if p.got(token.Static) {
-		return &phptype.Named{Parts: []string{"static"}}
+		return &resolved.Basic{Name: "static"}
 	}
 	if p.tok.Type == token.Backslash || p.tok.Type == token.Ident {
-		name := p.parseQualifiedName()
-		typ := phptype.Named{Parts: strings.Split(name, `\`)}
+		name := p.fullyQualify(p.parseQualifiedName())
+		if name == "self" {
+			name = p.thisClass
+		}
 		if p.got(token.BitOr) {
 			// TODO: Support union types
 			p.tryParseType() // just ignore
 		}
-		return &typ
+		return toType(name)
 	}
 	return nil
 }

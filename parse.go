@@ -642,7 +642,7 @@ func (p *parser) parseFunction(doc token.Token, static bool) {
 	}
 	p.parseParamList()
 
-	var typ phptype.Type
+	var typ resolved.Type
 	if p.got(token.Colon) {
 		typ = p.tryParseType()
 	}
@@ -656,14 +656,14 @@ func (p *parser) parseFunction(doc token.Token, static bool) {
 			case *phpdoc.ParamTag:
 				p.replaceParam(tag.Param)
 			case *phpdoc.ReturnTag:
-				typ = tag.Type
+				typ = p.resolveType(p.thisClass, tag.Type)
 				break Loop
 			}
 		}
 	}
 
 	if typ == nil {
-		typ = &phptype.Named{Parts: []string{"mixed"}}
+		typ = &resolved.Basic{Name: "mixed"}
 	}
 
 	c := universe[p.thisClass]
@@ -672,8 +672,7 @@ func (p *parser) parseFunction(doc token.Token, static bool) {
 		return
 	}
 
-	classTyp := p.resolveType(p.thisClass, typ)
-	m := Function{Pos: pos, Name: name, Returns: classTyp, Static: static}
+	m := Function{Pos: pos, Name: name, Returns: typ, Static: static}
 	if err := c.addMethod(&m); err != nil {
 		// TODO: Fix position of error.
 		p.errorf("%v", err)
@@ -713,8 +712,10 @@ func (p *parser) parseParamList() {
 			p.next()
 			continue
 		}
-		classTyp := p.resolveType(p.thisClass, typ)
-		par := &Param{Pos: pos, Name: name, Type: classTyp}
+		if typ == nil {
+			typ = &resolved.Basic{Name: "mixed"}
+		}
+		par := &Param{Pos: pos, Name: name, Type: typ}
 		p.params = append(p.params, par)
 		if p.got(token.Assign) {
 			def := p.parseStmt(token.Comma, false)
@@ -724,7 +725,7 @@ func (p *parser) parseParamList() {
 		if isMember {
 			if c := universe[p.thisClass]; c != nil {
 				name = strings.TrimPrefix(name, "$")
-				m := Property{Pos: pos, Name: name, Type: classTyp}
+				m := Property{Pos: pos, Name: name, Type: typ}
 				if err := c.addProperty(&m); err != nil {
 					p.errorf("%v", err)
 				}
@@ -755,7 +756,7 @@ func (p *parser) parseProperty(doc token.Token, static, constant bool) {
 	}
 
 	var def token.Token
-	var typ phptype.Type
+	var typ resolved.Type
 	if constant {
 		saved := p.tok
 		typ = p.tryParseType()
@@ -781,13 +782,13 @@ func (p *parser) parseProperty(doc token.Token, static, constant bool) {
 	if b := p.parsePHPDoc(doc); b != nil {
 		for _, line := range b.Lines {
 			if tag, ok := line.(*phpdoc.VarTag); ok {
-				typ = tag.Type
+				typ = p.resolveType(p.thisClass, tag.Type)
 				break
 			}
 		}
 	}
 	if typ == nil {
-		typ = &phptype.Named{Parts: []string{"mixed"}}
+		typ = &resolved.Basic{Name: "mixed"}
 	}
 
 	c := universe[p.thisClass]
@@ -802,8 +803,7 @@ func (p *parser) parseProperty(doc token.Token, static, constant bool) {
 
 	for {
 		name := strings.TrimPrefix(def.Text, "$")
-		classTyp := p.resolveType(p.thisClass, typ)
-		m := Property{Pos: def.Pos, Name: name, Type: classTyp, Static: static}
+		m := Property{Pos: def.Pos, Name: name, Type: typ, Static: static}
 		if constant {
 			if err := c.addConstant(&m); err != nil {
 				// TODO: Fix position of error.
@@ -890,8 +890,10 @@ func (p *parser) parseCatch() *Param {
 	p.expect(token.Lparen)
 	pos := p.tok.Pos
 	typ := p.tryParseType()
-	classTyp := p.resolveType(p.thisClass, typ)
-	param := Param{Pos: pos, Type: classTyp}
+	if typ == nil {
+		typ = &resolved.Basic{Name: "mixed"}
+	}
+	param := Param{Pos: pos, Type: typ}
 	name := p.tok.Text
 	if p.got(token.Var) {
 		param.Name = name
