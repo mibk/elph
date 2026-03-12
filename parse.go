@@ -459,7 +459,7 @@ func (p *parser) extractTemplateParam(c *Class, b *phpdoc.Block) {
 		if tag, ok := line.(*phpdoc.TemplateTag); ok {
 			c.TemplateParam = tag.Param
 			if tag.Bound != nil {
-				c.TemplateBound = p.resolveClass(c.Name, tag.Bound)
+				c.TemplateBound = p.resolveType(c.Name, tag.Bound).String()
 			}
 		}
 	}
@@ -468,11 +468,6 @@ func (p *parser) extractTemplateParam(c *Class, b *phpdoc.Block) {
 func (p *parser) handleClassDoc(c *Class, b *phpdoc.Block, pos token.Pos) {
 	for _, line := range b.Lines {
 		switch tag := line.(type) {
-		case *phpdoc.TemplateTag:
-			c.TemplateParam = tag.Param
-			if tag.Bound != nil {
-				c.TemplateBound = p.resolveClass(c.Name, tag.Bound)
-			}
 		case *phpdoc.TypeDefTag:
 			adhocType := p.fullyQualify(tag.Name)
 			universe[adhocType] = &Class{Name: adhocType, Extends: "stdClass", SourceFile: c.SourceFile}
@@ -497,7 +492,7 @@ func (p *parser) handleClassDoc(c *Class, b *phpdoc.Block, pos token.Pos) {
 			c.replaceMethod(m)
 		case *phpdoc.ExtendsTag:
 			if g, ok := tag.Class.(*phptype.Generic); ok && len(g.TypeParams) == 1 {
-				c.Template = p.resolveClass(p.thisClass, g.TypeParams[0])
+				c.Template = p.resolveType(p.thisClass, g.TypeParams[0]).String()
 			}
 		}
 	}
@@ -1185,28 +1180,6 @@ func (p *parser) skipElseChain() {
 			p.parseBlock(token.Lbrace, false)
 		}
 	}
-}
-
-func (p *parser) resolveClass(thisClass string, typ phptype.Type) string {
-	var name string
-	switch typ := typ.(type) {
-	case *phptype.Named:
-		name = strings.Join(typ.Parts, `\`)
-		if typ.Global {
-			name = `\` + name
-		}
-	case *phptype.This:
-		name = "static"
-	default:
-		name = "mixed"
-	}
-	if name == "self" {
-		return thisClass
-	}
-	if c, ok := universe[thisClass].(*Class); ok && c.TemplateParam != "" && name == c.TemplateParam {
-		return name
-	}
-	return p.fullyQualify(name)
 }
 
 // resolveType converts a phptype.Type to a resolved.Type,
