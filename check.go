@@ -257,7 +257,7 @@ func (l *linter) findVarType(a *AssignExpr) (typ resolved.Type, checked bool) {
 		typ = resolved.Mixed
 	}
 
-	if typ.String() == "void" {
+	if typ == resolved.Void {
 		l.reportf(a.Right.Pos(), "cannot assign '%s'", typ)
 		typ = resolved.Mixed
 	}
@@ -351,7 +351,7 @@ func (l *linter) checkMemberAccess(a *MemberAccess) resolved.Type {
 			}
 			class, template := identFromType(m)
 			result := l.checkClassMember(a.NamePos, class, class, a.Name, a.MethodCall, a.Static, template)
-			if result.String() != "mixed" {
+			if result != resolved.Mixed {
 				return result
 			}
 		}

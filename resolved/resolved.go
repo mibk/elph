@@ -10,6 +10,7 @@ var (
 	Self   = &Basic{Name: "self"}
 	Static = &Basic{Name: "static"}
 	String = &Basic{Name: "string"}
+	Void   = &Basic{Name: "void"}
 )
 
 // Type represents a resolved PHP type.
@@ -112,6 +113,8 @@ func TypeFromName(name string) Type {
 		return Static
 	case "string":
 		return String
+	case "void":
+		return Void
 	}
 	if IsBasicName(name) {
 		return &Basic{Name: name}
