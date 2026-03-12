@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"embed"
 	"errors"
 	"flag"
@@ -143,7 +144,13 @@ func parsePath(fsys fs.FS, filename string, ignored []string, warnOut io.Writer)
 		return
 	}
 
-	file, err := Parse(f, filename, false, warnOut)
+	data, err := io.ReadAll(f)
+	if err != nil {
+		log.Fatal(err)
+	}
+	f.Close()
+
+	file, err := Parse(bytes.NewReader(data), filename, false, warnOut)
 	if se, ok := err.(*SyntaxError); ok {
 		log.Fatalf("%s:%d:%d: %v", filename, se.Line, se.Column, se.Err)
 	} else if err != nil {
