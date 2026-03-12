@@ -74,33 +74,27 @@ func (l *linter) check(x any) {
 		backup := l.thisClass
 		l.thisClass = x
 		for _, p := range x.Properties {
-			if !resolved.IsTypeVar(p.Type) {
-				if !l.existsType(p.Type) {
-					l.reportf(p.Pos, "property %s has non-existing type %s", p.Name, p.Type)
-					p.Type = resolved.Mixed // Do not report the error again.
-				}
+			if !l.knownType(p.Type) {
+				l.reportf(p.Pos, "property %s has non-existing type %s", p.Name, p.Type)
+				p.Type = resolved.Mixed // Do not report the error again.
 			}
 			if p.DefaultValue != nil {
 				l.check(p.DefaultValue)
 			}
 		}
 		for _, p := range x.Constants {
-			if !resolved.IsTypeVar(p.Type) {
-				if !l.existsType(p.Type) {
-					l.reportf(p.Pos, "constant %s has non-existing type %s", p.Name, p.Type)
-					p.Type = resolved.Mixed // Do not report the error again.
-				}
+			if !l.knownType(p.Type) {
+				l.reportf(p.Pos, "constant %s has non-existing type %s", p.Name, p.Type)
+				p.Type = resolved.Mixed // Do not report the error again.
 			}
 			if p.DefaultValue != nil {
 				l.check(p.DefaultValue)
 			}
 		}
 		for _, m := range x.Methods {
-			if !resolved.IsTypeVar(m.Returns) {
-				if !l.existsType(m.Returns) {
-					l.reportf(m.Pos, "method %s returns non-existing type %s", m.Name, m.Returns)
-					m.Returns = resolved.Mixed // Do not report the error again.
-				}
+			if !l.knownType(m.Returns) {
+				l.reportf(m.Pos, "method %s returns non-existing type %s", m.Name, m.Returns)
+				m.Returns = resolved.Mixed // Do not report the error again.
 			}
 		}
 
@@ -139,9 +133,7 @@ func (l *linter) check(x any) {
 		}
 	case *Param:
 		l.scope[x.Name] = x.Type
-		if !resolved.IsTypeVar(x.Type) {
-			l.checkType(x.Pos, x.Type, "class")
-		}
+		l.checkType(x.Pos, x.Type, "class")
 		if x.DefaultValue != nil {
 			l.check(x.DefaultValue)
 		}
@@ -193,7 +185,7 @@ func (l *linter) check(x any) {
 	}
 }
 
-func (l *linter) existsType(typ resolved.Type) bool {
+func (l *linter) knownType(typ resolved.Type) bool {
 	switch t := typ.(type) {
 	case *resolved.Basic:
 		return true
@@ -205,13 +197,13 @@ func (l *linter) existsType(typ resolved.Type) bool {
 		return ok
 	case *resolved.Union:
 		for _, m := range t.Types {
-			if !l.existsType(m) {
+			if !l.knownType(m) {
 				return false
 			}
 		}
 		return true
 	case *resolved.Array:
-		return l.existsType(t.Elem)
+		return l.knownType(t.Elem)
 	case *resolved.Generic:
 		return true // TODO: Check generics too
 	case *resolved.TypeVar:
@@ -221,7 +213,7 @@ func (l *linter) existsType(typ resolved.Type) bool {
 }
 
 func (l *linter) checkType(pos token.Pos, typ resolved.Type, kind string) {
-	if !l.existsType(typ) {
+	if !l.knownType(typ) {
 		l.reportf(pos, "%s %v not found", kind, typ)
 	}
 }
