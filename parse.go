@@ -1196,13 +1196,11 @@ func (p *parser) resolveType(thisClass string, typ phptype.Type) resolved.Type {
 			if n, ok := rt.(*resolved.Named); ok && n.Name == "stdClass" {
 				return rt
 			}
-			if b, ok := rt.(*resolved.Basic); ok {
-				if b.Name == "mixed" {
-					return rt
-				}
-				if strings.ToLower(b.Name) == "null" {
-					continue
-				}
+			if rt == resolved.Mixed {
+				return rt
+			}
+			if rt == resolved.Null {
+				continue
 			}
 			types = append(types, rt)
 		}
