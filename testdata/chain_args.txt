@@ -1,0 +1,15 @@
+% check a.php
+a.php:11:16: class Baz not found
+
+-- a.php --
+<?php
+
+class Foo
+{
+	public function bar(): Foo
+	{
+	}
+}
+
+$foo = new Foo;
+$foo->bar(Baz::QUX)->bar();

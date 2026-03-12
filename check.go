@@ -329,6 +329,9 @@ func (l *linter) checkMemberAccess(a *MemberAccess) resolved.Type {
 		}
 	case *MemberAccess:
 		x = l.checkMemberAccess(r)
+		if r.Args != nil {
+			l.check(r.Args)
+		}
 	case *IndexExpr:
 		t := l.resolveExprType(r.X)
 		if elem, ok := resolved.ArrayElem(t); ok {
