@@ -369,14 +369,11 @@ func (l *linter) checkMemberAccess(a *MemberAccess) resolved.Type {
 			return mixed
 		}
 	}
-	s := x.String()
-
-	if s == "self" || s == "parent" {
+	if x == resolved.Self || x.String() == "parent" {
 		// TODO: This is definitely a hack. Fix it.
 		x = resolved.TypeFromName(cmp.Or(l.thisClass, l.nextClass).Name)
-		s = x.String()
 	} else if resolved.IsBasic(x) {
-		if s == "mixed" || s == "object" {
+		if x == resolved.Mixed || x.String() == "object" {
 			// All member access allowed on mixed.
 			return x
 		}
@@ -384,7 +381,7 @@ func (l *linter) checkMemberAccess(a *MemberAccess) resolved.Type {
 		return &resolved.Named{Name: "<not-a-class>"}
 	}
 
-	if s == "stdClass" {
+	if x.String() == "stdClass" {
 		// All member access allowed.
 		return x
 	}
