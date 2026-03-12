@@ -27,7 +27,7 @@ func (p *parser) tryParseType() resolved.Type {
 			return resolved.TypeFromName(name)
 		}
 		name = p.fullyQualify(name)
-		return resolved.InternNamed(name)
+		return resolved.TypeFromName(name)
 	}
 	return nil
 }

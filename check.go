@@ -370,7 +370,7 @@ func (l *linter) checkMemberAccess(a *MemberAccess) resolved.Type {
 			return x
 		}
 		l.reportf(a.NamePos, "cannot call method on '%s'", x)
-		return resolved.InternNamed("<not-a-class>")
+		return resolved.TypeFromName("<not-a-class>")
 	}
 
 	if x.String() == "stdClass" {

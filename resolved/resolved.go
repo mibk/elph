@@ -149,12 +149,6 @@ func TypeFromName(name string) Type {
 	case "parent":
 		return Parent
 	}
-	return InternNamed(name)
-}
-
-var namedCache = make(map[string]*Named)
-
-func InternNamed(name string) *Named {
 	if n, ok := namedCache[name]; ok {
 		return n
 	}
@@ -162,6 +156,8 @@ func InternNamed(name string) *Named {
 	namedCache[name] = n
 	return n
 }
+
+var namedCache = make(map[string]*Named)
 
 // ArrayElem returns the element type if typ is an array.
 // For unions, it collects element types from all array members.
