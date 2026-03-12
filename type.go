@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strings"
 
 	"mibk.dev/elph/resolved"
@@ -64,19 +63,6 @@ func (p *parser) parseQualifiedName() Ident {
 }
 
 func (p *parser) fullyQualify(id Ident) Ident {
-	if strings.Contains(string(id), "|") {
-		parts := strings.Split(string(id), "|")
-		for i, part := range parts {
-			parts[i] = string(p.fullyQualify(Ident(part)))
-		}
-		return Ident(strings.Join(parts, "|"))
-	}
-	if elem, ok := strings.CutPrefix(string(id), "[]"); ok {
-		return "[]" + p.fullyQualify(Ident(elem))
-	}
-	if base, typ, ok := strings.Cut(string(id), "<>"); ok {
-		return p.fullyQualify(Ident(base)) + "<>" + p.fullyQualify(Ident(typ))
-	}
 	name := string(id)
 	if strings.HasPrefix(name, `\`) {
 		return Ident(name[1:])
@@ -99,65 +85,6 @@ func (p *parser) fullyQualify(id Ident) Ident {
 		id = p.namespace + `\` + id
 	}
 	return id
-}
-
-func getClass(typ phptype.Type) Ident {
-	switch typ := typ.(type) {
-	case nil:
-		return "mixed"
-	case *phptype.Union:
-		var classes []Ident
-		for _, s := range typ.Types {
-			c := getClass(s)
-			if c == `\stdClass` {
-				return c
-			}
-			if c == "mixed" {
-				return c
-			}
-			if strings.ToLower(string(c)) == "null" {
-				continue
-			}
-			classes = append(classes, c)
-		}
-		if len(classes) == 0 {
-			return "mixed"
-		}
-		if len(classes) == 1 {
-			return classes[0]
-		}
-		var parts []string
-		for _, c := range classes {
-			parts = append(parts, string(c))
-		}
-		return Ident(strings.Join(parts, "|"))
-	case *phptype.Generic:
-		id := getClass(typ.Base) + "<>"
-		if len(typ.TypeParams) > 1 {
-			return id + "MANY-NOT-SUPPORTED"
-		}
-		return id + getClass(typ.TypeParams[0])
-	case *phptype.Array:
-		return "[]" + getClass(typ.Elem)
-	case *phptype.ArrayShape:
-		return `\stdClass`
-	case *phptype.ObjectShape:
-		return `\stdClass`
-	case *phptype.Nullable:
-		return getClass(typ.Type)
-	case *phptype.Named:
-		name := strings.Join(typ.Parts, `\`)
-		if typ.Global {
-			return Ident(`\` + name)
-		}
-		return Ident(name)
-	case *phptype.This:
-		return "static"
-	case *phptype.Conditional:
-		return getClass(typ.True)
-	default:
-		return Ident(fmt.Sprintf("<unsupported-%T>", typ))
-	}
 }
 
 func isBasicType(typ Ident) bool {

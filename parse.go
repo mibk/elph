@@ -1186,20 +1186,87 @@ func (p *parser) skipElseChain() {
 }
 
 func (p *parser) resolveClass(thisClass Ident, typ phptype.Type) Ident {
-	// TODO: This method is weird. Fix it.
-	class := getClass(typ)
-	if class == "self" {
+	var name string
+	switch typ := typ.(type) {
+	case *phptype.Named:
+		name = strings.Join(typ.Parts, `\`)
+		if typ.Global {
+			name = `\` + name
+		}
+	case *phptype.This:
+		name = "static"
+	default:
+		name = "mixed"
+	}
+	id := Ident(name)
+	if id == "self" {
 		return thisClass
 	}
-	if c, ok := universe[thisClass].(*Class); ok && c.TemplateParam != "" && string(class) == c.TemplateParam {
-		return class
+	if c, ok := universe[thisClass].(*Class); ok && c.TemplateParam != "" && name == c.TemplateParam {
+		return id
 	}
-	class = p.fullyQualify(class)
-	return class
+	return p.fullyQualify(id)
 }
 
-// resolveType converts a phptype.Type to an resolved.Type,
+// resolveType converts a phptype.Type to a resolved.Type,
 // resolving names via the parser's namespace/use context.
 func (p *parser) resolveType(thisClass Ident, typ phptype.Type) resolved.Type {
-	return toType(p.resolveClass(thisClass, typ))
+	switch typ := typ.(type) {
+	case nil:
+		return &resolved.Basic{Name: "mixed"}
+	case *phptype.Union:
+		var types []resolved.Type
+		for _, t := range typ.Types {
+			rt := p.resolveType(thisClass, t)
+			if b, ok := rt.(*resolved.Basic); ok && strings.ToLower(b.Name) == "null" {
+				continue
+			}
+			types = append(types, rt)
+		}
+		if len(types) == 0 {
+			return &resolved.Basic{Name: "mixed"}
+		}
+		return resolved.NewUnion(types...)
+	case *phptype.Array:
+		return &resolved.Array{Elem: p.resolveType(thisClass, typ.Elem)}
+	case *phptype.Generic:
+		base := p.resolveType(thisClass, typ.Base)
+		if len(typ.TypeParams) == 0 {
+			return base
+		}
+		return &resolved.Generic{
+			Base:  base,
+			Param: p.resolveType(thisClass, typ.TypeParams[0]),
+		}
+	case *phptype.Nullable:
+		return p.resolveType(thisClass, typ.Type)
+	case *phptype.Named:
+		name := strings.Join(typ.Parts, `\`)
+		if typ.Global {
+			name = `\` + name
+		}
+		if strings.ToLower(name) == "null" {
+			return &resolved.Basic{Name: "null"}
+		}
+		id := Ident(name)
+		if id == "self" {
+			return toType(thisClass)
+		}
+		if c, ok := universe[thisClass].(*Class); ok && c.TemplateParam != "" && name == c.TemplateParam {
+			return &resolved.Named{Name: name}
+		}
+		id = p.fullyQualify(id)
+		if isBasicType(id) {
+			return &resolved.Basic{Name: string(id)}
+		}
+		return &resolved.Named{Name: string(id)}
+	case *phptype.ArrayShape, *phptype.ObjectShape:
+		return &resolved.Named{Name: "stdClass"}
+	case *phptype.This:
+		return &resolved.Basic{Name: "static"}
+	case *phptype.Conditional:
+		return p.resolveType(thisClass, typ.True)
+	default:
+		return &resolved.Basic{Name: "mixed"}
+	}
 }
