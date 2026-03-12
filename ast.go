@@ -14,7 +14,7 @@ type File struct {
 }
 
 type UseStmt struct {
-	Namespace Ident
+	Namespace string
 	Alias     string
 }
 
@@ -41,13 +41,13 @@ type Stmt struct {
 }
 
 type Class struct {
-	Name          Ident
+	Name          string
 	TemplateParam string // declared via @template (e.g. "T", "TItem")
-	TemplateBound Ident  // bound from @template T of X, or empty
-	Template      Ident  // concrete type from @extends, or empty
-	Extends       Ident  // or empty
-	Implements    []Ident
-	Traits        []Ident
+	TemplateBound string // bound from @template T of X, or empty
+	Template      string // concrete type from @extends, or empty
+	Extends       string // or empty
+	Implements    []string
+	Traits        []string
 	Properties    map[string]*Property
 	Constants     map[string]*Property
 	Methods       map[string]*Function
@@ -56,7 +56,7 @@ type Class struct {
 }
 
 type Trait struct {
-	Name       Ident
+	Name       string
 	Properties map[string]*Property
 	Constants  map[string]*Property
 	Methods    map[string]*Function

@@ -201,7 +201,7 @@ func (l *linter) existsType(typ resolved.Type) bool {
 		if t.Name == "stdClass" || strings.Contains(t.Name, "-") {
 			return true
 		}
-		_, ok := universe[Ident(t.Name)]
+		_, ok := universe[t.Name]
 		return ok
 	case *resolved.Union:
 		for _, m := range t.Types {
@@ -286,7 +286,7 @@ func (l *linter) findNewInstanceType(x any) resolved.Type {
 		case "stdClass", "mixed":
 			return x.Type
 		}
-		if _, ok := universe[Ident(s)].(*Class); !ok {
+		if _, ok := universe[s].(*Class); !ok {
 			l.reportf(x.V, "class %v not found", x.Type)
 			return mixed
 		}
@@ -393,7 +393,7 @@ func (l *linter) checkMemberAccess(a *MemberAccess) resolved.Type {
 	return l.checkClassMember(a.NamePos, class, class, a.Name, a.MethodCall, a.Static, template)
 }
 
-func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, member string, methodCall, static bool, template Ident) resolved.Type {
+func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, member string, methodCall, static bool, template string) resolved.Type {
 	mixed := &resolved.Basic{Name: "mixed"}
 	// TODO: Different error if entity exists but is not a class?
 	c, ok := universe[class].(*Class)
@@ -404,7 +404,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 				// TODO: This hack is on too many places. Fix it.
 				return toType(class)
 			}
-			if key := string(class) + "·" + l.fileBeingChecked; !l.reported[key] {
+			if key := class + "·" + l.fileBeingChecked; !l.reported[key] {
 				l.reportf(pos, "class %v not found", class)
 				if !static {
 					l.reported[key] = true
@@ -437,7 +437,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 		for _, m := range t.Methods {
 			// TODO: Check whether method not already defined?
 			m := *m
-			if m.Returns.String() == string(t.Name) {
+			if m.Returns.String() == t.Name {
 				// TODO: This is hacky, and ugly.
 				m.Returns = toType(c.Name)
 			}
@@ -523,9 +523,9 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 		return l.checkClassMember(pos, originalClass, parent, member, methodCall, static, template)
 	}
 	if memberTyp == nil {
-		displayClass := string(originalClass)
+		displayClass := originalClass
 		if template != "" {
-			displayClass += "<" + string(template) + ">"
+			displayClass += "<" + template + ">"
 		}
 		l.reportf(pos, "class %s %v::%v does not exist", memberKind, displayClass, member)
 		return mixed

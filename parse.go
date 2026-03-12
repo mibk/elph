@@ -30,10 +30,10 @@ type parser struct {
 	err error
 	tok token.Token
 
-	namespace     Ident
-	use           map[string]Ident
-	thisClass     Ident
-	nextClass     Ident
+	namespace     string
+	use           map[string]string
+	thisClass     string
+	nextClass     string
 	templateParam string
 	params        []*Param
 	ignoreLines   map[int]string
@@ -46,7 +46,7 @@ func Parse(r io.Reader, filename string, php74Compat bool, warnOut io.Writer) (*
 
 func parsePHP(r io.Reader, filename string, php74Compat bool, warnOut io.Writer) (*File, error) {
 	p := &parser{scan: token.NewScanner(r, php74Compat), filename: filename, warnOut: warnOut}
-	p.use = make(map[string]Ident)
+	p.use = make(map[string]string)
 	p.ignoreLines = make(map[int]string)
 	p.next() // init
 	doc := p.parseFile()
@@ -332,7 +332,7 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 	}
 }
 
-var universe = make(map[Ident]typeDecl)
+var universe = make(map[string]typeDecl)
 
 func (p *parser) parsePHPDoc(doc token.Token) *phpdoc.Block {
 	if doc.Type != token.DocComment {
@@ -365,7 +365,7 @@ func (p *parser) parseUseStmt() []UseStmt {
 	if p.got(token.Lbrace) {
 		return p.parseGroupedUseStmt(use)
 	}
-	alias := string(use)
+	alias := use
 	if i := strings.LastIndexByte(alias, '\\'); i >= 0 {
 		alias = alias[i+1:]
 	}
@@ -377,11 +377,11 @@ func (p *parser) parseUseStmt() []UseStmt {
 	return []UseStmt{{Namespace: use, Alias: alias}}
 }
 
-func (p *parser) parseGroupedUseStmt(prefix Ident) []UseStmt {
+func (p *parser) parseGroupedUseStmt(prefix string) []UseStmt {
 	var uses []UseStmt
 	for {
 		part := p.parseQualifiedName()
-		alias := string(part)
+		alias := part
 		if i := strings.LastIndexByte(alias, '\\'); i >= 0 {
 			alias = alias[i+1:]
 		}
@@ -411,7 +411,7 @@ func (p *parser) parseClass() *Class {
 		return nil
 	}
 	p.expect(token.Ident)
-	class := Ident(name.Text)
+	class := name.Text
 	if p.namespace != "" {
 		class = p.namespace + `\` + class
 	}
@@ -474,7 +474,7 @@ func (p *parser) handleClassDoc(c *Class, b *phpdoc.Block, pos token.Pos) {
 				c.TemplateBound = p.resolveClass(c.Name, tag.Bound)
 			}
 		case *phpdoc.TypeDefTag:
-			adhocType := p.fullyQualify(Ident(tag.Name))
+			adhocType := p.fullyQualify(tag.Name)
 			universe[adhocType] = &Class{Name: adhocType, Extends: "stdClass", SourceFile: c.SourceFile}
 		case *phpdoc.OtherTag:
 			if tag.Name == "phpstan-import-type" {
@@ -514,10 +514,10 @@ func (p *parser) handleImportedPHPStanType(s string) {
 
 	// TODO: There's many edge cases that I ignored.
 	if i := strings.LastIndex(class, `\`); i >= 0 {
-		importedType := p.fullyQualify(Ident(class[:i] + `\` + typ))
+		importedType := p.fullyQualify(class[:i] + `\` + typ)
 
 		// TODO: Probably wrong source file.
-		c := &Class{Name: p.fullyQualify(Ident(alias)), Extends: importedType, SourceFile: p.filename}
+		c := &Class{Name: p.fullyQualify(alias), Extends: importedType, SourceFile: p.filename}
 		universe[c.Name] = c
 	}
 }
@@ -526,7 +526,7 @@ func (p *parser) parseTrait(_ token.Token) *Trait {
 	p.expect(token.Trait)
 	name := p.tok
 	p.expect(token.Ident)
-	class := Ident(name.Text)
+	class := name.Text
 	if p.namespace != "" {
 		class = p.namespace + `\` + class
 	}
@@ -546,7 +546,7 @@ func (p *parser) parseInterface() *Class {
 	p.expect(token.Interface)
 	name := p.tok
 	p.expect(token.Ident)
-	class := Ident(name.Text)
+	class := name.Text
 	if p.namespace != "" {
 		class = p.namespace + `\` + class
 	}
@@ -577,7 +577,7 @@ func (p *parser) parseEnum() *Class {
 	p.expect(token.Enum)
 	name := p.tok
 	p.expect(token.Ident)
-	enum := Ident(name.Text)
+	enum := name.Text
 	if p.namespace != "" {
 		enum = p.namespace + `\` + enum
 	}
@@ -792,7 +792,7 @@ func (p *parser) parseProperty(doc token.Token, static, constant bool) {
 
 	c := universe[p.thisClass]
 	if c == nil {
-		if strings.ContainsRune(string(p.thisClass), '@') {
+		if strings.ContainsRune(p.thisClass, '@') {
 			// TODO: Add proper support for anonymous classes.
 			return
 		}
@@ -944,10 +944,10 @@ func (p *parser) parseNewInstance() Expr {
 	if p.got(token.Static) {
 		return &NewInstance{Class: &ValueExpr{V: pos, Type: toType(p.thisClass)}}
 	}
-	switch class := Ident("mixed"); {
+	switch class := "mixed"; {
 	case p.got(token.Class):
 		anonymousCount++
-		class = Ident("AnonymousClass@" + fmt.Sprint(anonymousCount))
+		class = "AnonymousClass@" + fmt.Sprint(anonymousCount)
 		c := &Class{Name: class, SourceFile: p.filename}
 		universe[class] = c
 		p.nextClass = class
@@ -1185,7 +1185,7 @@ func (p *parser) skipElseChain() {
 	}
 }
 
-func (p *parser) resolveClass(thisClass Ident, typ phptype.Type) Ident {
+func (p *parser) resolveClass(thisClass string, typ phptype.Type) string {
 	var name string
 	switch typ := typ.(type) {
 	case *phptype.Named:
@@ -1198,19 +1198,18 @@ func (p *parser) resolveClass(thisClass Ident, typ phptype.Type) Ident {
 	default:
 		name = "mixed"
 	}
-	id := Ident(name)
-	if id == "self" {
+	if name == "self" {
 		return thisClass
 	}
 	if c, ok := universe[thisClass].(*Class); ok && c.TemplateParam != "" && name == c.TemplateParam {
-		return id
+		return name
 	}
-	return p.fullyQualify(id)
+	return p.fullyQualify(name)
 }
 
 // resolveType converts a phptype.Type to a resolved.Type,
 // resolving names via the parser's namespace/use context.
-func (p *parser) resolveType(thisClass Ident, typ phptype.Type) resolved.Type {
+func (p *parser) resolveType(thisClass string, typ phptype.Type) resolved.Type {
 	switch typ := typ.(type) {
 	case nil:
 		return &resolved.Basic{Name: "mixed"}
@@ -1257,18 +1256,17 @@ func (p *parser) resolveType(thisClass Ident, typ phptype.Type) resolved.Type {
 		if strings.ToLower(name) == "null" {
 			return &resolved.Basic{Name: "null"}
 		}
-		id := Ident(name)
-		if id == "self" {
+		if name == "self" {
 			return toType(thisClass)
 		}
 		if c, ok := universe[thisClass].(*Class); ok && c.TemplateParam != "" && name == c.TemplateParam {
 			return &resolved.Named{Name: name}
 		}
-		id = p.fullyQualify(id)
-		if isBasicType(id) {
-			return &resolved.Basic{Name: string(id)}
+		name = p.fullyQualify(name)
+		if resolved.IsBasicName(name) {
+			return &resolved.Basic{Name: name}
 		}
-		return &resolved.Named{Name: string(id)}
+		return &resolved.Named{Name: name}
 	case *phptype.ArrayShape, *phptype.ObjectShape:
 		return &resolved.Named{Name: "stdClass"}
 	case *phptype.This:
