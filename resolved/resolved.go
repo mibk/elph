@@ -148,7 +148,7 @@ func ArrayElem(typ Type) (Type, bool) {
 func SubtractType(typ Type, excluded Type) Type {
 	u, ok := typ.(*Union)
 	if !ok {
-		if typ.String() == excluded.String() {
+		if typ == excluded || typ.String() == excluded.String() {
 			return Mixed
 		}
 		return typ
@@ -156,7 +156,7 @@ func SubtractType(typ Type, excluded Type) Type {
 	var remaining []Type
 	ex := excluded.String()
 	for _, t := range u.Types {
-		if t.String() != ex {
+		if t != excluded && t.String() != ex {
 			remaining = append(remaining, t)
 		}
 	}
