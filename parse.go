@@ -1239,9 +1239,9 @@ func (p *parser) resolveType(thisClass string, typ phptype.Type) resolved.Type {
 			return resolved.TypeFromName(name)
 		}
 		name = p.fullyQualify(name)
-		return &resolved.Named{Name: name}
+		return resolved.InternNamed(name)
 	case *phptype.ArrayShape, *phptype.ObjectShape:
-		return &resolved.Named{Name: "stdClass"}
+		return resolved.InternNamed("stdClass")
 	case *phptype.This:
 		return resolved.Static
 	case *phptype.Conditional:

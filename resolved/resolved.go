@@ -5,12 +5,23 @@ import "strings"
 
 // Sentinel values for commonly used basic types.
 var (
-	Mixed  = &Basic{Name: "mixed"}
-	Null   = &Basic{Name: "null"}
-	Self   = &Basic{Name: "self"}
-	Static = &Basic{Name: "static"}
-	String = &Basic{Name: "string"}
-	Void   = &Basic{Name: "void"}
+	Mixed      = &Basic{Name: "mixed"}
+	Null       = &Basic{Name: "null"}
+	Self       = &Basic{Name: "self"}
+	Static     = &Basic{Name: "static"}
+	String     = &Basic{Name: "string"}
+	Void       = &Basic{Name: "void"}
+	Int        = &Basic{Name: "int"}
+	Float      = &Basic{Name: "float"}
+	Bool       = &Basic{Name: "bool"}
+	True       = &Basic{Name: "true"}
+	False      = &Basic{Name: "false"}
+	Object     = &Basic{Name: "object"}
+	BasicArray = &Basic{Name: "array"}
+	Never      = &Basic{Name: "never"}
+	Callable   = &Basic{Name: "callable"}
+	Resource   = &Basic{Name: "resource"}
+	Parent     = &Basic{Name: "parent"}
 )
 
 // Type represents a resolved PHP type.
@@ -115,11 +126,41 @@ func TypeFromName(name string) Type {
 		return String
 	case "void":
 		return Void
+	case "int":
+		return Int
+	case "float":
+		return Float
+	case "bool":
+		return Bool
+	case "true":
+		return True
+	case "false":
+		return False
+	case "object":
+		return Object
+	case "array":
+		return BasicArray
+	case "never":
+		return Never
+	case "callable":
+		return Callable
+	case "resource":
+		return Resource
+	case "parent":
+		return Parent
 	}
-	if IsBasicName(name) {
-		return &Basic{Name: name}
+	return InternNamed(name)
+}
+
+var namedCache = make(map[string]*Named)
+
+func InternNamed(name string) *Named {
+	if n, ok := namedCache[name]; ok {
+		return n
 	}
-	return &Named{Name: name}
+	n := &Named{Name: name}
+	namedCache[name] = n
+	return n
 }
 
 // ArrayElem returns the element type if typ is an array.
