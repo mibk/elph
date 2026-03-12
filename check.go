@@ -120,7 +120,7 @@ func (l *linter) check(x any) {
 				l.thisClass = backupClass
 				l.scope = backupScope
 			}()
-			l.scope["$this"] = toType(l.thisClass.Name)
+			l.scope["$this"] = resolved.TypeFromName(l.thisClass.Name)
 			l.pushScope = false
 		}
 		for _, p := range x.Params {
@@ -282,7 +282,7 @@ func (l *linter) findNewInstanceType(x any) resolved.Type {
 				l.reportf(x.V, "not in class context")
 				return mixed
 			}
-			return toType(l.thisClass.Name)
+			return resolved.TypeFromName(l.thisClass.Name)
 		case "stdClass", "mixed":
 			return x.Type
 		}
@@ -292,7 +292,7 @@ func (l *linter) findNewInstanceType(x any) resolved.Type {
 		}
 		return x.Type
 	case *Class:
-		return toType(x.Name)
+		return resolved.TypeFromName(x.Name)
 	}
 }
 
@@ -369,7 +369,7 @@ func (l *linter) checkMemberAccess(a *MemberAccess) resolved.Type {
 
 	if s == "self" || s == "parent" {
 		// TODO: This is definitely a hack. Fix it.
-		x = toType(cmp.Or(l.thisClass, l.nextClass).Name)
+		x = resolved.TypeFromName(cmp.Or(l.thisClass, l.nextClass).Name)
 		s = x.String()
 	} else if resolved.IsBasic(x) {
 		if s == "mixed" || s == "object" {
@@ -401,7 +401,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, me
 		if !ok {
 			if class == "stdClass" {
 				// TODO: This hack is on too many places. Fix it.
-				return toType(class)
+				return resolved.TypeFromName(class)
 			}
 			if key := class + "·" + l.fileBeingChecked; !l.reported[key] {
 				l.reportf(pos, "class %v not found", class)
@@ -438,7 +438,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, me
 			m := *m
 			if m.Returns.String() == t.Name {
 				// TODO: This is hacky, and ugly.
-				m.Returns = toType(c.Name)
+				m.Returns = resolved.TypeFromName(c.Name)
 			}
 			c.addMethod(&m)
 		}
@@ -516,7 +516,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, me
 		if parent == "stdClass" {
 			// All good.
 			// TODO: Really?
-			return toType(parent)
+			return resolved.TypeFromName(parent)
 		}
 		if template == nil {
 			template = c.Template

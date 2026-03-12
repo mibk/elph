@@ -969,7 +969,7 @@ func (p *parser) parseNewInstance() Expr {
 			return nil
 		}
 		name = p.fullyQualify(name)
-		return &NewInstance{Class: &ValueExpr{V: pos, Type: toType(name)}}
+		return &NewInstance{Class: &ValueExpr{V: pos, Type: resolved.TypeFromName(name)}}
 	}
 }
 
@@ -1036,7 +1036,7 @@ func (p *parser) tryParseStaticMemberAccess() Expr {
 		return p.parseUnset(x.V)
 	}
 
-	x.Type = toType(p.fullyQualify(id))
+	x.Type = resolved.TypeFromName(p.fullyQualify(id))
 	if p.got(token.DoubleColon) {
 		x := p.parseMemberAccess(x, true)
 		return p.parseChainAccess(x)
@@ -1073,7 +1073,7 @@ func (p *parser) parseAssert(pos token.Pos) (x Expr) {
 		return nil
 	}
 	id = p.fullyQualify(id)
-	return &AssertExpr{Fn: pos, Var: varName, Type: toType(id)}
+	return &AssertExpr{Fn: pos, Var: varName, Type: resolved.TypeFromName(id)}
 }
 
 func (p *parser) parseUnset(pos token.Pos) Expr {
@@ -1144,7 +1144,7 @@ func (p *parser) tryParseInstanceofGuard(s *Stmt) {
 		return
 	}
 	id = p.fullyQualify(id)
-	assert := &AssertExpr{Fn: v.Pos, Var: varName, Type: toType(id)}
+	assert := &AssertExpr{Fn: v.Pos, Var: varName, Type: resolved.TypeFromName(id)}
 
 	if negated {
 		// if (!$var instanceof Type) { ... } — narrow after the block.
