@@ -588,9 +588,9 @@ func (p *parser) parseEnum() *Class {
 	p.expect(token.Lbrace)
 
 	e := &Class{Name: enum, SourceFile: p.filename}
-	m := Function{Name: "tryFrom", Returns: &resolved.Basic{Name: "self"}, Static: true}
+	m := Function{Name: "tryFrom", Returns: resolved.Self, Static: true}
 	e.addMethod(&m)
-	m = Function{Name: "from", Returns: &resolved.Basic{Name: "self"}, Static: true}
+	m = Function{Name: "from", Returns: resolved.Self, Static: true}
 	e.addMethod(&m)
 	universe[enum] = e
 	p.nextClass = enum
@@ -658,7 +658,7 @@ func (p *parser) parseFunction(doc token.Token, static bool) {
 	}
 
 	if typ == nil {
-		typ = &resolved.Basic{Name: "mixed"}
+		typ = resolved.Mixed
 	}
 
 	c := universe[p.thisClass]
@@ -708,7 +708,7 @@ func (p *parser) parseParamList() {
 			continue
 		}
 		if typ == nil {
-			typ = &resolved.Basic{Name: "mixed"}
+			typ = resolved.Mixed
 		}
 		par := &Param{Pos: pos, Name: name, Type: typ}
 		p.params = append(p.params, par)
@@ -783,7 +783,7 @@ func (p *parser) parseProperty(doc token.Token, static, constant bool) {
 		}
 	}
 	if typ == nil {
-		typ = &resolved.Basic{Name: "mixed"}
+		typ = resolved.Mixed
 	}
 
 	c := universe[p.thisClass]
@@ -864,7 +864,7 @@ func (p *parser) parseForeachParam() *Param {
 		return nil
 	}
 	p.got(token.BitAnd) // ignore
-	param := Param{Pos: p.tok.Pos, Name: p.tok.Text, Type: &resolved.Basic{Name: "mixed"}}
+	param := Param{Pos: p.tok.Pos, Name: p.tok.Text, Type: resolved.Mixed}
 	if !p.got(token.Var) {
 		return nil
 	}
@@ -886,7 +886,7 @@ func (p *parser) parseCatch() *Param {
 	pos := p.tok.Pos
 	typ := p.tryParseType()
 	if typ == nil {
-		typ = &resolved.Basic{Name: "mixed"}
+		typ = resolved.Mixed
 	}
 	param := Param{Pos: pos, Type: typ}
 	name := p.tok.Text
@@ -914,7 +914,7 @@ func (p *parser) parseExpr() Expr {
 			v = p.parseExpr()
 		}
 		if isBinaryOp(p.tok.Type) {
-			v = &ValueExpr{V: v.Pos(), Type: &resolved.Basic{Name: "mixed"}}
+			v = &ValueExpr{V: v.Pos(), Type: resolved.Mixed}
 		}
 		e = &AssignExpr{e, v}
 	}
@@ -961,7 +961,7 @@ func (p *parser) parseNewInstance() Expr {
 		return &NewInstance{Class: c}
 	case p.got(token.Var):
 		// Just give up; we can't know the type.
-		return &NewInstance{Class: &ValueExpr{V: pos, Type: &resolved.Basic{Name: "mixed"}}}
+		return &NewInstance{Class: &ValueExpr{V: pos, Type: resolved.Mixed}}
 	default:
 		name := p.parseQualifiedName()
 		if name == "" {
@@ -998,7 +998,7 @@ func (p *parser) parseChainAccess(x Expr) Expr {
 		case p.got(token.Lparen):
 			// TODO: This is a callback call. Support it?
 			p.parseBlock(token.Lparen, false)
-			x = &ValueExpr{V: x.Pos(), Type: &resolved.Basic{Name: "mixed"}}
+			x = &ValueExpr{V: x.Pos(), Type: resolved.Mixed}
 		default:
 			return x
 		}
@@ -1017,7 +1017,7 @@ func (p *parser) parseMemberAccess(x Expr, static bool) Expr {
 	if p.got(token.Lparen) {
 		if p.got(token.Ellipsis) && p.got(token.Rparen) {
 			// TODO: Return concrete callback type?
-			return &ValueExpr{V: x.Pos(), Type: &resolved.Basic{Name: "callable"}}
+			return &ValueExpr{V: x.Pos(), Type: resolved.TypeFromName("callable")}
 		}
 		a.MethodCall = true
 		a.Args = p.parseBlock(token.Lparen, false)
@@ -1047,7 +1047,7 @@ func (p *parser) tryParseStaticMemberAccess() Expr {
 func (p *parser) parseAssert(pos token.Pos) (x Expr) {
 	defer func() {
 		if x == nil {
-			x = &ValueExpr{V: p.tok.Pos, Type: &resolved.Basic{Name: "mixed"}}
+			x = &ValueExpr{V: p.tok.Pos, Type: resolved.Mixed}
 			p.parseBlock(token.Lparen, false)
 		}
 	}()
@@ -1187,7 +1187,7 @@ func (p *parser) skipElseChain() {
 func (p *parser) resolveType(thisClass string, typ phptype.Type) resolved.Type {
 	switch typ := typ.(type) {
 	case nil:
-		return &resolved.Basic{Name: "mixed"}
+		return resolved.Mixed
 	case *phptype.Union:
 		var types []resolved.Type
 		for _, t := range typ.Types {
@@ -1207,7 +1207,7 @@ func (p *parser) resolveType(thisClass string, typ phptype.Type) resolved.Type {
 			types = append(types, rt)
 		}
 		if len(types) == 0 {
-			return &resolved.Basic{Name: "mixed"}
+			return resolved.Mixed
 		}
 		return resolved.NewUnion(types...)
 	case *phptype.Array:
@@ -1229,7 +1229,7 @@ func (p *parser) resolveType(thisClass string, typ phptype.Type) resolved.Type {
 			name = `\` + name
 		}
 		if strings.ToLower(name) == "null" {
-			return &resolved.Basic{Name: "null"}
+			return resolved.Null
 		}
 		if name == "self" {
 			return toType(thisClass)
@@ -1245,10 +1245,10 @@ func (p *parser) resolveType(thisClass string, typ phptype.Type) resolved.Type {
 	case *phptype.ArrayShape, *phptype.ObjectShape:
 		return &resolved.Named{Name: "stdClass"}
 	case *phptype.This:
-		return &resolved.Basic{Name: "static"}
+		return resolved.Static
 	case *phptype.Conditional:
 		return p.resolveType(thisClass, typ.True)
 	default:
-		return &resolved.Basic{Name: "mixed"}
+		return resolved.Mixed
 	}
 }

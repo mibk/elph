@@ -12,7 +12,7 @@ func (p *parser) tryParseType() resolved.Type {
 		return p.tryParseType() // nullable just unwraps
 	}
 	if p.got(token.Static) {
-		return &resolved.Basic{Name: "static"}
+		return resolved.Static
 	}
 	if p.tok.Type == token.Backslash || p.tok.Type == token.Ident {
 		name := p.parseQualifiedName()
@@ -79,7 +79,7 @@ func (p *parser) fullyQualify(id string) string {
 
 func toType(s string) resolved.Type {
 	if s == "" || s == "mixed" {
-		return &resolved.Basic{Name: "mixed"}
+		return resolved.Mixed
 	}
 	return resolved.TypeFromName(s)
 }

@@ -77,7 +77,7 @@ func (l *linter) check(x any) {
 			if !resolved.IsTypeVar(p.Type) {
 				if !l.existsType(p.Type) {
 					l.reportf(p.Pos, "property %s has non-existing type %s", p.Name, p.Type)
-					p.Type = &resolved.Basic{Name: "mixed"} // Do not report the error again.
+					p.Type = resolved.Mixed // Do not report the error again.
 				}
 			}
 			if p.DefaultValue != nil {
@@ -88,7 +88,7 @@ func (l *linter) check(x any) {
 			if !resolved.IsTypeVar(p.Type) {
 				if !l.existsType(p.Type) {
 					l.reportf(p.Pos, "constant %s has non-existing type %s", p.Name, p.Type)
-					p.Type = &resolved.Basic{Name: "mixed"} // Do not report the error again.
+					p.Type = resolved.Mixed // Do not report the error again.
 				}
 			}
 			if p.DefaultValue != nil {
@@ -99,7 +99,7 @@ func (l *linter) check(x any) {
 			if !resolved.IsTypeVar(m.Returns) {
 				if !l.existsType(m.Returns) {
 					l.reportf(m.Pos, "method %s returns non-existing type %s", m.Name, m.Returns)
-					m.Returns = &resolved.Basic{Name: "mixed"} // Do not report the error again.
+					m.Returns = resolved.Mixed // Do not report the error again.
 				}
 			}
 		}
@@ -245,7 +245,7 @@ func (l *linter) findVarType(a *AssignExpr) (typ resolved.Type, checked bool) {
 		}
 		// If unknown, hope for the best.
 		if typ == nil {
-			typ = &resolved.Basic{Name: "mixed"}
+			typ = resolved.Mixed
 		}
 	case *MemberAccess:
 		typ = l.checkMemberAccess(val)
@@ -254,12 +254,12 @@ func (l *linter) findVarType(a *AssignExpr) (typ resolved.Type, checked bool) {
 		typ, checked = l.findVarType(val)
 	case *IndexExpr:
 		// TODO: Fix this.
-		typ = &resolved.Basic{Name: "mixed"}
+		typ = resolved.Mixed
 	}
 
 	if typ.String() == "void" {
 		l.reportf(a.Right.Pos(), "cannot assign '%s'", typ)
-		typ = &resolved.Basic{Name: "mixed"}
+		typ = resolved.Mixed
 	}
 
 	if v, ok := a.Left.(*VarExpr); ok {
@@ -270,7 +270,7 @@ func (l *linter) findVarType(a *AssignExpr) (typ resolved.Type, checked bool) {
 }
 
 func (l *linter) findNewInstanceType(x any) resolved.Type {
-	mixed := &resolved.Basic{Name: "mixed"}
+	mixed := resolved.Mixed
 	switch x := x.(type) {
 	default:
 		panic(fmt.Sprintf("unsupported expr type: %T", x))
@@ -297,7 +297,7 @@ func (l *linter) findNewInstanceType(x any) resolved.Type {
 }
 
 func (l *linter) resolveExprType(x any) resolved.Type {
-	mixed := &resolved.Basic{Name: "mixed"}
+	mixed := resolved.Mixed
 	switch x := x.(type) {
 	case *VarExpr:
 		if t := l.scope[x.Name]; t != nil {
@@ -311,7 +311,7 @@ func (l *linter) resolveExprType(x any) resolved.Type {
 }
 
 func (l *linter) checkMemberAccess(a *MemberAccess) resolved.Type {
-	mixed := &resolved.Basic{Name: "mixed"}
+	mixed := resolved.Mixed
 	var x resolved.Type
 	switch r := a.Rcvr.(type) {
 	default:
@@ -393,7 +393,7 @@ func (l *linter) checkMemberAccess(a *MemberAccess) resolved.Type {
 }
 
 func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, member string, methodCall, static bool, template resolved.Type) resolved.Type {
-	mixed := &resolved.Basic{Name: "mixed"}
+	mixed := resolved.Mixed
 	// TODO: Different error if entity exists but is not a class?
 	c, ok := universe[class].(*Class)
 	if !ok {
@@ -467,7 +467,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, me
 	} else if !isVar && static {
 		if member == "class" {
 			// PHP magic constant.
-			return &resolved.Basic{Name: "string"}
+			return resolved.String
 		}
 		memberKind = "const"
 		if c := c.Constants[member]; c != nil {
@@ -531,7 +531,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, me
 		l.reportf(pos, "class %s %v::%v does not exist", memberKind, displayClass, member)
 		return mixed
 	}
-	if memberTyp.String() == "static" {
+	if memberTyp == resolved.Static {
 		// TODO: Doesn't feel like the right place for this.
 		typ := toType(originalClass)
 		if template != nil {

@@ -3,6 +3,15 @@ package resolved
 
 import "strings"
 
+// Sentinel values for commonly used basic types.
+var (
+	Mixed  = &Basic{Name: "mixed"}
+	Null   = &Basic{Name: "null"}
+	Self   = &Basic{Name: "self"}
+	Static = &Basic{Name: "static"}
+	String = &Basic{Name: "string"}
+)
+
 // Type represents a resolved PHP type.
 type Type interface {
 	typ()
@@ -92,6 +101,18 @@ func IsBasicName(name string) bool {
 // TypeFromName returns a Basic for built-in PHP type names,
 // or a Named for everything else.
 func TypeFromName(name string) Type {
+	switch name {
+	case "mixed":
+		return Mixed
+	case "null":
+		return Null
+	case "self":
+		return Self
+	case "static":
+		return Static
+	case "string":
+		return String
+	}
 	if IsBasicName(name) {
 		return &Basic{Name: name}
 	}
@@ -125,7 +146,7 @@ func SubtractType(typ Type, excluded Type) Type {
 	u, ok := typ.(*Union)
 	if !ok {
 		if typ.String() == excluded.String() {
-			return &Basic{Name: "mixed"}
+			return Mixed
 		}
 		return typ
 	}
@@ -138,7 +159,7 @@ func SubtractType(typ Type, excluded Type) Type {
 	}
 	switch len(remaining) {
 	case 0:
-		return &Basic{Name: "mixed"}
+		return Mixed
 	case 1:
 		return remaining[0]
 	default:
