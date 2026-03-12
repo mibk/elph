@@ -1218,8 +1218,17 @@ func (p *parser) resolveType(thisClass Ident, typ phptype.Type) resolved.Type {
 		var types []resolved.Type
 		for _, t := range typ.Types {
 			rt := p.resolveType(thisClass, t)
-			if b, ok := rt.(*resolved.Basic); ok && strings.ToLower(b.Name) == "null" {
-				continue
+			// If any member is stdClass or mixed, collapse to that.
+			if n, ok := rt.(*resolved.Named); ok && n.Name == "stdClass" {
+				return rt
+			}
+			if b, ok := rt.(*resolved.Basic); ok {
+				if b.Name == "mixed" {
+					return rt
+				}
+				if strings.ToLower(b.Name) == "null" {
+					continue
+				}
 			}
 			types = append(types, rt)
 		}
