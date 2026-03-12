@@ -60,7 +60,7 @@ func (p *parser) fullyQualify(id string) string {
 	if resolved.IsBasicName(id) {
 		return id
 	}
-	if p.templateParam != "" && id == p.templateParam {
+	if p.templateParam != nil && id == p.templateParam.Name {
 		return id
 	}
 	if ns, rest, ok := strings.Cut(id, `\`); ok {

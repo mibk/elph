@@ -42,7 +42,7 @@ type Stmt struct {
 
 type Class struct {
 	Name          string
-	TemplateParam string // declared via @template (e.g. "T", "TItem")
+	TemplateParam *resolved.TypeVar // declared via @template, or nil
 	TemplateBound resolved.Type // bound from @template T of X, or nil
 	Template      resolved.Type // concrete type from @extends, or nil
 	Extends       string // or empty

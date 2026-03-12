@@ -490,7 +490,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, me
 	}
 
 	// Hack for generics.
-	if c.TemplateParam != "" && memberTyp != nil {
+	if c.TemplateParam != nil && memberTyp != nil {
 		if g, ok := memberTyp.(*resolved.Generic); ok {
 			if resolved.IsTypeVar(g.Param) {
 				if template != nil {

@@ -34,7 +34,7 @@ type parser struct {
 	use           map[string]string
 	thisClass     string
 	nextClass     string
-	templateParam string
+	templateParam *resolved.TypeVar
 	params        []*Param
 	ignoreLines   map[int]string
 	earlyExit     bool
@@ -457,7 +457,7 @@ func (p *parser) parseClass() *Class {
 func (p *parser) extractTemplateParam(c *Class, b *phpdoc.Block) {
 	for _, line := range b.Lines {
 		if tag, ok := line.(*phpdoc.TemplateTag); ok {
-			c.TemplateParam = tag.Param
+			c.TemplateParam = &resolved.TypeVar{Name: tag.Param}
 			if tag.Bound != nil {
 				c.TemplateBound = p.resolveType(c.Name, tag.Bound)
 			}
@@ -1234,8 +1234,8 @@ func (p *parser) resolveType(thisClass string, typ phptype.Type) resolved.Type {
 		if name == "self" {
 			return toType(thisClass)
 		}
-		if c, ok := universe[thisClass].(*Class); ok && c.TemplateParam != "" && name == c.TemplateParam {
-			return &resolved.TypeVar{Name: name}
+		if c, ok := universe[thisClass].(*Class); ok && c.TemplateParam != nil && name == c.TemplateParam.Name {
+			return c.TemplateParam
 		}
 		if resolved.IsBasicName(name) {
 			return resolved.TypeFromName(name)
