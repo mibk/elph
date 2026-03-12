@@ -66,6 +66,12 @@ type TypeVar struct {
 func (*TypeVar) typ()             {}
 func (v *TypeVar) String() string { return v.Name }
 
+// IsTypeVar reports whether typ is a TypeVar (template parameter).
+func IsTypeVar(typ Type) bool {
+	_, ok := typ.(*TypeVar)
+	return ok
+}
+
 // IsBasic reports whether typ is a Basic type.
 func IsBasic(typ Type) bool {
 	_, ok := typ.(*Basic)

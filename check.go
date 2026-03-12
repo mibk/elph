@@ -74,7 +74,7 @@ func (l *linter) check(x any) {
 		backup := l.thisClass
 		l.thisClass = x
 		for _, p := range x.Properties {
-			if _, isTV := p.Type.(*resolved.TypeVar); !isTV {
+			if !resolved.IsTypeVar(p.Type) {
 				if !l.existsType(p.Type) {
 					l.reportf(p.Pos, "property %s has non-existing type %s", p.Name, p.Type)
 					p.Type = &resolved.Basic{Name: "mixed"} // Do not report the error again.
@@ -85,7 +85,7 @@ func (l *linter) check(x any) {
 			}
 		}
 		for _, p := range x.Constants {
-			if _, isTV := p.Type.(*resolved.TypeVar); !isTV {
+			if !resolved.IsTypeVar(p.Type) {
 				if !l.existsType(p.Type) {
 					l.reportf(p.Pos, "constant %s has non-existing type %s", p.Name, p.Type)
 					p.Type = &resolved.Basic{Name: "mixed"} // Do not report the error again.
@@ -96,7 +96,7 @@ func (l *linter) check(x any) {
 			}
 		}
 		for _, m := range x.Methods {
-			if _, isTV := m.Returns.(*resolved.TypeVar); !isTV {
+			if !resolved.IsTypeVar(m.Returns) {
 				if !l.existsType(m.Returns) {
 					l.reportf(m.Pos, "method %s returns non-existing type %s", m.Name, m.Returns)
 					m.Returns = &resolved.Basic{Name: "mixed"} // Do not report the error again.
@@ -139,7 +139,7 @@ func (l *linter) check(x any) {
 		}
 	case *Param:
 		l.scope[x.Name] = x.Type
-		if _, isTV := x.Type.(*resolved.TypeVar); !isTV {
+		if !resolved.IsTypeVar(x.Type) {
 			l.checkType(x.Pos, x.Type, "class")
 		}
 		if x.DefaultValue != nil {
@@ -358,7 +358,7 @@ func (l *linter) checkMemberAccess(a *MemberAccess) resolved.Type {
 		return mixed
 	}
 
-	if _, ok := x.(*resolved.TypeVar); ok {
+	if resolved.IsTypeVar(x) {
 		if l.thisClass.TemplateBound != nil {
 			x = l.thisClass.TemplateBound
 		} else {
@@ -492,7 +492,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, me
 	// Hack for generics.
 	if c.TemplateParam != "" && memberTyp != nil {
 		if g, ok := memberTyp.(*resolved.Generic); ok {
-			if _, isTV := g.Param.(*resolved.TypeVar); isTV {
+			if resolved.IsTypeVar(g.Param) {
 				if template != nil {
 					memberTyp = &resolved.Generic{Base: g.Base, Param: template}
 				} else {
@@ -502,7 +502,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, me
 		}
 	}
 
-	if _, isTV := memberTyp.(*resolved.TypeVar); isTV && template != nil {
+	if resolved.IsTypeVar(memberTyp) && template != nil {
 		memberTyp = template
 	}
 
