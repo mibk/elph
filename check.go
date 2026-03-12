@@ -74,7 +74,7 @@ func (l *linter) check(x any) {
 		backup := l.thisClass
 		l.thisClass = x
 		for _, p := range x.Properties {
-			if x.TemplateParam == "" || p.Type.String() != x.TemplateParam {
+			if _, isTV := p.Type.(*resolved.TypeVar); !isTV {
 				if !l.existsType(p.Type) {
 					l.reportf(p.Pos, "property %s has non-existing type %s", p.Name, p.Type)
 					p.Type = &resolved.Basic{Name: "mixed"} // Do not report the error again.
@@ -85,7 +85,7 @@ func (l *linter) check(x any) {
 			}
 		}
 		for _, p := range x.Constants {
-			if x.TemplateParam == "" || p.Type.String() != x.TemplateParam {
+			if _, isTV := p.Type.(*resolved.TypeVar); !isTV {
 				if !l.existsType(p.Type) {
 					l.reportf(p.Pos, "constant %s has non-existing type %s", p.Name, p.Type)
 					p.Type = &resolved.Basic{Name: "mixed"} // Do not report the error again.
@@ -96,7 +96,7 @@ func (l *linter) check(x any) {
 			}
 		}
 		for _, m := range x.Methods {
-			if x.TemplateParam == "" || m.Returns.String() != x.TemplateParam {
+			if _, isTV := m.Returns.(*resolved.TypeVar); !isTV {
 				if !l.existsType(m.Returns) {
 					l.reportf(m.Pos, "method %s returns non-existing type %s", m.Name, m.Returns)
 					m.Returns = &resolved.Basic{Name: "mixed"} // Do not report the error again.
@@ -139,7 +139,7 @@ func (l *linter) check(x any) {
 		}
 	case *Param:
 		l.scope[x.Name] = x.Type
-		if l.thisClass == nil || l.thisClass.TemplateParam == "" || x.Type.String() != l.thisClass.TemplateParam {
+		if _, isTV := x.Type.(*resolved.TypeVar); !isTV {
 			l.checkType(x.Pos, x.Type, "class")
 		}
 		if x.DefaultValue != nil {
@@ -358,15 +358,14 @@ func (l *linter) checkMemberAccess(a *MemberAccess) resolved.Type {
 		return mixed
 	}
 
-	s := x.String()
-	if l.thisClass != nil && l.thisClass.TemplateParam != "" && s == l.thisClass.TemplateParam {
+	if _, ok := x.(*resolved.TypeVar); ok {
 		if l.thisClass.TemplateBound != nil {
 			x = l.thisClass.TemplateBound
-			s = x.String()
 		} else {
 			return mixed
 		}
 	}
+	s := x.String()
 
 	if s == "self" || s == "parent" {
 		// TODO: This is definitely a hack. Fix it.
@@ -493,7 +492,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, me
 	// Hack for generics.
 	if c.TemplateParam != "" && memberTyp != nil {
 		if g, ok := memberTyp.(*resolved.Generic); ok {
-			if g.Param.String() == c.TemplateParam {
+			if _, isTV := g.Param.(*resolved.TypeVar); isTV {
 				if template != nil {
 					memberTyp = &resolved.Generic{Base: g.Base, Param: template}
 				} else {
@@ -503,7 +502,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, me
 		}
 	}
 
-	if c.TemplateParam != "" && memberTyp != nil && memberTyp.String() == c.TemplateParam && template != nil {
+	if _, isTV := memberTyp.(*resolved.TypeVar); isTV && template != nil {
 		memberTyp = template
 	}
 
