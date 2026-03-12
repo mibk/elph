@@ -89,6 +89,15 @@ func IsBasicName(name string) bool {
 	return false
 }
 
+// TypeFromName returns a Basic for built-in PHP type names,
+// or a Named for everything else.
+func TypeFromName(name string) Type {
+	if IsBasicName(name) {
+		return &Basic{Name: name}
+	}
+	return &Named{Name: name}
+}
+
 // ArrayElem returns the element type if typ is an array.
 // For unions, it collects element types from all array members.
 func ArrayElem(typ Type) (Type, bool) {

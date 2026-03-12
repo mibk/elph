@@ -1237,10 +1237,10 @@ func (p *parser) resolveType(thisClass string, typ phptype.Type) resolved.Type {
 		if c, ok := universe[thisClass].(*Class); ok && c.TemplateParam != "" && name == c.TemplateParam {
 			return &resolved.TypeVar{Name: name}
 		}
-		name = p.fullyQualify(name)
 		if resolved.IsBasicName(name) {
-			return &resolved.Basic{Name: name}
+			return resolved.TypeFromName(name)
 		}
+		name = p.fullyQualify(name)
 		return &resolved.Named{Name: name}
 	case *phptype.ArrayShape, *phptype.ObjectShape:
 		return &resolved.Named{Name: "stdClass"}

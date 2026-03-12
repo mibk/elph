@@ -15,15 +15,19 @@ func (p *parser) tryParseType() resolved.Type {
 		return &resolved.Basic{Name: "static"}
 	}
 	if p.tok.Type == token.Backslash || p.tok.Type == token.Ident {
-		name := p.fullyQualify(p.parseQualifiedName())
-		if name == "self" {
-			name = p.thisClass
-		}
+		name := p.parseQualifiedName()
 		if p.got(token.BitOr) {
 			// TODO: Support union types
 			p.tryParseType() // just ignore
 		}
-		return toType(name)
+		if name == "self" {
+			return toType(p.thisClass)
+		}
+		if resolved.IsBasicName(name) {
+			return resolved.TypeFromName(name)
+		}
+		name = p.fullyQualify(name)
+		return &resolved.Named{Name: name}
 	}
 	return nil
 }
@@ -77,10 +81,7 @@ func toType(s string) resolved.Type {
 	if s == "" || s == "mixed" {
 		return &resolved.Basic{Name: "mixed"}
 	}
-	if resolved.IsBasicName(s) {
-		return &resolved.Basic{Name: s}
-	}
-	return &resolved.Named{Name: s}
+	return resolved.TypeFromName(s)
 }
 
 // identFromType extracts the class name and optional generic template
