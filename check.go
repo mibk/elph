@@ -360,8 +360,8 @@ func (l *linter) checkMemberAccess(a *MemberAccess) resolved.Type {
 
 	s := x.String()
 	if l.thisClass != nil && l.thisClass.TemplateParam != "" && s == l.thisClass.TemplateParam {
-		if l.thisClass.TemplateBound != "" {
-			x = toType(l.thisClass.TemplateBound)
+		if l.thisClass.TemplateBound != nil {
+			x = l.thisClass.TemplateBound
 			s = x.String()
 		} else {
 			return mixed
@@ -393,7 +393,7 @@ func (l *linter) checkMemberAccess(a *MemberAccess) resolved.Type {
 	return l.checkClassMember(a.NamePos, class, class, a.Name, a.MethodCall, a.Static, template)
 }
 
-func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, member string, methodCall, static bool, template string) resolved.Type {
+func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, member string, methodCall, static bool, template resolved.Type) resolved.Type {
 	mixed := &resolved.Basic{Name: "mixed"}
 	// TODO: Different error if entity exists but is not a class?
 	c, ok := universe[class].(*Class)
@@ -494,8 +494,8 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, me
 	if c.TemplateParam != "" && memberTyp != nil {
 		if g, ok := memberTyp.(*resolved.Generic); ok {
 			if g.Param.String() == c.TemplateParam {
-				if template != "" {
-					memberTyp = &resolved.Generic{Base: g.Base, Param: toType(template)}
+				if template != nil {
+					memberTyp = &resolved.Generic{Base: g.Base, Param: template}
 				} else {
 					memberTyp = g.Base
 				}
@@ -503,8 +503,8 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, me
 		}
 	}
 
-	if c.TemplateParam != "" && memberTyp != nil && memberTyp.String() == c.TemplateParam && template != "" {
-		memberTyp = toType(template)
+	if c.TemplateParam != "" && memberTyp != nil && memberTyp.String() == c.TemplateParam && template != nil {
+		memberTyp = template
 	}
 
 	if member, isVar := strings.CutPrefix(member, "$"); memberTyp == nil && static && !isVar {
@@ -519,13 +519,15 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, me
 			// TODO: Really?
 			return toType(parent)
 		}
-		template = cmp.Or(template, c.Template)
+		if template == nil {
+			template = c.Template
+		}
 		return l.checkClassMember(pos, originalClass, parent, member, methodCall, static, template)
 	}
 	if memberTyp == nil {
 		displayClass := originalClass
-		if template != "" {
-			displayClass += "<" + template + ">"
+		if template != nil {
+			displayClass += "<" + template.String() + ">"
 		}
 		l.reportf(pos, "class %s %v::%v does not exist", memberKind, displayClass, member)
 		return mixed
@@ -533,8 +535,8 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, me
 	if memberTyp.String() == "static" {
 		// TODO: Doesn't feel like the right place for this.
 		typ := toType(originalClass)
-		if template != "" {
-			return &resolved.Generic{Base: typ, Param: toType(template)}
+		if template != nil {
+			return &resolved.Generic{Base: typ, Param: template}
 		}
 		return typ
 	}

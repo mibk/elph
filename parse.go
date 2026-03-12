@@ -459,7 +459,7 @@ func (p *parser) extractTemplateParam(c *Class, b *phpdoc.Block) {
 		if tag, ok := line.(*phpdoc.TemplateTag); ok {
 			c.TemplateParam = tag.Param
 			if tag.Bound != nil {
-				c.TemplateBound = p.resolveType(c.Name, tag.Bound).String()
+				c.TemplateBound = p.resolveType(c.Name, tag.Bound)
 			}
 		}
 	}
@@ -492,7 +492,7 @@ func (p *parser) handleClassDoc(c *Class, b *phpdoc.Block, pos token.Pos) {
 			c.replaceMethod(m)
 		case *phpdoc.ExtendsTag:
 			if g, ok := tag.Class.(*phptype.Generic); ok && len(g.TypeParams) == 1 {
-				c.Template = p.resolveType(p.thisClass, g.TypeParams[0]).String()
+				c.Template = p.resolveType(p.thisClass, g.TypeParams[0])
 			}
 		}
 	}

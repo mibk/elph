@@ -43,8 +43,8 @@ type Stmt struct {
 type Class struct {
 	Name          string
 	TemplateParam string // declared via @template (e.g. "T", "TItem")
-	TemplateBound string // bound from @template T of X, or empty
-	Template      string // concrete type from @extends, or empty
+	TemplateBound resolved.Type // bound from @template T of X, or nil
+	Template      resolved.Type // concrete type from @extends, or nil
 	Extends       string // or empty
 	Implements    []string
 	Traits        []string

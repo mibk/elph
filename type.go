@@ -85,9 +85,9 @@ func toType(s string) resolved.Type {
 
 // identFromType extracts the class name and optional generic template
 // parameter from a resolved.Type, for passing into checkClassMember.
-func identFromType(typ resolved.Type) (class, template string) {
+func identFromType(typ resolved.Type) (class string, template resolved.Type) {
 	if g, ok := typ.(*resolved.Generic); ok {
-		return g.Base.String(), g.Param.String()
+		return g.Base.String(), g.Param
 	}
-	return typ.String(), ""
+	return typ.String(), nil
 }
