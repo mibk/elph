@@ -34,13 +34,6 @@ func (p *parser) tryParseType() phptype.Type {
 
 type Ident string
 
-func (id Ident) String() string {
-	if base, typ, ok := strings.Cut(string(id), "<>"); ok {
-		return base + "<" + typ + ">"
-	}
-	return string(id)
-}
-
 func (p *parser) parseQualifiedName() Ident {
 	var id strings.Builder
 	if p.got(token.Backslash) {
@@ -91,60 +84,22 @@ func isBasicType(typ Ident) bool {
 	return resolved.IsBasicName(string(typ))
 }
 
-// toType converts a string-encoded Ident into a structured resolved.Type.
 func toType(id Ident) resolved.Type {
 	s := string(id)
 	if s == "" || s == "mixed" {
 		return &resolved.Basic{Name: "mixed"}
 	}
-	// Union
-	if strings.Contains(s, "|") {
-		parts := strings.Split(s, "|")
-		types := make([]resolved.Type, len(parts))
-		for i, p := range parts {
-			types[i] = toType(Ident(p))
-		}
-		return resolved.NewUnion(types...)
-	}
-	// Array
-	if elem, ok := strings.CutPrefix(s, "[]"); ok {
-		return &resolved.Array{Elem: toType(Ident(elem))}
-	}
-	// Generic
-	if base, param, ok := strings.Cut(s, "<>"); ok {
-		return &resolved.Generic{
-			Base:  toType(Ident(base)),
-			Param: toType(Ident(param)),
-		}
-	}
-	// Basic
 	if resolved.IsBasicName(s) {
 		return &resolved.Basic{Name: s}
 	}
-	// Named class
 	return &resolved.Named{Name: s}
 }
 
-// toIdent converts a structured resolved.Type back to a string-encoded Ident.
-func toIdent(typ resolved.Type) Ident {
-	switch t := typ.(type) {
-	case *resolved.Named:
-		return Ident(t.Name)
-	case *resolved.Basic:
-		return Ident(t.Name)
-	case *resolved.TypeVar:
-		return Ident(t.Name)
-	case *resolved.Union:
-		parts := make([]string, len(t.Types))
-		for i, m := range t.Types {
-			parts[i] = string(toIdent(m))
-		}
-		return Ident(strings.Join(parts, "|"))
-	case *resolved.Array:
-		return "[]" + toIdent(t.Elem)
-	case *resolved.Generic:
-		return toIdent(t.Base) + "<>" + toIdent(t.Param)
-	default:
-		return "mixed"
+// identFromType extracts the class name and optional generic template
+// parameter from a resolved.Type, for passing into checkClassMember.
+func identFromType(typ resolved.Type) (class, template Ident) {
+	if g, ok := typ.(*resolved.Generic); ok {
+		return Ident(g.Base.String()), Ident(g.Param.String())
 	}
+	return Ident(typ.String()), ""
 }

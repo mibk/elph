@@ -349,8 +349,8 @@ func (l *linter) checkMemberAccess(a *MemberAccess) resolved.Type {
 			if _, ok := m.(*resolved.Array); ok {
 				continue
 			}
-			name := toIdent(m)
-			result := l.checkClassMember(a.NamePos, name, name, a.Name, a.MethodCall, a.Static, "")
+			class, template := identFromType(m)
+			result := l.checkClassMember(a.NamePos, class, class, a.Name, a.MethodCall, a.Static, template)
 			if result.String() != "mixed" {
 				return result
 			}
@@ -389,16 +389,12 @@ func (l *linter) checkMemberAccess(a *MemberAccess) resolved.Type {
 		// Member access on an array is allowed (e.g., $arr->count()).
 		return mixed
 	}
-	id := toIdent(x)
-	return l.checkClassMember(a.NamePos, id, id, a.Name, a.MethodCall, a.Static, "")
+	class, template := identFromType(x)
+	return l.checkClassMember(a.NamePos, class, class, a.Name, a.MethodCall, a.Static, template)
 }
 
 func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, member string, methodCall, static bool, template Ident) resolved.Type {
 	mixed := &resolved.Basic{Name: "mixed"}
-	if base, t, ok := strings.Cut(string(class), "<>"); ok {
-		class, template = Ident(base), Ident(t)
-	}
-
 	// TODO: Different error if entity exists but is not a class?
 	c, ok := universe[class].(*Class)
 	if !ok {
@@ -527,12 +523,20 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class Ident, mem
 		return l.checkClassMember(pos, originalClass, parent, member, methodCall, static, template)
 	}
 	if memberTyp == nil {
-		l.reportf(pos, "class %s %v::%v does not exist", memberKind, originalClass, member)
+		displayClass := string(originalClass)
+		if template != "" {
+			displayClass += "<" + string(template) + ">"
+		}
+		l.reportf(pos, "class %s %v::%v does not exist", memberKind, displayClass, member)
 		return mixed
 	}
 	if memberTyp.String() == "static" {
 		// TODO: Doesn't feel like the right place for this.
-		return toType(originalClass)
+		typ := toType(originalClass)
+		if template != "" {
+			return &resolved.Generic{Base: typ, Param: toType(template)}
+		}
+		return typ
 	}
 	return memberTyp
 }
