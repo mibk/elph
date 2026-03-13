@@ -23,7 +23,7 @@ func (p *parser) tryParseType() resolved.Type {
 		if name == "self" {
 			return toType(p.thisClass)
 		}
-		if resolved.IsBasicName(name) {
+		if resolved.IsBuiltinName(name) {
 			return resolved.TypeFromName(name)
 		}
 		name = p.fullyQualify(name)
@@ -57,7 +57,7 @@ func (p *parser) fullyQualify(id string) string {
 	if strings.HasPrefix(id, `\`) {
 		return id[1:]
 	}
-	if resolved.IsBasicName(id) {
+	if resolved.IsBuiltinName(id) {
 		return id
 	}
 	if p.templateParam != nil && id == p.templateParam.Name {

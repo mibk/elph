@@ -1235,7 +1235,7 @@ func (p *parser) resolveType(thisClass string, typ phptype.Type) resolved.Type {
 		if c, ok := universe[thisClass].(*Class); ok && c.TemplateParam != nil && name == c.TemplateParam.Name {
 			return c.TemplateParam
 		}
-		if resolved.IsBasicName(name) {
+		if resolved.IsBuiltinName(name) {
 			return resolved.TypeFromName(name)
 		}
 		name = p.fullyQualify(name)

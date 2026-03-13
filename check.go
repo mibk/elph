@@ -187,7 +187,7 @@ func (l *linter) check(x any) {
 
 func (l *linter) knownType(typ resolved.Type) bool {
 	switch t := typ.(type) {
-	case *resolved.Basic:
+	case *resolved.Builtin:
 		return true
 	case *resolved.Named:
 		if t.Name == "stdClass" || strings.Contains(t.Name, "-") {
@@ -342,7 +342,7 @@ func (l *linter) checkMemberAccess(a *MemberAccess) resolved.Type {
 
 	if u, ok := x.(*resolved.Union); ok {
 		for _, m := range u.Types {
-			if resolved.IsBasic(m) {
+			if resolved.IsBuiltin(m) {
 				continue
 			}
 			if _, ok := m.(*resolved.Array); ok {
@@ -367,7 +367,7 @@ func (l *linter) checkMemberAccess(a *MemberAccess) resolved.Type {
 	if x == resolved.Self || x.String() == "parent" {
 		// TODO: This is definitely a hack. Fix it.
 		x = resolved.TypeFromName(cmp.Or(l.thisClass, l.nextClass).Name)
-	} else if resolved.IsBasic(x) {
+	} else if resolved.IsBuiltin(x) {
 		if x == resolved.Mixed || x.String() == "object" {
 			// All member access allowed on mixed.
 			return x

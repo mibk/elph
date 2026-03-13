@@ -3,37 +3,37 @@ package resolved
 
 import "strings"
 
-// Sentinel values for commonly used basic types.
+// Sentinel values for commonly used built-in types.
 var (
 	// Special types.
-	Mixed = &Basic{Name: "mixed"}
-	Void  = &Basic{Name: "void"}
-	Never = &Basic{Name: "never"}
-	Null  = &Basic{Name: "null"}
+	Mixed = &Builtin{Name: "mixed"}
+	Void  = &Builtin{Name: "void"}
+	Never = &Builtin{Name: "never"}
+	Null  = &Builtin{Name: "null"}
 
 	// Self-referential types.
-	Self   = &Basic{Name: "self"}
-	Static = &Basic{Name: "static"}
-	Parent = &Basic{Name: "parent"}
+	Self   = &Builtin{Name: "self"}
+	Static = &Builtin{Name: "static"}
+	Parent = &Builtin{Name: "parent"}
 
 	// Scalar types.
-	String = &Basic{Name: "string"}
-	Int    = &Basic{Name: "int"}
-	Float  = &Basic{Name: "float"}
-	Bool   = &Basic{Name: "bool"}
-	True   = &Basic{Name: "true"}
-	False  = &Basic{Name: "false"}
+	String = &Builtin{Name: "string"}
+	Int    = &Builtin{Name: "int"}
+	Float  = &Builtin{Name: "float"}
+	Bool   = &Builtin{Name: "bool"}
+	True   = &Builtin{Name: "true"}
+	False  = &Builtin{Name: "false"}
 
 	// Compound types.
-	Object     = &Basic{Name: "object"}
-	BasicArray = &Basic{Name: "array"}
-	Iterable   = &Basic{Name: "iterable"}
-	Callable   = &Basic{Name: "callable"}
-	Resource   = &Basic{Name: "resource"}
+	Object       = &Builtin{Name: "object"}
+	BuiltinArray = &Builtin{Name: "array"}
+	Iterable     = &Builtin{Name: "iterable"}
+	Callable     = &Builtin{Name: "callable"}
+	Resource     = &Builtin{Name: "resource"}
 )
 
-// basicTypes maps built-in PHP type names to their sentinel values.
-var basicTypes = map[string]*Basic{
+// builtinTypes maps built-in PHP type names to their sentinel values.
+var builtinTypes = map[string]*Builtin{
 	// Special types.
 	"mixed": Mixed,
 	"void":  Void,
@@ -55,10 +55,15 @@ var basicTypes = map[string]*Basic{
 
 	// Compound types.
 	"object":   Object,
-	"array":    BasicArray,
+	"array":    BuiltinArray,
 	"iterable": Iterable,
 	"callable": Callable,
 	"resource": Resource,
+
+	// Aliases.
+	"double":  Float,
+	"integer": Int,
+	"boolean": Bool,
 }
 
 // Type represents a resolved PHP type.
@@ -75,13 +80,13 @@ type Named struct {
 func (*Named) typ()             {}
 func (n *Named) String() string { return n.Name }
 
-// Basic is a built-in PHP type like "mixed", "string", "int", etc.
-type Basic struct {
+// Builtin is a built-in PHP type like "mixed", "string", "int", etc.
+type Builtin struct {
 	Name string
 }
 
-func (*Basic) typ()             {}
-func (b *Basic) String() string { return b.Name }
+func (*Builtin) typ()             {}
+func (b *Builtin) String() string { return b.Name }
 
 // Union is a union of two or more types.
 type Union struct {
@@ -130,22 +135,22 @@ func IsTypeVar(typ Type) bool {
 	return ok
 }
 
-// IsBasic reports whether typ is a Basic type.
-func IsBasic(typ Type) bool {
-	_, ok := typ.(*Basic)
+// IsBuiltin reports whether typ is a Builtin type.
+func IsBuiltin(typ Type) bool {
+	_, ok := typ.(*Builtin)
 	return ok
 }
 
-// IsBasicName reports whether name is a built-in PHP type name.
-func IsBasicName(name string) bool {
-	_, ok := basicTypes[name]
+// IsBuiltinName reports whether name is a built-in PHP type name.
+func IsBuiltinName(name string) bool {
+	_, ok := builtinTypes[name]
 	return ok
 }
 
-// TypeFromName returns a Basic for built-in PHP type names,
+// TypeFromName returns a Builtin for built-in PHP type names,
 // or a Named for everything else.
 func TypeFromName(name string) Type {
-	if b, ok := basicTypes[name]; ok {
+	if b, ok := builtinTypes[name]; ok {
 		return b
 	}
 	if n, ok := namedCache[name]; ok {
