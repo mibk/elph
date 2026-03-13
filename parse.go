@@ -757,25 +757,25 @@ func (p *parser) parseProperty(doc token.Token, static, constant bool) {
 		p.tok.Type = token.Ident
 	}
 
-	var def token.Token
+	var nameTok token.Token
 	var typ resolved.Type
 	if constant {
 		saved := p.tok
 		typ = p.tryParseType()
 		if typ != nil && p.tok.Type == token.Ident {
 			// Typed constant (e.g., const int FOO).
-			def = p.tok
+			nameTok = p.tok
 			if !p.got(token.Ident) {
 				return
 			}
 		} else {
 			// Untyped constant; tryParseType consumed the name.
-			def = saved
+			nameTok = saved
 			typ = nil
 		}
 	} else {
 		typ = p.tryParseType()
-		def = p.tok
+		nameTok = p.tok
 		if !p.got(token.Var) {
 			return
 		}
@@ -805,15 +805,15 @@ func (p *parser) parseProperty(doc token.Token, static, constant bool) {
 	}
 
 	for {
-		name := strings.TrimPrefix(def.Text, "$")
-		m := Property{Pos: def.Pos, Name: name, Type: typ, Static: static}
+		name := strings.TrimPrefix(nameTok.Text, "$")
+		m := Property{Pos: nameTok.Pos, Name: name, Type: typ, Static: static}
 		if constant {
 			if err := c.addConstant(&m); err != nil {
-				fmt.Fprintf(p.warnOut, "%s:%s: [WARN] %v\n", p.filename, def.Pos, err)
+				fmt.Fprintf(p.warnOut, "%s:%s: [WARN] %v\n", p.filename, nameTok.Pos, err)
 			}
 		} else {
 			if err := c.addProperty(&m); err != nil {
-				fmt.Fprintf(p.warnOut, "%s:%s: [WARN] %v\n", p.filename, def.Pos, err)
+				fmt.Fprintf(p.warnOut, "%s:%s: [WARN] %v\n", p.filename, nameTok.Pos, err)
 			}
 		}
 		m.DefaultValue = p.parseStmt(token.Comma, false)
@@ -821,7 +821,7 @@ func (p *parser) parseProperty(doc token.Token, static, constant bool) {
 			return
 		}
 		if p.got(token.Comma) {
-			def = p.tok
+			nameTok = p.tok
 			if !p.got(token.Var) && !p.got(token.Ident) {
 				return
 			}
