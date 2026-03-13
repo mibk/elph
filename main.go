@@ -107,7 +107,7 @@ func main() {
 	}
 
 	for _, p := range arbiter.patterns {
-		if !p.fired {
+		if !p.matched {
 			fmt.Printf("%s:%d: pattern not matched: %s\n", configFileName, p.def.Number, p.def.Value)
 			hasErrors = true
 		}

@@ -121,7 +121,7 @@ type Arbiter struct {
 type pattern struct {
 	def Line
 	*regexp.Regexp
-	fired bool
+	matched bool
 }
 
 func (a *Arbiter) errorMatched(msg string) bool {
@@ -131,7 +131,7 @@ func (a *Arbiter) errorMatched(msg string) bool {
 	}
 	for _, p := range a.patterns {
 		if p.MatchString(msg) {
-			p.fired = true
+			p.matched = true
 			return true
 		}
 	}
