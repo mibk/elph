@@ -11,15 +11,44 @@ func (p *parser) tryParseType() resolved.Type {
 	if p.got(token.Qmark) {
 		return p.tryParseType() // nullable just unwraps
 	}
+	typ := p.tryParseSingleType()
+	if typ == nil || !p.got(token.BitOr) {
+		return typ
+	}
+	types := []resolved.Type{typ}
+	for {
+		if t := p.tryParseSingleType(); t != nil {
+			types = append(types, t)
+		}
+		if !p.got(token.BitOr) {
+			break
+		}
+	}
+	var filtered []resolved.Type
+	for _, t := range types {
+		if t == resolved.Mixed {
+			return resolved.Mixed
+		}
+		if n, ok := t.(*resolved.Named); ok && n.Name == "stdClass" {
+			return t
+		}
+		if t == resolved.Null {
+			continue
+		}
+		filtered = append(filtered, t)
+	}
+	if len(filtered) == 0 {
+		return resolved.Mixed
+	}
+	return resolved.NewUnion(filtered...)
+}
+
+func (p *parser) tryParseSingleType() resolved.Type {
 	if p.got(token.Static) {
 		return resolved.Static
 	}
 	if p.tok.Type == token.Backslash || p.tok.Type == token.Ident {
 		name := p.parseQualifiedName()
-		if p.got(token.BitOr) {
-			// TODO: Support union types
-			p.tryParseType() // just ignore
-		}
 		if name == "self" {
 			return toType(p.thisClass)
 		}
