@@ -99,10 +99,14 @@ func (p *parser) got(typ token.Type) bool {
 }
 
 func (p *parser) errorf(format string, args ...any) {
+	p.errorAtf(p.tok.Pos, format, args...)
+}
+
+func (p *parser) errorAtf(pos token.Pos, format string, args ...any) {
 	if p.err == nil {
 		p.tok.Type = token.EOF
 		se := &SyntaxError{Err: fmt.Errorf(format, args...)}
-		se.Line, se.Column = p.tok.Pos.Line, p.tok.Pos.Column
+		se.Line, se.Column = pos.Line, pos.Column
 		p.err = se
 	}
 }
@@ -669,8 +673,7 @@ func (p *parser) parseFunction(doc token.Token, static bool) {
 
 	m := Function{Pos: pos, Name: name, Returns: typ, Static: static}
 	if err := c.addMethod(&m); err != nil {
-		// TODO: Fix position of error.
-		p.errorf("%v", err)
+		p.errorAtf(pos, "%v", err)
 	}
 }
 
@@ -722,7 +725,7 @@ func (p *parser) parseParamList() {
 				name = strings.TrimPrefix(name, "$")
 				m := Property{Pos: pos, Name: name, Type: typ}
 				if err := c.addProperty(&m); err != nil {
-					p.errorf("%v", err)
+					p.errorAtf(pos, "%v", err)
 				}
 				// TODO: Support anonymous classes.
 			}
@@ -801,13 +804,11 @@ func (p *parser) parseProperty(doc token.Token, static, constant bool) {
 		m := Property{Pos: def.Pos, Name: name, Type: typ, Static: static}
 		if constant {
 			if err := c.addConstant(&m); err != nil {
-				// TODO: Fix position of error.
-				p.errorf("%v", err)
+				p.errorAtf(def.Pos, "%v", err)
 			}
 		} else {
 			if err := c.addProperty(&m); err != nil {
-				// TODO: Fix position of error.
-				p.errorf("%v", err)
+				p.errorAtf(def.Pos, "%v", err)
 			}
 		}
 		m.DefaultValue = p.parseStmt(token.Comma, false)
