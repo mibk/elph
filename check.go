@@ -102,7 +102,7 @@ func (l *linter) check(x any) {
 		l.nextClass = x
 		l.pushScope = true
 	case *Trait:
-		l.nextClass = &Class{Name: "stdClass"} // Ignore
+		l.nextClass = &Class{Name: resolved.StdClass.Name} // Ignore
 		l.pushScope = true
 	case *Block:
 		if l.pushScope {
@@ -190,7 +190,7 @@ func (l *linter) knownType(typ resolved.Type) bool {
 	case *resolved.Builtin:
 		return true
 	case *resolved.Named:
-		if t.Name == "stdClass" || strings.Contains(t.Name, "-") {
+		if t == resolved.StdClass || strings.Contains(t.Name, "-") {
 			return true
 		}
 		_, ok := universe[t.Name]
@@ -280,10 +280,10 @@ func (l *linter) findNewInstanceType(x any) resolved.Type {
 		case resolved.Mixed:
 			return x.Type
 		default:
-			s := x.Type.String()
-			if s == "stdClass" {
+			if x.Type == resolved.StdClass {
 				return x.Type
 			}
+			s := x.Type.String()
 			if _, ok := universe[s].(*Class); !ok {
 				l.reportf(x.ValuePos, "class %v not found", x.Type)
 				return mixed
@@ -376,7 +376,7 @@ func (l *linter) checkMemberAccess(a *MemberAccess) resolved.Type {
 		return resolved.TypeFromName("<not-a-class>")
 	}
 
-	if n, ok := x.(*resolved.Named); ok && n.Name == "stdClass" {
+	if x == resolved.StdClass {
 		// All member access allowed.
 		return x
 	}
@@ -395,8 +395,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, me
 		t, ok := universe[class].(*Trait)
 		if !ok {
 			if class == "stdClass" {
-				// TODO: This hack is on too many places. Fix it.
-				return resolved.TypeFromName(class)
+				return resolved.StdClass
 			}
 			if key := class + "·" + l.fileBeingChecked; !l.reported[key] {
 				l.reportf(pos, "class %v not found", class)
@@ -509,9 +508,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, me
 	if memberTyp == nil && c.Extends != "" {
 		parent := c.Extends
 		if parent == "stdClass" {
-			// All good.
-			// TODO: Really?
-			return resolved.TypeFromName(parent)
+			return resolved.StdClass
 		}
 		if template == nil {
 			template = c.Template

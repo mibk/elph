@@ -475,7 +475,7 @@ func (p *parser) handleClassDoc(c *Class, b *phpdoc.Block, pos token.Pos) {
 		switch tag := line.(type) {
 		case *phpdoc.TypeDefTag:
 			adhocType := p.fullyQualify(tag.Name)
-			universe[adhocType] = &Class{Name: adhocType, Extends: "stdClass", SourceFile: c.SourceFile}
+			universe[adhocType] = &Class{Name: adhocType, Extends: resolved.StdClass.Name, SourceFile: c.SourceFile}
 		case *phpdoc.OtherTag:
 			if tag.Name == "phpstan-import-type" {
 				p.handleImportedPHPStanType(tag.Desc)
@@ -1224,7 +1224,7 @@ func (p *parser) resolveType(thisClass string, typ phptype.Type) resolved.Type {
 		for _, t := range typ.Types {
 			rt := p.resolveType(thisClass, t)
 			// If any member is stdClass or mixed, collapse to that.
-			if n, ok := rt.(*resolved.Named); ok && n.Name == "stdClass" {
+			if rt == resolved.StdClass {
 				return rt
 			}
 			if rt == resolved.Mixed {
@@ -1272,7 +1272,7 @@ func (p *parser) resolveType(thisClass string, typ phptype.Type) resolved.Type {
 		name = p.fullyQualify(name)
 		return resolved.TypeFromName(name)
 	case *phptype.ArrayShape, *phptype.ObjectShape:
-		return resolved.TypeFromName("stdClass")
+		return resolved.StdClass
 	case *phptype.This:
 		return resolved.Static
 	case *phptype.Conditional:

@@ -29,7 +29,7 @@ func (p *parser) tryParseType() resolved.Type {
 		if t == resolved.Mixed {
 			return resolved.Mixed
 		}
-		if n, ok := t.(*resolved.Named); ok && n.Name == "stdClass" {
+		if t == resolved.StdClass {
 			return t
 		}
 		if t == resolved.Null {

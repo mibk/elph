@@ -161,7 +161,13 @@ func TypeFromName(name string) Type {
 	return n
 }
 
-var namedCache = make(map[string]*Named)
+// StdClass is the sentinel for PHP's stdClass. Member access
+// on stdClass is always allowed (dynamic properties).
+var StdClass = &Named{Name: "stdClass"}
+
+var namedCache = map[string]*Named{
+	"stdClass": StdClass,
+}
 
 // ArrayElem returns the element type if typ is an array.
 // For unions, it collects element types from all array members.
