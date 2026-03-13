@@ -177,10 +177,11 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 			return s
 		case token.Comment:
 			pos := p.tok.Pos
-			v, ok := strings.CutPrefix(p.tok.Text, debugTypeCmd)
+			text := p.tok.Text
 			p.next()
+			v, ok := strings.CutPrefix(text, debugTypeCmd)
 			if !ok {
-				panic(fmt.Sprintf("unexpected comment: %q", p.tok.Text))
+				panic(fmt.Sprintf("unexpected comment: %q", text))
 			}
 			s.Nodes = append(s.Nodes, &Debug{Var: strings.TrimSpace(v), Pos: pos})
 		case token.DocComment:
