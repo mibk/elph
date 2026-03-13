@@ -25,11 +25,11 @@ var (
 	False  = &Builtin{Name: "false"}
 
 	// Compound types.
-	Object       = &Builtin{Name: "object"}
-	BuiltinArray = &Builtin{Name: "array"}
-	Iterable     = &Builtin{Name: "iterable"}
-	Callable     = &Builtin{Name: "callable"}
-	Resource     = &Builtin{Name: "resource"}
+	Object   = &Builtin{Name: "object"}
+	Array    = &Builtin{Name: "array"}
+	Iterable = &Builtin{Name: "iterable"}
+	Callable = &Builtin{Name: "callable"}
+	Resource = &Builtin{Name: "resource"}
 )
 
 // builtinTypes maps built-in PHP type names to their sentinel values.
@@ -55,7 +55,7 @@ var builtinTypes = map[string]*Builtin{
 
 	// Compound types.
 	"object":   Object,
-	"array":    BuiltinArray,
+	"array":    Array,
 	"iterable": Iterable,
 	"callable": Callable,
 	"resource": Resource,
@@ -102,13 +102,13 @@ func (u *Union) String() string {
 	return strings.Join(parts, "|")
 }
 
-// Array represents an array type with a known element type.
-type Array struct {
+// ArrayOf represents an array type with a known element type.
+type ArrayOf struct {
 	Elem Type
 }
 
-func (*Array) typ()             {}
-func (a *Array) String() string { return a.Elem.String() + "[]" }
+func (*ArrayOf) typ()             {}
+func (a *ArrayOf) String() string { return a.Elem.String() + "[]" }
 
 // Generic represents a generic type like Collection<User>.
 type Generic struct {
@@ -166,13 +166,13 @@ var namedCache = make(map[string]*Named)
 // ArrayElem returns the element type if typ is an array.
 // For unions, it collects element types from all array members.
 func ArrayElem(typ Type) (Type, bool) {
-	if a, ok := typ.(*Array); ok {
+	if a, ok := typ.(*ArrayOf); ok {
 		return a.Elem, true
 	}
 	if u, ok := typ.(*Union); ok {
 		var elems []Type
 		for _, m := range u.Types {
-			if a, ok := m.(*Array); ok {
+			if a, ok := m.(*ArrayOf); ok {
 				elems = append(elems, a.Elem)
 			}
 		}

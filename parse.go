@@ -1209,7 +1209,7 @@ func (p *parser) resolveType(thisClass string, typ phptype.Type) resolved.Type {
 		}
 		return resolved.NewUnion(types...)
 	case *phptype.Array:
-		return &resolved.Array{Elem: p.resolveType(thisClass, typ.Elem)}
+		return &resolved.ArrayOf{Elem: p.resolveType(thisClass, typ.Elem)}
 	case *phptype.Generic:
 		base := p.resolveType(thisClass, typ.Base)
 		if len(typ.TypeParams) == 0 {

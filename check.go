@@ -202,7 +202,7 @@ func (l *linter) knownType(typ resolved.Type) bool {
 			}
 		}
 		return true
-	case *resolved.Array:
+	case *resolved.ArrayOf:
 		return l.knownType(t.Elem)
 	case *resolved.Generic:
 		return l.knownType(t.Base) && l.knownType(t.Param)
@@ -345,7 +345,7 @@ func (l *linter) checkMemberAccess(a *MemberAccess) resolved.Type {
 			if resolved.IsBuiltin(m) {
 				continue
 			}
-			if _, ok := m.(*resolved.Array); ok {
+			if _, ok := m.(*resolved.ArrayOf); ok {
 				continue
 			}
 			class, template := identFromType(m)
@@ -380,7 +380,7 @@ func (l *linter) checkMemberAccess(a *MemberAccess) resolved.Type {
 		// All member access allowed.
 		return x
 	}
-	if _, ok := x.(*resolved.Array); ok {
+	if _, ok := x.(*resolved.ArrayOf); ok {
 		// Member access on an array is allowed (e.g., $arr->count()).
 		return mixed
 	}
