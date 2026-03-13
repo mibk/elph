@@ -22,6 +22,7 @@ var (
 	Callable   = &Basic{Name: "callable"}
 	Resource   = &Basic{Name: "resource"}
 	Parent     = &Basic{Name: "parent"}
+	Iterable   = &Basic{Name: "iterable"}
 )
 
 // Type represents a resolved PHP type.
@@ -104,7 +105,7 @@ func IsBasicName(name string) bool {
 	switch name {
 	case "void", "never", "self", "static", "parent",
 		"mixed", "string", "int", "float", "bool", "true", "false",
-		"object", "array", "callable", "resource":
+		"object", "array", "callable", "resource", "iterable":
 		return true
 	}
 	return false
@@ -148,6 +149,8 @@ func TypeFromName(name string) Type {
 		return Resource
 	case "parent":
 		return Parent
+	case "iterable":
+		return Iterable
 	}
 	if n, ok := namedCache[name]; ok {
 		return n

@@ -205,7 +205,7 @@ func (l *linter) knownType(typ resolved.Type) bool {
 	case *resolved.Array:
 		return l.knownType(t.Elem)
 	case *resolved.Generic:
-		return true // TODO: Check generics too
+		return l.knownType(t.Base) && l.knownType(t.Param)
 	case *resolved.TypeVar:
 		return true
 	}
@@ -245,8 +245,11 @@ func (l *linter) findVarType(a *AssignExpr) (typ resolved.Type, checked bool) {
 	case *AssignExpr:
 		typ, checked = l.findVarType(val)
 	case *IndexExpr:
-		// TODO: Fix this.
-		typ = resolved.Mixed
+		if elem, ok := resolved.ArrayElem(l.resolveExprType(val.X)); ok {
+			typ = elem
+		} else {
+			typ = resolved.Mixed
+		}
 	}
 
 	if typ == resolved.Void {
