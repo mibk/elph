@@ -957,7 +957,15 @@ func (p *parser) parseNewInstance() Expr {
 			e := p.parseQualifiedName()
 			c.Extends = p.fullyQualify(e)
 		}
-		// TODO: implements
+		if p.got(token.Implements) {
+			for {
+				i := p.parseQualifiedName()
+				c.Implements = append(c.Implements, p.fullyQualify(i))
+				if !p.got(token.Comma) {
+					break
+				}
+			}
+		}
 		return &NewInstance{Class: c}
 	case p.got(token.Var):
 		// Just give up; we can't know the type.

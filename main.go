@@ -127,7 +127,7 @@ func parsePath(fsys fs.FS, filename string, ignored []string, warnOut io.Writer)
 	f, err := fsys.Open(filename)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			// TODO: For now, ignore missing paths.
+			fmt.Fprintf(warnOut, "%s: [WARN] path not found\n", filename)
 			return
 		}
 		log.Fatal(err)

@@ -390,7 +390,6 @@ func (l *linter) checkMemberAccess(a *MemberAccess) resolved.Type {
 
 func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, member string, methodCall, static bool, template resolved.Type) resolved.Type {
 	mixed := resolved.Mixed
-	// TODO: Different error if entity exists but is not a class?
 	c, ok := universe[class].(*Class)
 	if !ok {
 		t, ok := universe[class].(*Trait)
