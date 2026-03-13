@@ -515,6 +515,9 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, me
 		}
 		return l.checkClassMember(pos, originalClass, parent, member, methodCall, static, template)
 	}
+	if memberTyp == nil && c.DynamicProps {
+		return mixed
+	}
 	if memberTyp == nil {
 		displayClass := originalClass
 		if template != nil && template != resolved.Mixed {

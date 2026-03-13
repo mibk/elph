@@ -36,6 +36,7 @@ type parser struct {
 	nextClass     string
 	templateParam *resolved.TypeVar
 	params        []*Param
+	dynamicProps  bool
 	ignoreLines   map[int]string
 	earlyExit     bool
 }
@@ -188,8 +189,14 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 			docComment = p.tok
 			p.next()
 			if p.got(token.Hash) {
-				// Ignore any attributes.
 				p.expect(token.Lbrack)
+				// Check for #[\AllowDynamicProperties].
+				if p.tok.Type == token.Backslash || (p.tok.Type == token.Ident && p.tok.Text == "AllowDynamicProperties") {
+					p.got(token.Backslash)
+					if p.tok.Type == token.Ident && p.tok.Text == "AllowDynamicProperties" {
+						p.dynamicProps = true
+					}
+				}
 				p.parseBlock(token.Lbrack, false)
 			}
 		case token.Namespace:
@@ -425,7 +432,8 @@ func (p *parser) parseClass() *Class {
 		p.errorf("type %v already defined in %s", class, e.sourceFile())
 		return nil
 	}
-	c := &Class{Name: class, SourceFile: p.filename}
+	c := &Class{Name: class, DynamicProps: p.dynamicProps, SourceFile: p.filename}
+	p.dynamicProps = false
 	universe[class] = c
 	p.nextClass = class
 

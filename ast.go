@@ -43,10 +43,11 @@ type Stmt struct {
 type Class struct {
 	Name          string
 	TemplateParam *resolved.TypeVar // declared via @template, or nil
-	TemplateBound resolved.Type // bound from @template T of X, or nil
-	Template      resolved.Type // concrete type from @extends, or nil
-	Extends       string // or empty
+	TemplateBound resolved.Type     // bound from @template T of X, or nil
+	Template      resolved.Type     // concrete type from @extends, or nil
+	Extends       string            // or empty
 	Implements    []string
+	DynamicProps  bool
 	Traits        []string
 	Properties    map[string]*Property
 	Constants     map[string]*Property
