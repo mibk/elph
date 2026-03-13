@@ -97,11 +97,11 @@ type NewInstance struct {
 func (e *NewInstance) Pos() token.Pos { return e.New }
 
 type ValueExpr struct {
-	V    token.Pos
-	Type resolved.Type
+	ValuePos token.Pos
+	Type     resolved.Type
 }
 
-func (e *ValueExpr) Pos() token.Pos { return e.V }
+func (e *ValueExpr) Pos() token.Pos { return e.ValuePos }
 
 type VarExpr struct {
 	Dollar token.Pos

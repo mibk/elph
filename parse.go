@@ -921,7 +921,7 @@ func (p *parser) parseExpr() Expr {
 			v = p.parseExpr()
 		}
 		if isBinaryOp(p.tok.Type) {
-			v = &ValueExpr{V: v.Pos(), Type: resolved.Mixed}
+			v = &ValueExpr{ValuePos: v.Pos(), Type: resolved.Mixed}
 		}
 		e = &AssignExpr{e, v}
 	}
@@ -946,7 +946,7 @@ var anonymousCount int
 func (p *parser) parseNewInstance() Expr {
 	pos := p.tok.Pos
 	if p.got(token.Static) {
-		return &NewInstance{Class: &ValueExpr{V: pos, Type: toType(p.thisClass)}}
+		return &NewInstance{Class: &ValueExpr{ValuePos: pos, Type: toType(p.thisClass)}}
 	}
 	switch class := "mixed"; {
 	case p.got(token.Class):
@@ -989,10 +989,10 @@ func (p *parser) parseNewInstance() Expr {
 		p.parseBlock(token.Lbrace, true)
 		p.nextClass = backupNextClass
 
-		return &NewInstance{Class: &ValueExpr{V: pos, Type: resolved.TypeFromName(class)}}
+		return &NewInstance{Class: &ValueExpr{ValuePos: pos, Type: resolved.TypeFromName(class)}}
 	case p.got(token.Var):
 		// Just give up; we can't know the type.
-		return &NewInstance{Class: &ValueExpr{V: pos, Type: resolved.Mixed}}
+		return &NewInstance{Class: &ValueExpr{ValuePos: pos, Type: resolved.Mixed}}
 	default:
 		name := p.parseQualifiedName()
 		if name == "" {
@@ -1000,7 +1000,7 @@ func (p *parser) parseNewInstance() Expr {
 			return nil
 		}
 		name = p.fullyQualify(name)
-		return &NewInstance{Class: &ValueExpr{V: pos, Type: resolved.TypeFromName(name)}}
+		return &NewInstance{Class: &ValueExpr{ValuePos: pos, Type: resolved.TypeFromName(name)}}
 	}
 }
 
@@ -1029,7 +1029,7 @@ func (p *parser) parseChainAccess(x Expr) Expr {
 		case p.got(token.Lparen):
 			// TODO: This is a callback call. Support it?
 			p.parseBlock(token.Lparen, false)
-			x = &ValueExpr{V: x.Pos(), Type: resolved.Mixed}
+			x = &ValueExpr{ValuePos: x.Pos(), Type: resolved.Mixed}
 		default:
 			return x
 		}
@@ -1048,7 +1048,7 @@ func (p *parser) parseMemberAccess(x Expr, static bool) Expr {
 	if p.got(token.Lparen) {
 		if p.got(token.Ellipsis) && p.got(token.Rparen) {
 			// TODO: Return concrete callback type?
-			return &ValueExpr{V: x.Pos(), Type: resolved.TypeFromName("callable")}
+			return &ValueExpr{ValuePos: x.Pos(), Type: resolved.TypeFromName("callable")}
 		}
 		a.MethodCall = true
 		a.Args = p.parseBlock(token.Lparen, false)
@@ -1057,14 +1057,14 @@ func (p *parser) parseMemberAccess(x Expr, static bool) Expr {
 }
 
 func (p *parser) tryParseStaticMemberAccess() Expr {
-	x := &ValueExpr{V: p.tok.Pos}
+	x := &ValueExpr{ValuePos: p.tok.Pos}
 	id := p.parseQualifiedName()
 
 	if id == "assert" {
 		return p.parseAssert(p.tok.Pos)
 	}
 	if id == "unset" {
-		return p.parseUnset(x.V)
+		return p.parseUnset(x.ValuePos)
 	}
 
 	x.Type = resolved.TypeFromName(p.fullyQualify(id))
@@ -1078,7 +1078,7 @@ func (p *parser) tryParseStaticMemberAccess() Expr {
 func (p *parser) parseAssert(pos token.Pos) (x Expr) {
 	defer func() {
 		if x == nil {
-			x = &ValueExpr{V: p.tok.Pos, Type: resolved.Mixed}
+			x = &ValueExpr{ValuePos: p.tok.Pos, Type: resolved.Mixed}
 			p.parseBlock(token.Lparen, false)
 		}
 	}()

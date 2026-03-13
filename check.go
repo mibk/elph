@@ -273,7 +273,7 @@ func (l *linter) findNewInstanceType(x any) resolved.Type {
 		switch x.Type {
 		case resolved.Self, resolved.Static:
 			if l.thisClass == nil {
-				l.reportf(x.V, "not in class context")
+				l.reportf(x.ValuePos, "not in class context")
 				return mixed
 			}
 			return resolved.TypeFromName(l.thisClass.Name)
@@ -285,7 +285,7 @@ func (l *linter) findNewInstanceType(x any) resolved.Type {
 				return x.Type
 			}
 			if _, ok := universe[s].(*Class); !ok {
-				l.reportf(x.V, "class %v not found", x.Type)
+				l.reportf(x.ValuePos, "class %v not found", x.Type)
 				return mixed
 			}
 			return x.Type
