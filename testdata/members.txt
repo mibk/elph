@@ -6,6 +6,10 @@ a.php:27:1: $s is of type: int (DEBUG)
 % check b.php
 # No errors.
 
+% check readonly.php
+readonly.php:16:1: $x is of type: int (DEBUG)
+readonly.php:17:1: $y is of type: string (DEBUG)
+
 % check c.php
 c.php:11:1: $x is of type: int (DEBUG)
 c.php:12:1: $y is of type: int (DEBUG)
@@ -50,6 +54,24 @@ class Bar
 
 $bar = new Bar;
 $bar->foo();
+-- readonly.php --
+<?php
+
+class User
+{
+	public function __construct(
+		public readonly int $id,
+		public readonly string $name,
+	)
+	{
+	}
+}
+
+$u = new User;
+$x = $u->id;
+$y = $u->name;
+#debugType $x
+#debugType $y
 -- c.php --
 <?php
 

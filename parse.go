@@ -701,6 +701,7 @@ func (p *parser) parseParamList() {
 			p.next()
 			isMember = true
 		}
+		p.got(token.Readonly) // ignore
 
 		typ := p.tryParseType()
 		name := p.tok.Text
