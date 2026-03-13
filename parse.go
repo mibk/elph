@@ -1243,9 +1243,29 @@ func (p *parser) skipElseChain() {
 func (p *parser) parseListVars() []string {
 	var vars []string
 	for {
+		if p.tok.Type == token.Rparen {
+			break
+		}
+		if p.tok.Type == token.Comma {
+			// Skipped position (e.g. list(, $b)).
+			vars = append(vars, "")
+			p.next()
+			continue
+		}
 		name := p.tok.Text
 		if p.got(token.Var) {
-			vars = append(vars, name)
+			if p.tok.Type == token.Arrow || p.tok.Type == token.Lbrack {
+				// Complex target like $this->prop or $arr[0].
+				p.skipListEntry()
+				vars = append(vars, "")
+			} else {
+				vars = append(vars, name)
+			}
+		} else if p.tok.Type == token.Lbrack {
+			// Nested destructuring — skip for now.
+			p.next()
+			p.parseBlock(token.Lbrack, false)
+			vars = append(vars, "")
 		} else {
 			vars = append(vars, "")
 			p.next()
@@ -1255,6 +1275,25 @@ func (p *parser) parseListVars() []string {
 		}
 	}
 	return vars
+}
+
+// skipListEntry skips tokens until the next comma or closing paren
+// at the same nesting depth.
+func (p *parser) skipListEntry() {
+	for {
+		switch p.tok.Type {
+		case token.Comma, token.Rparen, token.EOF:
+			return
+		case token.Lparen:
+			p.next()
+			p.parseBlock(token.Lparen, false)
+		case token.Lbrack:
+			p.next()
+			p.parseBlock(token.Lbrack, false)
+		default:
+			p.next()
+		}
+	}
 }
 
 func extractVarNames(b *Block) []string {
