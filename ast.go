@@ -83,6 +83,7 @@ type Method struct {
 
 type Foreach struct {
 	X     Expr
+	Key   *Param // or nil if no key
 	Value Param
 }
 

@@ -877,8 +877,9 @@ func (p *parser) parseForeach() *Foreach {
 	}
 
 	param := p.parseForeachParam()
+	var key *Param
 	if p.got(token.DoubleArrow) {
-		// We only care about value, not key.
+		key = param
 		param = p.parseForeachParam()
 	}
 	p.expect(token.Rparen)
@@ -887,6 +888,7 @@ func (p *parser) parseForeach() *Foreach {
 	}
 	return &Foreach{
 		X:     x,
+		Key:   key,
 		Value: *param,
 	}
 }

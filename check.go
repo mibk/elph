@@ -139,8 +139,14 @@ func (l *linter) check(x any) {
 		v := x.Value
 		if elem, ok := resolved.ArrayElem(typ); ok {
 			l.scope[v.Name] = elem
+			if x.Key != nil {
+				l.scope[x.Key.Name] = resolved.NewUnion(resolved.Int, resolved.String)
+			}
 		} else {
 			l.scope[v.Name] = v.Type // fallback to "mixed"
+			if x.Key != nil {
+				l.scope[x.Key.Name] = resolved.Mixed
+			}
 		}
 	case *Param:
 		l.scope[x.Name] = x.Type

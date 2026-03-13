@@ -55,6 +55,10 @@ list.php:26:2: $i is of type: string (DEBUG)
 % check union-foreach.php
 union-foreach.php:19:3: $item is of type: UnionForeach\Alpha|UnionForeach\Beta (DEBUG)
 
+% check foreach-key.php
+foreach-key.php:11:3: $k is of type: int|string (DEBUG)
+foreach-key.php:12:3: $v is of type: string (DEBUG)
+
 -- a.php --
 <?php
 
@@ -333,5 +337,21 @@ function test(Repo $r) {
 	foreach ($r->getItems() as $item) {
 		#debugType $item
 		$item->name;
+	}
+}
+
+-- foreach-key.php --
+<?php
+namespace ForeachKey;
+
+class Repo {
+	/** @return string[] */
+	function getNames(): array {}
+}
+
+function test(Repo $r) {
+	foreach ($r->getNames() as $k => $v) {
+		#debugType $k
+		#debugType $v
 	}
 }
