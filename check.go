@@ -520,7 +520,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, me
 	}
 	if memberTyp == nil {
 		displayClass := originalClass
-		if template != nil {
+		if template != nil && template != resolved.Mixed {
 			displayClass += "<" + template.String() + ">"
 		}
 		l.reportf(pos, "class %s %v::%v does not exist", memberKind, displayClass, member)
