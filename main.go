@@ -156,6 +156,10 @@ func parsePath(fsys fs.FS, filename string, ignored []string, warnOut io.Writer)
 	} else if err != nil {
 		log.Fatal(err)
 	}
+	if file.Block == nil {
+		fmt.Fprintf(warnOut, "%s: [WARN] missing <?php open tag\n", filename)
+		return
+	}
 	file.Path = filename
 	parsedFiles[filename] = file
 }
