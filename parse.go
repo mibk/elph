@@ -674,7 +674,7 @@ func (p *parser) parseFunction(doc token.Token, static bool) {
 
 	m := Function{Pos: pos, Name: name, Returns: typ, Static: static}
 	if err := c.addMethod(&m); err != nil {
-		p.errorAtf(pos, "%v", err)
+		fmt.Fprintf(p.warnOut, "%s:%s: [WARN] %v\n", p.filename, pos, err)
 	}
 }
 
@@ -727,7 +727,7 @@ func (p *parser) parseParamList() {
 				name = strings.TrimPrefix(name, "$")
 				m := Property{Pos: pos, Name: name, Type: typ}
 				if err := c.addProperty(&m); err != nil {
-					p.errorAtf(pos, "%v", err)
+					fmt.Fprintf(p.warnOut, "%s:%s: [WARN] %v\n", p.filename, pos, err)
 				}
 				// TODO: Support anonymous classes.
 			}
@@ -806,11 +806,11 @@ func (p *parser) parseProperty(doc token.Token, static, constant bool) {
 		m := Property{Pos: def.Pos, Name: name, Type: typ, Static: static}
 		if constant {
 			if err := c.addConstant(&m); err != nil {
-				p.errorAtf(def.Pos, "%v", err)
+				fmt.Fprintf(p.warnOut, "%s:%s: [WARN] %v\n", p.filename, def.Pos, err)
 			}
 		} else {
 			if err := c.addProperty(&m); err != nil {
-				p.errorAtf(def.Pos, "%v", err)
+				fmt.Fprintf(p.warnOut, "%s:%s: [WARN] %v\n", p.filename, def.Pos, err)
 			}
 		}
 		m.DefaultValue = p.parseStmt(token.Comma, false)
@@ -824,6 +824,7 @@ func (p *parser) parseProperty(doc token.Token, static, constant bool) {
 			}
 			continue
 		}
+		return
 	}
 }
 

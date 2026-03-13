@@ -47,6 +47,7 @@ func Test(t *testing.T) {
 			}
 
 			clear(universe)
+			anonymousCount = 0
 
 			var got, want strings.Builder
 
@@ -60,6 +61,7 @@ func Test(t *testing.T) {
 
 			l := linter{
 				stdout:           &got,
+				stderr:           io.Discard,
 				scope:            make(map[string]resolved.Type),
 				fileBeingChecked: "<test-line>",
 				reported:         make(map[string]bool),
