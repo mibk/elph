@@ -729,7 +729,9 @@ func (p *parser) parseParamList() {
 				if err := c.addProperty(&m); err != nil {
 					fmt.Fprintf(p.warnOut, "%s:%s: [WARN] %v\n", p.filename, pos, err)
 				}
-				// TODO: Support anonymous classes.
+				// Anonymous classes are handled too, since
+				// parseNewInstance parses the body with the
+				// correct thisClass context.
 			}
 		}
 
@@ -794,7 +796,8 @@ func (p *parser) parseProperty(doc token.Token, static, constant bool) {
 	c := universe[p.thisClass]
 	if c == nil {
 		if strings.ContainsRune(p.thisClass, '@') {
-			// TODO: Add proper support for anonymous classes.
+			// Anonymous classes are parsed by parseNewInstance,
+			// so this should not normally be reached.
 			return
 		}
 		p.errorf("not in class context")
@@ -970,7 +973,23 @@ func (p *parser) parseNewInstance() Expr {
 				}
 			}
 		}
-		return &NewInstance{Class: c}
+
+		backupNextClass := p.nextClass
+		p.expect(token.Lbrace)
+		for p.got(token.Use) {
+			use := p.parseQualifiedName()
+			use = p.fullyQualify(use)
+			c.Traits = append(c.Traits, use)
+			if p.got(token.Lbrace) {
+				p.parseBlock(token.Lbrace, false)
+			} else {
+				p.expect(token.Semicolon)
+			}
+		}
+		p.parseBlock(token.Lbrace, true)
+		p.nextClass = backupNextClass
+
+		return &NewInstance{Class: &ValueExpr{V: pos, Type: resolved.TypeFromName(class)}}
 	case p.got(token.Var):
 		// Just give up; we can't know the type.
 		return &NewInstance{Class: &ValueExpr{V: pos, Type: resolved.Mixed}}

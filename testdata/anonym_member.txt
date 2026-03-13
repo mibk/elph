@@ -1,0 +1,19 @@
+% check a.php
+a.php:15:1: $v is of type: string (DEBUG)
+
+-- a.php --
+<?php
+
+trait HasName
+{
+	public function getName(): string
+	{
+	}
+}
+
+$x = new class {
+	use HasName;
+};
+
+$v = $x->getName();
+#debugType $v
