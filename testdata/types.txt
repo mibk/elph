@@ -42,6 +42,12 @@ h.php:20:2: $p is of type: Guards\Cat (DEBUG)
 % check union-member.php
 # No errors.
 
+% check list.php
+list.php:11:2: $a is of type: string (DEBUG)
+list.php:12:2: $b is of type: string (DEBUG)
+list.php:15:2: $c is of type: string (DEBUG)
+list.php:16:2: $d is of type: string (DEBUG)
+
 % check union-foreach.php
 union-foreach.php:19:3: $item is of type: UnionForeach\Alpha|UnionForeach\Beta (DEBUG)
 
@@ -273,6 +279,25 @@ function test(Service $s) {
 	$r = $s->getResult();
 	$r->name;
 }
+-- list.php --
+<?php
+namespace ListAssign;
+
+class Foo {
+	/** @return string[] */
+	public function names(): array {}
+}
+
+function test(Foo $f) {
+	[$a, $b] = $f->names();
+	#debugType $a
+	#debugType $b
+
+	list($c, $d) = $f->names();
+	#debugType $c
+	#debugType $d
+}
+
 -- union-foreach.php --
 <?php
 namespace UnionForeach;

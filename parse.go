@@ -305,7 +305,13 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 		case token.Lbrack:
 			p.next()
 			b := p.parseBlock(typ, false)
-			s.Nodes = append(s.Nodes, b)
+			if p.got(token.Assign) {
+				vars := extractVarNames(b)
+				rhs := p.parseExpr()
+				s.Nodes = append(s.Nodes, &ListAssign{Vars: vars, Right: rhs})
+			} else {
+				s.Nodes = append(s.Nodes, b)
+			}
 		case token.Fn:
 			p.next()
 			p.parseParamList()
@@ -320,6 +326,19 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 			s.Nodes = append(s.Nodes, b)
 			continue
 		case token.Backslash, token.Ident:
+			if p.tok.Type == token.Ident && p.tok.Text == "list" && typ == token.Ident {
+				p.next()
+				if p.got(token.Lparen) {
+					vars := p.parseListVars()
+					p.expect(token.Rparen)
+					if p.got(token.Assign) {
+						rhs := p.parseExpr()
+						s.Nodes = append(s.Nodes, &ListAssign{Vars: vars, Right: rhs})
+						continue
+					}
+					continue
+				}
+			}
 			if a := p.tryParseStaticMemberAccess(); a != nil {
 				s.Nodes = append(s.Nodes, a)
 			}
@@ -1219,6 +1238,41 @@ func (p *parser) skipElseChain() {
 			p.parseBlock(token.Lbrace, false)
 		}
 	}
+}
+
+func (p *parser) parseListVars() []string {
+	var vars []string
+	for {
+		name := p.tok.Text
+		if p.got(token.Var) {
+			vars = append(vars, name)
+		} else {
+			vars = append(vars, "")
+			p.next()
+		}
+		if !p.got(token.Comma) {
+			break
+		}
+	}
+	return vars
+}
+
+func extractVarNames(b *Block) []string {
+	var vars []string
+	for _, stmt := range b.Stmts {
+		found := false
+		for _, n := range stmt.Nodes {
+			if v, ok := n.(*VarExpr); ok {
+				vars = append(vars, v.Name)
+				found = true
+				break
+			}
+		}
+		if !found {
+			vars = append(vars, "")
+		}
+	}
+	return vars
 }
 
 // resolveType converts a phptype.Type to a resolved.Type,

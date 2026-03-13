@@ -86,6 +86,11 @@ type Foreach struct {
 	Value Param
 }
 
+type ListAssign struct {
+	Vars  []string // variable names (may include "" for skipped positions)
+	Right Expr
+}
+
 type Expr interface {
 	Pos() token.Pos
 }

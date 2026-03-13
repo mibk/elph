@@ -123,6 +123,17 @@ func (l *linter) check(x any) {
 		for _, stmt := range x.Stmts {
 			l.check(stmt)
 		}
+	case *ListAssign:
+		typ := l.resolveExprType(x.Right)
+		elem := resolved.Type(resolved.Mixed)
+		if el, ok := resolved.ArrayElem(typ); ok {
+			elem = el
+		}
+		for _, name := range x.Vars {
+			if name != "" {
+				l.scope[name] = elem
+			}
+		}
 	case *Foreach:
 		typ := l.resolveExprType(x.X)
 		v := x.Value
