@@ -50,7 +50,7 @@ type Class struct {
 	Traits        []string
 	Properties    map[string]*Property
 	Constants     map[string]*Property
-	Methods       map[string]*Function
+	Methods       map[string]*Method
 
 	SourceFile string
 }
@@ -59,7 +59,7 @@ type Trait struct {
 	Name       string
 	Properties map[string]*Property
 	Constants  map[string]*Property
-	Methods    map[string]*Function
+	Methods    map[string]*Method
 
 	SourceFile string
 }
@@ -73,7 +73,7 @@ type Property struct {
 	DefaultValue *Stmt // or nil
 }
 
-type Function struct {
+type Method struct {
 	Pos     token.Pos
 	Name    string
 	Returns resolved.Type
@@ -165,7 +165,7 @@ type typeDecl interface {
 	sourceFile() string
 	addProperty(m *Property) error
 	addConstant(m *Property) error
-	addMethod(m *Function) error
+	addMethod(m *Method) error
 }
 
 func (c *Class) sourceFile() string { return c.SourceFile }
@@ -193,7 +193,7 @@ func (c *Class) addConstant(p *Property) error {
 	return nil
 }
 
-func (c *Class) addMethod(m *Function) error {
+func (c *Class) addMethod(m *Method) error {
 	initMap(&c.Methods)
 	if _, ok := c.Methods[m.Name]; ok {
 		return fmt.Errorf("class %s already has method %s", c.Name, m.Name)
@@ -202,7 +202,7 @@ func (c *Class) addMethod(m *Function) error {
 	return nil
 }
 
-func (c *Class) replaceMethod(m *Function) {
+func (c *Class) replaceMethod(m *Method) {
 	initMap(&c.Methods)
 	c.Methods[m.Name] = m
 }
@@ -227,7 +227,7 @@ func (t *Trait) addConstant(p *Property) error {
 	return nil
 }
 
-func (t *Trait) addMethod(m *Function) error {
+func (t *Trait) addMethod(m *Method) error {
 	initMap(&t.Methods)
 	if _, ok := t.Methods[m.Name]; ok {
 		return fmt.Errorf("trait %s already has method %s", t.Name, m.Name)

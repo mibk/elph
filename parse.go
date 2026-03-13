@@ -488,7 +488,7 @@ func (p *parser) handleClassDoc(c *Class, b *phpdoc.Block, pos token.Pos) {
 			}
 			c.replaceProperty(m)
 		case *phpdoc.MethodTag:
-			m := &Function{
+			m := &Method{
 				Pos:     pos,
 				Name:    tag.Name,
 				Returns: p.resolveType(c.Name, tag.Result),
@@ -593,9 +593,9 @@ func (p *parser) parseEnum() *Class {
 	p.expect(token.Lbrace)
 
 	e := &Class{Name: enum, SourceFile: p.filename}
-	m := Function{Name: "tryFrom", Returns: resolved.Self, Static: true}
+	m := Method{Name: "tryFrom", Returns: resolved.Self, Static: true}
 	e.addMethod(&m)
-	m = Function{Name: "from", Returns: resolved.Self, Static: true}
+	m = Method{Name: "from", Returns: resolved.Self, Static: true}
 	e.addMethod(&m)
 	universe[enum] = e
 	p.nextClass = enum
@@ -672,7 +672,7 @@ func (p *parser) parseFunction(doc token.Token, static bool) {
 		return
 	}
 
-	m := Function{Pos: pos, Name: name, Returns: typ, Static: static}
+	m := Method{Pos: pos, Name: name, Returns: typ, Static: static}
 	if err := c.addMethod(&m); err != nil {
 		fmt.Fprintf(p.warnOut, "%s:%s: [WARN] %v\n", p.filename, pos, err)
 	}
