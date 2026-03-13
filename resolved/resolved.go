@@ -5,25 +5,61 @@ import "strings"
 
 // Sentinel values for commonly used basic types.
 var (
-	Mixed      = &Basic{Name: "mixed"}
-	Null       = &Basic{Name: "null"}
-	Self       = &Basic{Name: "self"}
-	Static     = &Basic{Name: "static"}
-	String     = &Basic{Name: "string"}
-	Void       = &Basic{Name: "void"}
-	Int        = &Basic{Name: "int"}
-	Float      = &Basic{Name: "float"}
-	Bool       = &Basic{Name: "bool"}
-	True       = &Basic{Name: "true"}
-	False      = &Basic{Name: "false"}
+	// Special types.
+	Mixed = &Basic{Name: "mixed"}
+	Void  = &Basic{Name: "void"}
+	Never = &Basic{Name: "never"}
+	Null  = &Basic{Name: "null"}
+
+	// Self-referential types.
+	Self   = &Basic{Name: "self"}
+	Static = &Basic{Name: "static"}
+	Parent = &Basic{Name: "parent"}
+
+	// Scalar types.
+	String = &Basic{Name: "string"}
+	Int    = &Basic{Name: "int"}
+	Float  = &Basic{Name: "float"}
+	Bool   = &Basic{Name: "bool"}
+	True   = &Basic{Name: "true"}
+	False  = &Basic{Name: "false"}
+
+	// Compound types.
 	Object     = &Basic{Name: "object"}
 	BasicArray = &Basic{Name: "array"}
-	Never      = &Basic{Name: "never"}
+	Iterable   = &Basic{Name: "iterable"}
 	Callable   = &Basic{Name: "callable"}
 	Resource   = &Basic{Name: "resource"}
-	Parent     = &Basic{Name: "parent"}
-	Iterable   = &Basic{Name: "iterable"}
 )
+
+// basicTypes maps built-in PHP type names to their sentinel values.
+var basicTypes = map[string]*Basic{
+	// Special types.
+	"mixed": Mixed,
+	"void":  Void,
+	"never": Never,
+	"null":  Null,
+
+	// Self-referential types.
+	"self":   Self,
+	"static": Static,
+	"parent": Parent,
+
+	// Scalar types.
+	"string": String,
+	"int":    Int,
+	"float":  Float,
+	"bool":   Bool,
+	"true":   True,
+	"false":  False,
+
+	// Compound types.
+	"object":   Object,
+	"array":    BasicArray,
+	"iterable": Iterable,
+	"callable": Callable,
+	"resource": Resource,
+}
 
 // Type represents a resolved PHP type.
 type Type interface {
@@ -102,55 +138,15 @@ func IsBasic(typ Type) bool {
 
 // IsBasicName reports whether name is a built-in PHP type name.
 func IsBasicName(name string) bool {
-	switch name {
-	case "void", "never", "self", "static", "parent",
-		"mixed", "string", "int", "float", "bool", "true", "false",
-		"object", "array", "callable", "resource", "iterable":
-		return true
-	}
-	return false
+	_, ok := basicTypes[name]
+	return ok
 }
 
 // TypeFromName returns a Basic for built-in PHP type names,
 // or a Named for everything else.
 func TypeFromName(name string) Type {
-	switch name {
-	case "mixed":
-		return Mixed
-	case "null":
-		return Null
-	case "self":
-		return Self
-	case "static":
-		return Static
-	case "string":
-		return String
-	case "void":
-		return Void
-	case "int":
-		return Int
-	case "float":
-		return Float
-	case "bool":
-		return Bool
-	case "true":
-		return True
-	case "false":
-		return False
-	case "object":
-		return Object
-	case "array":
-		return BasicArray
-	case "never":
-		return Never
-	case "callable":
-		return Callable
-	case "resource":
-		return Resource
-	case "parent":
-		return Parent
-	case "iterable":
-		return Iterable
+	if b, ok := basicTypes[name]; ok {
+		return b
 	}
 	if n, ok := namedCache[name]; ok {
 		return n
