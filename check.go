@@ -525,7 +525,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, me
 	}
 	if memberTyp == resolved.Static {
 		// TODO: Doesn't feel like the right place for this.
-		typ := toType(originalClass)
+		typ := resolved.TypeFromName(originalClass)
 		if template != nil {
 			return &resolved.Generic{Base: typ, Param: template}
 		}

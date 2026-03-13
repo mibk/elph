@@ -50,7 +50,7 @@ func (p *parser) tryParseSingleType() resolved.Type {
 	if p.tok.Type == token.Backslash || p.tok.Type == token.Ident {
 		name := p.parseQualifiedName()
 		if name == "self" {
-			return toType(p.thisClass)
+			return resolved.TypeFromName(p.thisClass)
 		}
 		if resolved.IsBuiltinName(name) {
 			return resolved.TypeFromName(name)
@@ -104,13 +104,6 @@ func (p *parser) fullyQualify(id string) string {
 		id = p.namespace + `\` + id
 	}
 	return id
-}
-
-func toType(s string) resolved.Type {
-	if s == "" || s == "mixed" {
-		return resolved.Mixed
-	}
-	return resolved.TypeFromName(s)
 }
 
 // identFromType extracts the class name and optional generic template

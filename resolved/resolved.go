@@ -150,6 +150,9 @@ func IsBuiltinName(name string) bool {
 // TypeFromName returns a Builtin for built-in PHP type names,
 // or a Named for everything else.
 func TypeFromName(name string) Type {
+	if name == "" {
+		return Mixed
+	}
 	if b, ok := builtinTypes[name]; ok {
 		return b
 	}

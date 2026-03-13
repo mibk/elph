@@ -946,7 +946,7 @@ var anonymousCount int
 func (p *parser) parseNewInstance() Expr {
 	pos := p.tok.Pos
 	if p.got(token.Static) {
-		return &NewInstance{Class: &ValueExpr{ValuePos: pos, Type: toType(p.thisClass)}}
+		return &NewInstance{Class: &ValueExpr{ValuePos: pos, Type: resolved.TypeFromName(p.thisClass)}}
 	}
 	switch class := "mixed"; {
 	case p.got(token.Class):
@@ -1261,7 +1261,7 @@ func (p *parser) resolveType(thisClass string, typ phptype.Type) resolved.Type {
 			return resolved.Null
 		}
 		if name == "self" {
-			return toType(thisClass)
+			return resolved.TypeFromName(thisClass)
 		}
 		if c, ok := universe[thisClass].(*Class); ok && c.TemplateParam != nil && name == c.TemplateParam.Name {
 			return c.TemplateParam
