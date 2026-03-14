@@ -99,6 +99,12 @@ func (p *parser) got(typ token.Type) bool {
 	return false
 }
 
+func (p *parser) treatAsIdent() {
+	if p.tok.Type.IsReserved() {
+		p.tok.Type = token.Ident
+	}
+}
+
 func (p *parser) errorf(format string, args ...any) {
 	p.errorAtf(p.tok.Pos, format, args...)
 }
@@ -434,9 +440,7 @@ func (p *parser) parseGroupedUseStmt(prefix string) []UseStmt {
 func (p *parser) parseClass() *Class {
 	p.expect(token.Class)
 	name := p.tok
-	if p.tok.Type.IsReserved() {
-		p.tok.Type = token.Ident
-	}
+	p.treatAsIdent()
 	if p.got(token.Colon) {
 		// Bail out: "class" used as a named argument, e.g. foo(class: ...).
 		return nil
@@ -718,9 +722,7 @@ func (p *parser) parseFunction(doc token.Token, static bool) {
 	}
 
 	m := Method{Pos: pos, Name: name, Returns: typ, Static: static}
-	if err := c.addMethod(&m); err != nil {
-		fmt.Fprintf(p.warnOut, "%s:%s: [WARN] %v\n", p.filename, pos, err)
-	}
+	c.addMethod(&m)
 }
 
 func (p *parser) parseParamList() {
@@ -771,9 +773,7 @@ func (p *parser) parseParamList() {
 			if c := universe[p.thisClass]; c != nil {
 				name = strings.TrimPrefix(name, "$")
 				m := Property{Pos: pos, Name: name, Type: typ}
-				if err := c.addProperty(&m); err != nil {
-					fmt.Fprintf(p.warnOut, "%s:%s: [WARN] %v\n", p.filename, pos, err)
-				}
+				c.addProperty(&m)
 				// Anonymous classes are handled too, since
 				// parseNewInstance parses the body with the
 				// correct thisClass context.
@@ -797,10 +797,7 @@ func (p *parser) replaceParam(u *phptype.Param) {
 
 func (p *parser) parseProperty(doc token.Token, static, constant bool) {
 	p.got(token.Readonly) // ignore
-
-	if p.tok.Type.IsReserved() {
-		p.tok.Type = token.Ident
-	}
+	p.treatAsIdent()
 
 	var nameTok token.Token
 	var typ resolved.Type
@@ -853,13 +850,9 @@ func (p *parser) parseProperty(doc token.Token, static, constant bool) {
 		name := strings.TrimPrefix(nameTok.Text, "$")
 		m := Property{Pos: nameTok.Pos, Name: name, Type: typ, Static: static}
 		if constant {
-			if err := c.addConstant(&m); err != nil {
-				fmt.Fprintf(p.warnOut, "%s:%s: [WARN] %v\n", p.filename, nameTok.Pos, err)
-			}
+			c.addConstant(&m)
 		} else {
-			if err := c.addProperty(&m); err != nil {
-				fmt.Fprintf(p.warnOut, "%s:%s: [WARN] %v\n", p.filename, nameTok.Pos, err)
-			}
+			c.addProperty(&m)
 		}
 		m.DefaultValue = p.parseStmt(token.Comma, false)
 		if p.got(token.EOF) || p.got(token.Semicolon) {

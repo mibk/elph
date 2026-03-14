@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"mibk.dev/elph/resolved"
 	"mibk.dev/phpfmt/token"
 )
@@ -54,6 +52,7 @@ type Class struct {
 	Properties    map[string]*Property
 	Constants     map[string]*Property
 	Methods       map[string]*Method
+	Duplicates    []Duplicate
 
 	SourceFile string
 }
@@ -63,8 +62,15 @@ type Trait struct {
 	Properties map[string]*Property
 	Constants  map[string]*Property
 	Methods    map[string]*Method
+	Duplicates []Duplicate
 
 	SourceFile string
+}
+
+type Duplicate struct {
+	Pos  token.Pos
+	Kind string // "method", "property", or "constant"
+	Name string
 }
 
 type Property struct {
@@ -180,20 +186,20 @@ type NarrowBlock struct {
 
 type typeDecl interface {
 	sourceFile() string
-	addProperty(m *Property) error
-	addConstant(m *Property) error
-	addMethod(m *Method) error
+	addProperty(m *Property)
+	addConstant(m *Property)
+	addMethod(m *Method)
 }
 
 func (c *Class) sourceFile() string { return c.SourceFile }
 
-func (c *Class) addProperty(p *Property) error {
+func (c *Class) addProperty(p *Property) {
 	initMap(&c.Properties)
 	if _, ok := c.Properties[p.Name]; ok {
-		return fmt.Errorf("class %s already has property %s", c.Name, p.Name)
+		c.Duplicates = append(c.Duplicates, Duplicate{Pos: p.Pos, Kind: "property", Name: p.Name})
+		return
 	}
 	c.Properties[p.Name] = p
-	return nil
 }
 
 func (c *Class) replaceProperty(p *Property) {
@@ -201,22 +207,22 @@ func (c *Class) replaceProperty(p *Property) {
 	c.Properties[p.Name] = p
 }
 
-func (c *Class) addConstant(p *Property) error {
+func (c *Class) addConstant(p *Property) {
 	initMap(&c.Constants)
 	if _, ok := c.Constants[p.Name]; ok {
-		return fmt.Errorf("class %s already has constant %s", c.Name, p.Name)
+		c.Duplicates = append(c.Duplicates, Duplicate{Pos: p.Pos, Kind: "constant", Name: p.Name})
+		return
 	}
 	c.Constants[p.Name] = p
-	return nil
 }
 
-func (c *Class) addMethod(m *Method) error {
+func (c *Class) addMethod(m *Method) {
 	initMap(&c.Methods)
 	if _, ok := c.Methods[m.Name]; ok {
-		return fmt.Errorf("class %s already has method %s", c.Name, m.Name)
+		c.Duplicates = append(c.Duplicates, Duplicate{Pos: m.Pos, Kind: "method", Name: m.Name})
+		return
 	}
 	c.Methods[m.Name] = m
-	return nil
 }
 
 func (c *Class) replaceMethod(m *Method) {
@@ -226,31 +232,31 @@ func (c *Class) replaceMethod(m *Method) {
 
 func (t *Trait) sourceFile() string { return t.SourceFile }
 
-func (t *Trait) addProperty(m *Property) error {
+func (t *Trait) addProperty(m *Property) {
 	initMap(&t.Properties)
 	if _, ok := t.Properties[m.Name]; ok {
-		return fmt.Errorf("trait %s already has property %s", t.Name, m.Name)
+		t.Duplicates = append(t.Duplicates, Duplicate{Pos: m.Pos, Kind: "property", Name: m.Name})
+		return
 	}
 	t.Properties[m.Name] = m
-	return nil
 }
 
-func (t *Trait) addConstant(p *Property) error {
+func (t *Trait) addConstant(p *Property) {
 	initMap(&t.Constants)
 	if _, ok := t.Constants[p.Name]; ok {
-		return fmt.Errorf("trait %s already has constant %s", t.Name, p.Name)
+		t.Duplicates = append(t.Duplicates, Duplicate{Pos: p.Pos, Kind: "constant", Name: p.Name})
+		return
 	}
 	t.Constants[p.Name] = p
-	return nil
 }
 
-func (t *Trait) addMethod(m *Method) error {
+func (t *Trait) addMethod(m *Method) {
 	initMap(&t.Methods)
 	if _, ok := t.Methods[m.Name]; ok {
-		return fmt.Errorf("trait %s already has method %s", t.Name, m.Name)
+		t.Duplicates = append(t.Duplicates, Duplicate{Pos: m.Pos, Kind: "method", Name: m.Name})
+		return
 	}
 	t.Methods[m.Name] = m
-	return nil
 }
 
 func initMap[M map[K]V, K comparable, V any](m *M) {

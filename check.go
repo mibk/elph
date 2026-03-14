@@ -73,6 +73,9 @@ func (l *linter) check(x any) {
 	case *Class:
 		backup := l.thisClass
 		l.thisClass = x
+		for _, d := range x.Duplicates {
+			l.reportf(d.Pos, "class %s already has %s %s", x.Name, d.Kind, d.Name)
+		}
 		for _, p := range x.Properties {
 			if !l.knownType(p.Type) {
 				l.reportf(p.Pos, "property %s has non-existing type %s", p.Name, p.Type)
@@ -102,6 +105,9 @@ func (l *linter) check(x any) {
 		l.nextClass = x
 		l.pushScope = true
 	case *Trait:
+		for _, d := range x.Duplicates {
+			l.reportf(d.Pos, "trait %s already has %s %s", x.Name, d.Kind, d.Name)
+		}
 		l.nextClass = &Class{Name: resolved.StdClass.Name} // Ignore
 		l.pushScope = true
 	case *Block:
@@ -465,21 +471,29 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, me
 			l.reportf(pos, "trait %v not found", name)
 			continue
 		}
-		for _, m := range t.Properties {
-			// TODO: Check whether property not already defined?
-			c.addProperty(m)
+		initMap(&c.Properties)
+		for k, m := range t.Properties {
+			if c.Properties[k] == nil {
+				c.Properties[k] = m
+			}
 		}
-		for _, m := range t.Constants {
-			c.addConstant(m)
+		initMap(&c.Constants)
+		for k, m := range t.Constants {
+			if c.Constants[k] == nil {
+				c.Constants[k] = m
+			}
 		}
-		for _, m := range t.Methods {
-			// TODO: Check whether method not already defined?
+		initMap(&c.Methods)
+		for k, m := range t.Methods {
+			if c.Methods[k] != nil {
+				continue
+			}
 			m := *m
 			if m.Returns.String() == t.Name {
 				// TODO: This is hacky, and ugly.
 				m.Returns = resolved.TypeFromName(c.Name)
 			}
-			c.addMethod(&m)
+			c.Methods[k] = &m
 		}
 	}
 	c.Traits = nil // Mark as processed.

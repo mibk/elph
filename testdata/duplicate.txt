@@ -1,0 +1,24 @@
+% check a.php
+a.php:9:18: class DupClass already has method foo
+a.php:14:13: class DupClass already has property name
+a.php:17:8: class DupClass already has constant X
+
+-- a.php --
+<?php
+
+class DupClass
+{
+	public function foo(): void
+	{
+	}
+
+	public function foo(): int
+	{
+	}
+
+	public string $name;
+	public int $name;
+
+	const X = 1;
+	const X = 2;
+}

@@ -69,9 +69,7 @@ func (p *parser) parseQualifiedName() string {
 	// TODO: Do not allow { in all contexts.
 	for p.tok.Type != token.Lbrace {
 		id.WriteString(p.tok.Text)
-		if p.tok.Type.IsReserved() {
-			p.tok.Type = token.Ident
-		}
+		p.treatAsIdent()
 		p.expect(token.Ident)
 		if p.got(token.Backslash) {
 			id.WriteRune('\\')
