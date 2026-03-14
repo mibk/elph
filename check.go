@@ -60,7 +60,7 @@ func (l *linter) reportf(pos token.Pos, format string, args ...any) {
 		l.fileBeingChecked, pos.Line, pos.Column,
 		detail,
 	)
-	if !l.arbiter.errorMatched(msg) {
+	if !l.arbiter.errorMatched(msg, detail) {
 		fmt.Fprintln(l.stdout, msg)
 		hasErrors = true
 	}

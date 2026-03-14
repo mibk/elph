@@ -98,8 +98,11 @@ func (c *Config) prepareArbiter() (*Arbiter, error) {
 	a := new(Arbiter)
 	for _, p := range c.Ignore {
 		def := p
-		p := p.Value
+		raw := p.Value
+		var detailOnly bool
+		p := raw
 		if !strings.HasPrefix(p, "(") {
+			detailOnly = !strings.Contains(raw, ": ")
 			p = strings.ReplaceAll(p, "*", "\x1d")
 			p = regexp.QuoteMeta(p)
 			p = strings.ReplaceAll(p, "\x1d", ".*")
@@ -110,7 +113,7 @@ func (c *Config) prepareArbiter() (*Arbiter, error) {
 		if err != nil {
 			return nil, err
 		}
-		a.patterns = append(a.patterns, &pattern{def: def, Regexp: rx})
+		a.patterns = append(a.patterns, &pattern{def: def, detailOnly: detailOnly, Regexp: rx})
 	}
 	return a, nil
 }
@@ -120,18 +123,23 @@ type Arbiter struct {
 }
 
 type pattern struct {
-	def Line
+	def        Line
+	detailOnly bool
 	*regexp.Regexp
 	matched bool
 }
 
-func (a *Arbiter) errorMatched(msg string) bool {
+func (a *Arbiter) errorMatched(full, detail string) bool {
 	// Note: Windows paths are not supported.
 	if a == nil {
 		return false
 	}
 	for _, p := range a.patterns {
-		if p.MatchString(msg) {
+		s := full
+		if p.detailOnly {
+			s = detail
+		}
+		if p.MatchString(s) {
 			p.matched = true
 			return true
 		}
