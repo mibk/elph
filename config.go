@@ -103,6 +103,7 @@ func (c *Config) prepareArbiter() (*Arbiter, error) {
 			p = strings.ReplaceAll(p, "*", "\x1d")
 			p = regexp.QuoteMeta(p)
 			p = strings.ReplaceAll(p, "\x1d", ".*")
+			p = "^" + p + "$"
 		}
 
 		rx, err := regexp.Compile(p)
