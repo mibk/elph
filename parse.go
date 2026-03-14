@@ -957,6 +957,11 @@ func (p *parser) parseExpr() Expr {
 			return v
 		}
 	}
+	if p.got(token.Lbrack) {
+		pos := p.tok.Pos
+		p.parseBlock(token.Lbrack, false)
+		return &ValueExpr{ValuePos: pos, Type: resolved.TypeFromName("array")}
+	}
 	e := p.parseVarExpr()
 	if p.got(token.Assign) {
 		var v Expr

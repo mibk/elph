@@ -5,6 +5,9 @@ a.php:9:1: $i is of type: mixed (DEBUG)
 % check b.php
 b.php:8:4: $t is of type: mixed (DEBUG)
 
+% check e.php
+e.php:4:1: $arr is of type: array (DEBUG)
+
 % check d.php
 d.php:4:1: $keys is of type: array (DEBUG)
 d.php:7:1: $len is of type: int (DEBUG)
@@ -65,3 +68,11 @@ $ok = in_array('a', []);
 
 $x = some_unknown_func();
 #debugType $x
+-- e.php --
+<?php
+
+$arr = [-1, 0, 1];
+#debugType $arr
+
+foreach ([1, 2, 3] as $i) {
+}
