@@ -59,8 +59,9 @@ The format is as follows:
     Scan, Analyze, and Ignore.
   - Lines beginning with ‘#’ or blank lines are ignored.
   - The Scan section includes paths that are parsed.
-  - If a line begins with ‘!’, paths prefixed with that value are ignored.
   - The Analyze section includes paths that are analyzed.
+  - In both Scan and Analyze, a line beginning with ‘!’ excludes
+    paths prefixed with that value.
   - The Ignore section includes patterns of errors to ignore.
   - Glob patterns match against the error detail (the part after 'file:line:col: ').
   - If the glob contains ': ' (colon-space), it matches against the full message instead.
@@ -121,7 +122,7 @@ func main() {
 	toScan, ignored := cfg.paths()
 	root := new(rootFS)
 	for _, path := range toScan {
-		parsePath(root, path, ignored, warnOut, cfg.Analyze)
+		parsePath(root, path, ignored, warnOut, cfg)
 	}
 
 	arbiter, err := cfg.prepareArbiter()
@@ -131,16 +132,8 @@ func main() {
 
 	allParsed := slices.Sorted(maps.Keys(parsedFiles))
 	for _, name := range allParsed {
-		matched := false
-		for _, pattern := range cfg.Analyze {
-			if strings.HasPrefix(name, pattern.Value) {
-				matched = true
-				break
-			}
-		}
-		if matched {
-			file := parsedFiles[name]
-			Check(file, arbiter, warnOut)
+		if cfg.shouldAnalyze(name) {
+			Check(parsedFiles[name], arbiter, warnOut)
 		}
 	}
 
@@ -161,10 +154,10 @@ func (rootFS) Open(name string) (fs.File, error) { return os.Open(name) }
 
 var parsedFiles = make(map[string]*File)
 
-// parsePath parses a file or directory tree. When analyze is nil,
+// parsePath parses a file or directory tree. When cfg is nil,
 // warnOut is used for all files. Otherwise, warnOut is only used
-// for files whose path falls under one of the analyze entries.
-func parsePath(fsys fs.FS, filename string, ignored []string, warnOut io.Writer, analyze []Line) {
+// for files that cfg.shouldAnalyze matches.
+func parsePath(fsys fs.FS, filename string, ignored []string, warnOut io.Writer, cfg *Config) {
 	f, err := fsys.Open(filename)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -181,7 +174,7 @@ func parsePath(fsys fs.FS, filename string, ignored []string, warnOut io.Writer,
 	}
 
 	if fi.IsDir() {
-		parseDir(fsys, filename, ignored, warnOut, analyze)
+		parseDir(fsys, filename, ignored, warnOut, cfg)
 		return
 	}
 
@@ -192,14 +185,8 @@ func parsePath(fsys fs.FS, filename string, ignored []string, warnOut io.Writer,
 	f.Close()
 
 	w := warnOut
-	if analyze != nil {
+	if cfg != nil && !cfg.shouldAnalyze(filename) {
 		w = io.Discard
-		for _, a := range analyze {
-			if strings.HasPrefix(filename, a.Value) {
-				w = warnOut
-				break
-			}
-		}
 	}
 
 	file, err := Parse(bytes.NewReader(data), filename, false, w)
@@ -216,7 +203,7 @@ func parsePath(fsys fs.FS, filename string, ignored []string, warnOut io.Writer,
 	parsedFiles[filename] = file
 }
 
-func parseDir(fsys fs.FS, filename string, ignored []string, warnOut io.Writer, analyze []Line) {
+func parseDir(fsys fs.FS, filename string, ignored []string, warnOut io.Writer, cfg *Config) {
 	err := fs.WalkDir(fsys, filename, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			log.Fatal(err)
@@ -235,7 +222,7 @@ func parseDir(fsys fs.FS, filename string, ignored []string, warnOut io.Writer, 
 		case ".php":
 		}
 
-		parsePath(fsys, path, ignored, warnOut, analyze)
+		parsePath(fsys, path, ignored, warnOut, cfg)
 		return nil
 	})
 	if err != nil {

@@ -94,6 +94,23 @@ func (c *Config) paths() (paths, ignored []string) {
 	return paths, ignored
 }
 
+func (c *Config) shouldAnalyze(filename string) bool {
+	matched := false
+	for _, line := range c.Analyze {
+		if path, ok := strings.CutPrefix(line.Value, "!"); ok {
+			path = strings.TrimSpace(path)
+			if strings.HasPrefix(filename, path) {
+				matched = false
+			}
+		} else {
+			if strings.HasPrefix(filename, line.Value) {
+				matched = true
+			}
+		}
+	}
+	return matched
+}
+
 func (c *Config) prepareArbiter() (*Arbiter, error) {
 	a := new(Arbiter)
 	for _, p := range c.Ignore {
