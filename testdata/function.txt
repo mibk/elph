@@ -79,6 +79,9 @@ g.php:5:2: $m is of type: array (DEBUG)
 % check h.php
 h.php:5:2: $m is of type: array (DEBUG)
 
+% check i.php
+i.php:10:3: $m is of type: array (DEBUG)
+
 -- f.php --
 <?php
 
@@ -100,6 +103,19 @@ if (preg_match('/foo/', $s, $m)) {
 
 if (!preg_match('/foo/', $s, $m)) {
 	#debugType $m
+}
+-- i.php --
+<?php
+
+class PregTest
+{
+	public function bar(string $s): void
+	{
+		if (!preg_match('/(\d+)/', $s, $m)) {
+			return;
+		}
+		#debugType $m
+	}
 }
 -- e.php --
 <?php

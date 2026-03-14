@@ -1140,10 +1140,31 @@ func (p *parser) tryParseStaticMemberAccess() Expr {
 		return p.parseChainAccess(x)
 	}
 	if p.got(token.Lparen) {
-		args := p.parseBlock(token.Lparen, false)
+		args := p.parseFuncArgs()
 		return p.parseChainAccess(&FuncCall{NamePos: x.ValuePos, Name: id, Args: args})
 	}
 	return nil
+}
+
+// parseFuncArgs parses a comma-separated argument list up to the
+// closing ')'. Each argument becomes a separate Stmt in the
+// returned Block so that argument positions are preserved.
+func (p *parser) parseFuncArgs() *Block {
+	b := new(Block)
+	for {
+		stmt := p.parseStmt(token.Comma, false)
+		p.got(token.Comma)
+		b.Stmts = append(b.Stmts, stmt)
+
+		switch typ := p.tok.Type; typ {
+		case token.Rparen:
+			p.next()
+			return b
+		case token.EOF, token.Rbrace, token.Rbrack:
+			p.errorf("unexpected %v", typ)
+			return b
+		}
+	}
 }
 
 func (p *parser) parseAssert(pos token.Pos) (x Expr) {

@@ -680,19 +680,15 @@ func (l *linter) applyByRefEffects(x *FuncCall) {
 	switch x.Name {
 	case "preg_match", "preg_match_all":
 		// 3rd argument ($matches) is passed by reference as array.
-		if x.Args != nil && len(x.Args.Stmts) >= 3 {
-			if v := findVar(x.Args.Stmts[2]); v != nil {
+		if x.Args == nil || len(x.Args.Stmts) < 3 {
+			return
+		}
+		nodes := x.Args.Stmts[2].Nodes
+		if len(nodes) == 1 {
+			if v, ok := nodes[0].(*VarExpr); ok {
 				l.scope[v.Name] = resolved.Array
 			}
 		}
 	}
 }
 
-func findVar(s *Stmt) *VarExpr {
-	if len(s.Nodes) == 1 {
-		if v, ok := s.Nodes[0].(*VarExpr); ok {
-			return v
-		}
-	}
-	return nil
-}
