@@ -127,7 +127,7 @@ func (p *parser) parseFile() *File {
 	return file
 }
 
-func (p *parser) parseBlock(open token.Type, classRoot bool) *Block {
+func (p *parser) parseBlock(open token.Type, inClassBody bool) *Block {
 	b := new(Block)
 	sep := token.Semicolon
 
@@ -153,7 +153,7 @@ func (p *parser) parseBlock(open token.Type, classRoot bool) *Block {
 	}
 
 	for {
-		stmt := p.parseStmt(sep, classRoot)
+		stmt := p.parseStmt(sep, inClassBody)
 		p.got(sep)
 		if len(stmt.Nodes) > 0 {
 			b.Stmts = append(b.Stmts, stmt)
@@ -170,7 +170,7 @@ func (p *parser) parseBlock(open token.Type, classRoot bool) *Block {
 	}
 }
 
-func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
+func (p *parser) parseStmt(sep token.Type, inClassBody bool) (s *Stmt) {
 	s = new(Stmt)
 	p.earlyExit = false
 	var docComment token.Token
@@ -273,7 +273,7 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 			}
 		case token.Static:
 			p.next()
-			if classRoot {
+			if inClassBody {
 				p.parseMember(docComment, true)
 			}
 		case token.Private, token.Protected, token.Public:
@@ -289,7 +289,7 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 			afterFunc = true
 		case token.Case:
 			p.next()
-			if classRoot {
+			if inClassBody {
 				p.parseProperty(docComment, false, true)
 			}
 		case token.Foreach:
@@ -327,7 +327,7 @@ func (p *parser) parseStmt(sep token.Type, classRoot bool) (s *Stmt) {
 			p.got(token.Arrow)
 			b := &Block{Params: p.params}
 			p.params = nil
-			body := p.parseStmt(sep, classRoot)
+			body := p.parseStmt(sep, inClassBody)
 			b.Stmts = append(b.Stmts, body)
 			s.Nodes = append(s.Nodes, b)
 			continue
@@ -956,14 +956,14 @@ func (p *parser) parseExpr() Expr {
 		if objectCast {
 			pos := p.tok.Pos
 			p.parseExpr()
-			return &ValueExpr{ValuePos: pos, Type: resolved.StdClass}
+			return &TypeExpr{ValuePos: pos, Type: resolved.StdClass}
 		}
 		return p.parseExpr()
 	}
 	if p.got(token.Lbrack) {
 		pos := p.tok.Pos
 		p.parseBlock(token.Lbrack, false)
-		return &ValueExpr{ValuePos: pos, Type: resolved.TypeFromName("array")}
+		return &TypeExpr{ValuePos: pos, Type: resolved.TypeFromName("array")}
 	}
 	e := p.parseVarExpr()
 	if p.got(token.Assign) {
@@ -981,7 +981,7 @@ func (p *parser) parseExpr() Expr {
 			v = p.parseExpr()
 		}
 		if isBinaryOp(p.tok.Type) {
-			v = &ValueExpr{ValuePos: v.Pos(), Type: resolved.Mixed}
+			v = &TypeExpr{ValuePos: v.Pos(), Type: resolved.Mixed}
 		}
 		e = &AssignExpr{e, v}
 	}
@@ -1006,7 +1006,7 @@ var anonymousCount int
 func (p *parser) parseNewInstance() Expr {
 	pos := p.tok.Pos
 	if p.got(token.Static) {
-		return &NewInstance{Class: &ValueExpr{ValuePos: pos, Type: resolved.TypeFromName(p.thisClass)}}
+		return &NewInstance{Class: &TypeExpr{ValuePos: pos, Type: resolved.TypeFromName(p.thisClass)}}
 	}
 	switch class := "mixed"; {
 	case p.got(token.Class):
@@ -1049,10 +1049,10 @@ func (p *parser) parseNewInstance() Expr {
 		p.parseBlock(token.Lbrace, true)
 		p.nextClass = backupNextClass
 
-		return &NewInstance{Class: &ValueExpr{ValuePos: pos, Type: resolved.TypeFromName(class)}}
+		return &NewInstance{Class: &TypeExpr{ValuePos: pos, Type: resolved.TypeFromName(class)}}
 	case p.got(token.Var):
 		// Just give up; we can't know the type.
-		return &NewInstance{Class: &ValueExpr{ValuePos: pos, Type: resolved.Mixed}}
+		return &NewInstance{Class: &TypeExpr{ValuePos: pos, Type: resolved.Mixed}}
 	default:
 		name := p.parseQualifiedName()
 		if name == "" {
@@ -1060,7 +1060,7 @@ func (p *parser) parseNewInstance() Expr {
 			return nil
 		}
 		name = p.fullyQualify(name)
-		return &NewInstance{Class: &ValueExpr{ValuePos: pos, Type: resolved.TypeFromName(name)}}
+		return &NewInstance{Class: &TypeExpr{ValuePos: pos, Type: resolved.TypeFromName(name)}}
 	}
 }
 
@@ -1089,7 +1089,7 @@ func (p *parser) parseChainAccess(x Expr) Expr {
 		case p.got(token.Lparen):
 			// TODO: This is a callback call. Support it?
 			p.parseBlock(token.Lparen, false)
-			x = &ValueExpr{ValuePos: x.Pos(), Type: resolved.Mixed}
+			x = &TypeExpr{ValuePos: x.Pos(), Type: resolved.Mixed}
 		default:
 			return x
 		}
@@ -1108,7 +1108,7 @@ func (p *parser) parseMemberAccess(x Expr, static bool) Expr {
 	if p.got(token.Lparen) {
 		if p.got(token.Ellipsis) && p.got(token.Rparen) {
 			// TODO: Return concrete callback type?
-			return &ValueExpr{ValuePos: x.Pos(), Type: resolved.TypeFromName("callable")}
+			return &TypeExpr{ValuePos: x.Pos(), Type: resolved.TypeFromName("callable")}
 		}
 		a.MethodCall = true
 		a.Args = p.parseBlock(token.Lparen, false)
@@ -1117,7 +1117,7 @@ func (p *parser) parseMemberAccess(x Expr, static bool) Expr {
 }
 
 func (p *parser) tryParseStaticMemberAccess() Expr {
-	x := &ValueExpr{ValuePos: p.tok.Pos}
+	x := &TypeExpr{ValuePos: p.tok.Pos}
 	id := p.parseQualifiedName()
 
 	if id == "assert" {
@@ -1163,7 +1163,7 @@ func (p *parser) parseFuncArgs() *Block {
 func (p *parser) parseAssert(pos token.Pos) (x Expr) {
 	defer func() {
 		if x == nil {
-			x = &ValueExpr{ValuePos: p.tok.Pos, Type: resolved.Mixed}
+			x = &TypeExpr{ValuePos: p.tok.Pos, Type: resolved.Mixed}
 			p.parseBlock(token.Lparen, false)
 		}
 	}()

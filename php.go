@@ -59,7 +59,7 @@ var phpBuiltinFuncs = map[string]resolved.Type{
 	"class_exists":   resolved.TypeFromName("bool"),
 }
 
-func (l *linter) applyByRefEffects(x *FuncCall) {
+func (l *checker) applyByRefEffects(x *FuncCall) {
 	switch x.Name {
 	case "preg_match", "preg_match_all":
 		// 3rd argument ($matches) is passed by reference as array.

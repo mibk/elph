@@ -111,12 +111,12 @@ type NewInstance struct {
 
 func (e *NewInstance) Pos() token.Pos { return e.New }
 
-type ValueExpr struct {
+type TypeExpr struct {
 	ValuePos token.Pos
 	Type     resolved.Type
 }
 
-func (e *ValueExpr) Pos() token.Pos { return e.ValuePos }
+func (e *TypeExpr) Pos() token.Pos { return e.ValuePos }
 
 type VarExpr struct {
 	Dollar token.Pos
@@ -232,13 +232,13 @@ func (c *Class) replaceMethod(m *Method) {
 
 func (t *Trait) sourceFile() string { return t.SourceFile }
 
-func (t *Trait) addProperty(m *Property) {
+func (t *Trait) addProperty(p *Property) {
 	initMap(&t.Properties)
-	if _, ok := t.Properties[m.Name]; ok {
-		t.Duplicates = append(t.Duplicates, Duplicate{Pos: m.Pos, Kind: "property", Name: m.Name})
+	if _, ok := t.Properties[p.Name]; ok {
+		t.Duplicates = append(t.Duplicates, Duplicate{Pos: p.Pos, Kind: "property", Name: p.Name})
 		return
 	}
-	t.Properties[m.Name] = m
+	t.Properties[p.Name] = p
 }
 
 func (t *Trait) addConstant(p *Property) {

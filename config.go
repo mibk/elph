@@ -100,16 +100,16 @@ func (c *Config) prepareArbiter() (*Arbiter, error) {
 		def := p
 		raw := p.Value
 		var detailOnly bool
-		p := raw
-		if !strings.HasPrefix(p, "(") {
+		pat := raw
+		if !strings.HasPrefix(pat, "(") {
 			detailOnly = !strings.Contains(raw, ": ")
-			p = strings.ReplaceAll(p, "*", "\x1d")
-			p = regexp.QuoteMeta(p)
-			p = strings.ReplaceAll(p, "\x1d", ".*")
-			p = "^" + p + "$"
+			pat = strings.ReplaceAll(pat, "*", "\x1d")
+			pat = regexp.QuoteMeta(pat)
+			pat = strings.ReplaceAll(pat, "\x1d", ".*")
+			pat = "^" + pat + "$"
 		}
 
-		rx, err := regexp.Compile(p)
+		rx, err := regexp.Compile(pat)
 		if err != nil {
 			return nil, err
 		}

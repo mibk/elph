@@ -16,7 +16,7 @@ import (
 var hasErrors = false
 
 func Check(file *File, a *Arbiter, warnOut io.Writer) {
-	l := linter{
+	l := checker{
 		stdout:           os.Stdout,
 		stderr:           warnOut,
 		arbiter:          a,
@@ -28,7 +28,7 @@ func Check(file *File, a *Arbiter, warnOut io.Writer) {
 	l.check(file.Block)
 }
 
-type linter struct {
+type checker struct {
 	stdout  io.Writer
 	stderr  io.Writer
 	arbiter *Arbiter
@@ -49,7 +49,7 @@ var ignoreTagPatterns = map[string]string{
 	"method.notFound":   "class method ",
 }
 
-func (l *linter) reportf(pos token.Pos, format string, args ...any) {
+func (l *checker) reportf(pos token.Pos, format string, args ...any) {
 	detail := fmt.Sprintf(format, args...)
 	if tag := l.ignoreLines[pos.Line]; tag != "" {
 		if prefix, ok := ignoreTagPatterns[tag]; ok && strings.HasPrefix(detail, prefix) {
@@ -66,7 +66,7 @@ func (l *linter) reportf(pos token.Pos, format string, args ...any) {
 	}
 }
 
-func (l *linter) check(x any) {
+func (l *checker) check(x any) {
 	switch x := x.(type) {
 	default:
 		panic(fmt.Sprintf("unsupported type: %T", x))
@@ -187,7 +187,7 @@ func (l *linter) check(x any) {
 	case *IndexExpr:
 		l.check(x.X)
 	case *VarExpr:
-	case *ValueExpr:
+	case *TypeExpr:
 	case *AssertExpr:
 		l.scope[x.Var] = x.Type
 	case *FuncCall:
@@ -211,7 +211,7 @@ func (l *linter) check(x any) {
 	}
 }
 
-func (l *linter) knownType(typ resolved.Type) bool {
+func (l *checker) knownType(typ resolved.Type) bool {
 	switch t := typ.(type) {
 	case *resolved.Builtin:
 		return true
@@ -238,20 +238,20 @@ func (l *linter) knownType(typ resolved.Type) bool {
 	return false
 }
 
-func (l *linter) checkType(pos token.Pos, typ resolved.Type, kind string) {
+func (l *checker) checkType(pos token.Pos, typ resolved.Type, kind string) {
 	if !l.knownType(typ) {
 		l.reportf(pos, "%s %v not found", kind, typ)
 	}
 }
 
-func (l *linter) findVarType(a *AssignExpr) (typ resolved.Type, checked bool) {
+func (l *checker) findVarType(a *AssignExpr) (typ resolved.Type, checked bool) {
 	switch val := a.Right.(type) {
 	default:
 		panic(fmt.Sprintf("unsupported type: %T", val))
 	case *NewInstance:
 		typ = l.findNewInstanceType(val.Class)
 		checked = true
-	case *ValueExpr:
+	case *TypeExpr:
 		typ = val.Type
 	case *VarExpr:
 		if strings.HasPrefix(val.Name, "$") {
@@ -298,12 +298,12 @@ func (l *linter) findVarType(a *AssignExpr) (typ resolved.Type, checked bool) {
 	return typ, checked
 }
 
-func (l *linter) findNewInstanceType(x any) resolved.Type {
+func (l *checker) findNewInstanceType(x any) resolved.Type {
 	mixed := resolved.Mixed
 	switch x := x.(type) {
 	default:
 		panic(fmt.Sprintf("unsupported expr type: %T", x))
-	case *ValueExpr:
+	case *TypeExpr:
 		switch x.Type {
 		case resolved.Self, resolved.Static:
 			if l.thisClass == nil {
@@ -329,7 +329,7 @@ func (l *linter) findNewInstanceType(x any) resolved.Type {
 	}
 }
 
-func (l *linter) resolveExprType(x any) resolved.Type {
+func (l *checker) resolveExprType(x any) resolved.Type {
 	mixed := resolved.Mixed
 	switch x := x.(type) {
 	case *VarExpr:
@@ -355,13 +355,13 @@ func (l *linter) resolveExprType(x any) resolved.Type {
 	return mixed
 }
 
-func (l *linter) checkMemberAccess(a *MemberAccess) resolved.Type {
+func (l *checker) checkMemberAccess(a *MemberAccess) resolved.Type {
 	mixed := resolved.Mixed
 	var x resolved.Type
 	switch r := a.Rcvr.(type) {
 	default:
 		panic(fmt.Sprintf("unsupported type: %T", r))
-	case *ValueExpr:
+	case *TypeExpr:
 		x = r.Type
 	case *VarExpr:
 		if override, ok := l.scope[r.Name+"->"+a.Name]; ok {
@@ -439,7 +439,7 @@ func (l *linter) checkMemberAccess(a *MemberAccess) resolved.Type {
 	return l.checkClassMember(a.NamePos, class, class, a.Name, a.MethodCall, a.Static, template)
 }
 
-func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, member string, methodCall, static bool, template resolved.Type) resolved.Type {
+func (l *checker) checkClassMember(pos token.Pos, originalClass, class string, member string, methodCall, static bool, template resolved.Type) resolved.Type {
 	mixed := resolved.Mixed
 	c, ok := universe[class].(*Class)
 	if !ok {
@@ -561,7 +561,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, me
 
 	if member, isVar := strings.CutPrefix(member, "$"); memberTyp == nil && static && !isVar {
 		// Interfaces can define constants.
-		memberTyp = findImplementorsConstType(c, member)
+		memberTyp = findInterfaceConst(c, member)
 	}
 
 	if memberTyp == nil && c.Extends != "" {
@@ -596,7 +596,7 @@ func (l *linter) checkClassMember(pos token.Pos, originalClass, class string, me
 	return memberTyp
 }
 
-func findImplementorsConstType(c *Class, member string) resolved.Type {
+func findInterfaceConst(c *Class, member string) resolved.Type {
 	for _, iface := range c.Implements {
 		i, ok := universe[iface].(*Class)
 		if !ok {
@@ -606,14 +606,14 @@ func findImplementorsConstType(c *Class, member string) resolved.Type {
 		if c := i.Constants[member]; c != nil {
 			return c.Type
 		}
-		if typ := findImplementorsConstType(i, member); typ != nil {
+		if typ := findInterfaceConst(i, member); typ != nil {
 			return typ
 		}
 	}
 	return nil
 }
 
-func (l *linter) checkStaticAccess(pos token.Pos, memberName string, isStatic, accessStatic, methodCall bool) {
+func (l *checker) checkStaticAccess(pos token.Pos, memberName string, isStatic, accessStatic, methodCall bool) {
 	if isStatic == accessStatic {
 		return
 	}

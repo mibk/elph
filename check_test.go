@@ -59,7 +59,7 @@ func Test(t *testing.T) {
 				parsed[f.Name] = parseTestFile(t, f, &got)
 			}
 
-			l := linter{
+			l := checker{
 				stdout:           &got,
 				stderr:           io.Discard,
 				scope:            make(map[string]resolved.Type),
