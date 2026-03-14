@@ -44,6 +44,19 @@ type linter struct {
 	pushScope bool
 }
 
+var phpSuperglobals = map[string]bool{
+	"$_GET":                 true,
+	"$_POST":                true,
+	"$_SERVER":              true,
+	"$_REQUEST":             true,
+	"$_SESSION":             true,
+	"$_COOKIE":              true,
+	"$_FILES":               true,
+	"$_ENV":                 true,
+	"$GLOBALS":              true,
+	"$http_response_header": true,
+}
+
 var ignoreTagPatterns = map[string]string{
 	"property.notFound": "class property ",
 	"method.notFound":   "class method ",
@@ -247,7 +260,7 @@ func (l *linter) findVarType(a *AssignExpr) (typ resolved.Type, checked bool) {
 	case *VarExpr:
 		if strings.HasPrefix(val.Name, "$") {
 			typ = l.scope[val.Name]
-			if typ == nil {
+			if typ == nil && !phpSuperglobals[val.Name] {
 				msg := fmt.Sprintf("unknown value of %s", val.Name)
 				fmt.Fprintf(l.stderr, "%s:%s: [WARN] %v\n", l.fileBeingChecked, a.Right.Pos(), msg)
 			}
@@ -319,8 +332,10 @@ func (l *linter) resolveExprType(x any) resolved.Type {
 		if t := l.scope[x.Name]; t != nil {
 			return t
 		}
-		msg := fmt.Sprintf("unknown value of %s", x.Name)
-		fmt.Fprintf(l.stderr, "%s:%s: [WARN] %v\n", l.fileBeingChecked, x.Pos(), msg)
+		if !phpSuperglobals[x.Name] {
+			msg := fmt.Sprintf("unknown value of %s", x.Name)
+			fmt.Fprintf(l.stderr, "%s:%s: [WARN] %v\n", l.fileBeingChecked, x.Pos(), msg)
+		}
 		return mixed
 	case *MemberAccess:
 		return l.checkMemberAccess(x)
