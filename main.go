@@ -26,6 +26,7 @@ Elph is a static analysis tool for checking your PHP files.
 It performs basic checks. For advanced checks, see PHPStan.
 
 Commands:
+  run	run analysis (default)
   init	create an Elphfile in the current directory
 
 Flags:
@@ -43,6 +44,7 @@ Elph is a static analysis tool for checking your PHP files.
 It performs basic checks. For advanced checks, see PHPStan.
 
 Commands:
+  run	run analysis (default)
   init	create an Elphfile in the current directory
 
 Flags:
@@ -93,8 +95,8 @@ func main() {
 	flag.Parse()
 
 	switch flag.Arg(0) {
-	case "":
-		// existing analysis flow
+	case "", "run":
+		// analysis flow below
 	case "init":
 		cmdInit()
 		return
