@@ -25,6 +25,9 @@ func usage() {
 Elph is a static analysis tool for checking your PHP files.
 It performs basic checks. For advanced checks, see PHPStan.
 
+Commands:
+  init	create an Elphfile in the current directory
+
 Flags:
   -v	show warnings
 
@@ -64,7 +67,13 @@ func main() {
 	flag.Usage = usage
 	flag.Parse()
 
-	if flag.NArg() > 0 {
+	switch flag.Arg(0) {
+	case "":
+		// existing analysis flow
+	case "init":
+		cmdInit()
+		return
+	default:
 		log.Fatalf("unknown command %q\n", flag.Arg(0))
 	}
 
