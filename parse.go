@@ -957,6 +957,10 @@ func (p *parser) parseExpr() Expr {
 			return v
 		}
 	}
+	if p.got(token.Lparen) {
+		p.parseBlock(token.Lparen, false)
+		return p.parseExpr()
+	}
 	if p.got(token.Lbrack) {
 		pos := p.tok.Pos
 		p.parseBlock(token.Lbrack, false)
