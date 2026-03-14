@@ -83,7 +83,18 @@ func main() {
 	toScan, ignored := cfg.paths()
 	root := new(rootFS)
 	for _, path := range toScan {
-		parsePath(root, path, ignored, warnOut)
+		w := warnOut
+		analyzed := false
+		for _, a := range cfg.Analyze {
+			if strings.HasPrefix(path, a.Value) || strings.HasPrefix(a.Value, path) {
+				analyzed = true
+				break
+			}
+		}
+		if !analyzed {
+			w = io.Discard
+		}
+		parsePath(root, path, ignored, w)
 	}
 
 	arbiter, err := cfg.prepareArbiter()
