@@ -48,6 +48,8 @@ type Class struct {
 	Extends       string            // or empty
 	Implements    []string
 	DynamicProps  bool
+	IsEnum        bool
+	BackedType    resolved.Type // nil for pure enums, resolved.Int or resolved.String for backed
 	Traits        []string
 	Properties    map[string]*Property
 	Constants     map[string]*Property

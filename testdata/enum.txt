@@ -14,6 +14,11 @@ $val = Option::YES;
 #debugType $val
 
 % check b.php
+b.php:9:1: $s is of type: self (DEBUG)
+b.php:10:1: $t is of type: self|null (DEBUG)
+b.php:13:1: $cases is of type: self[] (DEBUG)
+b.php:16:1: $name is of type: string (DEBUG)
+b.php:17:1: $value is of type: int (DEBUG)
 
 -- b.php --
 <?php
@@ -25,7 +30,17 @@ enum Status: int
 }
 
 $s = Status::from(1);
+#debugType $s
 $t = Status::tryFrom(1);
+#debugType $t
+
+$cases = Status::cases();
+#debugType $cases
+
+$name = Status::ACTIVE->name;
+#debugType $name
+$value = Status::ACTIVE->value;
+#debugType $value
 
 % check c.php
 
@@ -50,3 +65,23 @@ enum Color
 
 $c = Color::RED;
 $l = $c->label();
+
+% check pure.php
+pure.php:10:1: $name is of type: string (DEBUG)
+pure.php:11:1: $cases is of type: self[] (DEBUG)
+
+-- pure.php --
+<?php
+
+enum Suit
+{
+	case HEARTS;
+	case DIAMONDS;
+	case CLUBS;
+	case SPADES;
+}
+
+$name = Suit::HEARTS->name;
+#debugType $name
+$cases = Suit::cases();
+#debugType $cases

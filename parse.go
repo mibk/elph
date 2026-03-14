@@ -614,16 +614,34 @@ func (p *parser) parseEnum() *Class {
 		return nil
 	}
 
+	var backedType resolved.Type
 	if p.got(token.Colon) {
+		bt := p.tok
 		p.expect(token.Ident)
+		switch bt.Text {
+		case "int":
+			backedType = resolved.Int
+		case "string":
+			backedType = resolved.String
+		}
 	}
 	p.expect(token.Lbrace)
 
-	e := &Class{Name: enum, SourceFile: p.filename}
-	m := Method{Name: "tryFrom", Returns: resolved.Self, Static: true}
+	e := &Class{Name: enum, SourceFile: p.filename, IsEnum: true, BackedType: backedType}
+
+	// All enums: cases() and $name.
+	m := Method{Name: "cases", Returns: &resolved.ArrayOf{Elem: resolved.Self}, Static: true}
 	e.addMethod(&m)
-	m = Method{Name: "from", Returns: resolved.Self, Static: true}
-	e.addMethod(&m)
+	e.addProperty(&Property{Name: "name", Type: resolved.String})
+
+	// Backed enums only: from(), tryFrom(), and $value.
+	if backedType != nil {
+		m = Method{Name: "from", Returns: resolved.Self, Static: true}
+		e.addMethod(&m)
+		m = Method{Name: "tryFrom", Returns: resolved.NewUnion(resolved.Self, resolved.Null), Static: true}
+		e.addMethod(&m)
+		e.addProperty(&Property{Name: "value", Type: backedType})
+	}
 	universe[enum] = e
 	p.nextClass = enum
 
