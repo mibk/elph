@@ -69,6 +69,29 @@ $ok = in_array('a', []);
 
 $x = some_unknown_func();
 #debugType $x
+% check f.php
+f.php:4:1: $m is of type: array (DEBUG)
+f.php:10:1: $all is of type: array (DEBUG)
+
+% check g.php
+g.php:5:2: $m is of type: array (DEBUG)
+
+-- f.php --
+<?php
+
+preg_match('/(\d+)/', $str, $m);
+#debugType $m
+
+$x = $m[0];
+
+$n = preg_match_all('/\w+/', $str, $all);
+#debugType $all
+-- g.php --
+<?php
+
+if (preg_match('/foo/', $s, $m)) {
+	#debugType $m
+}
 -- e.php --
 <?php
 

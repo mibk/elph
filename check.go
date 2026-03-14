@@ -243,6 +243,7 @@ func (l *linter) check(x any) {
 		l.scope[x.Var] = x.Type
 	case *FuncCall:
 		l.check(x.Args)
+		l.applyByRefEffects(x)
 	case *UnsetExpr:
 		for _, v := range x.Vars {
 			delete(l.scope, v)
@@ -322,6 +323,7 @@ func (l *linter) findVarType(a *AssignExpr) (typ resolved.Type, checked bool) {
 		typ, checked = l.findVarType(val)
 	case *FuncCall:
 		l.check(val.Args)
+		l.applyByRefEffects(val)
 		typ = phpBuiltinFuncs[val.Name]
 		if typ == nil {
 			typ = resolved.Mixed
@@ -394,6 +396,7 @@ func (l *linter) resolveExprType(x any) resolved.Type {
 		return l.checkMemberAccess(x)
 	case *FuncCall:
 		l.check(x.Args)
+		l.applyByRefEffects(x)
 		if t, ok := phpBuiltinFuncs[x.Name]; ok {
 			return t
 		}
@@ -671,4 +674,25 @@ func (l *linter) checkStaticAccess(pos token.Pos, memberName string, isStatic, a
 		}
 		l.reportf(pos, "cannot %s instance %s '%s' statically", verb, obj, memberName)
 	}
+}
+
+func (l *linter) applyByRefEffects(x *FuncCall) {
+	switch x.Name {
+	case "preg_match", "preg_match_all":
+		// 3rd argument ($matches) is passed by reference as array.
+		if x.Args != nil && len(x.Args.Stmts) >= 3 {
+			if v := findVar(x.Args.Stmts[2]); v != nil {
+				l.scope[v.Name] = resolved.Array
+			}
+		}
+	}
+}
+
+func findVar(s *Stmt) *VarExpr {
+	if len(s.Nodes) == 1 {
+		if v, ok := s.Nodes[0].(*VarExpr); ok {
+			return v
+		}
+	}
+	return nil
 }
