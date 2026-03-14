@@ -19,7 +19,24 @@ import (
 //go:embed stub/*.php
 var stubs embed.FS
 
-func usage() {
+func shortUsage() {
+	fmt.Fprintf(os.Stderr, `usage: elph [-v]
+
+Elph is a static analysis tool for checking your PHP files.
+It performs basic checks. For advanced checks, see PHPStan.
+
+Commands:
+  init	create an Elphfile in the current directory
+
+Flags:
+  -v	show warnings
+
+Run "elph help" for more information.
+`)
+	os.Exit(2)
+}
+
+func longUsage() {
 	fmt.Fprintf(os.Stderr, `usage: elph [-v]
 
 Elph is a static analysis tool for checking your PHP files.
@@ -63,8 +80,14 @@ func main() {
 	log.SetPrefix("elph: ")
 	log.SetFlags(0)
 
+	for _, arg := range os.Args[1:] {
+		if arg == "-h" {
+			shortUsage()
+		}
+	}
+
 	showWarn := flag.Bool("v", false, "show warnings")
-	flag.Usage = usage
+	flag.Usage = longUsage
 	flag.Parse()
 
 	switch flag.Arg(0) {
@@ -73,6 +96,8 @@ func main() {
 	case "init":
 		cmdInit()
 		return
+	case "help":
+		longUsage()
 	default:
 		log.Fatalf("unknown command %q\n", flag.Arg(0))
 	}
