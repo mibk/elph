@@ -1124,6 +1124,10 @@ func (p *parser) tryParseStaticMemberAccess() Expr {
 		x := p.parseMemberAccess(x, true)
 		return p.parseChainAccess(x)
 	}
+	if p.got(token.Lparen) {
+		args := p.parseBlock(token.Lparen, false)
+		return p.parseChainAccess(&FuncCall{NamePos: x.ValuePos, Name: id, Args: args})
+	}
 	return nil
 }
 

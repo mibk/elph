@@ -57,6 +57,50 @@ var phpSuperglobals = map[string]bool{
 	"$http_response_header": true,
 }
 
+var phpBuiltinFuncs = map[string]resolved.Type{
+	"array_keys":     resolved.TypeFromName("array"),
+	"array_values":   resolved.TypeFromName("array"),
+	"array_unique":   resolved.TypeFromName("array"),
+	"array_reverse":  resolved.TypeFromName("array"),
+	"array_merge":    resolved.TypeFromName("array"),
+	"array_filter":   resolved.TypeFromName("array"),
+	"array_map":      resolved.TypeFromName("array"),
+	"array_slice":    resolved.TypeFromName("array"),
+	"array_chunk":    resolved.TypeFromName("array"),
+	"array_flip":     resolved.TypeFromName("array"),
+	"array_combine":  resolved.TypeFromName("array"),
+	"compact":        resolved.TypeFromName("array"),
+	"explode":        resolved.TypeFromName("array"),
+	"range":          resolved.TypeFromName("array"),
+	"count":          resolved.TypeFromName("int"),
+	"sizeof":         resolved.TypeFromName("int"),
+	"strlen":         resolved.TypeFromName("int"),
+	"preg_match":     resolved.TypeFromName("int"),
+	"preg_match_all": resolved.TypeFromName("int"),
+	"intval":         resolved.TypeFromName("int"),
+	"substr":         resolved.TypeFromName("string"),
+	"strtolower":     resolved.TypeFromName("string"),
+	"strtoupper":     resolved.TypeFromName("string"),
+	"trim":           resolved.TypeFromName("string"),
+	"ltrim":          resolved.TypeFromName("string"),
+	"rtrim":          resolved.TypeFromName("string"),
+	"sprintf":        resolved.TypeFromName("string"),
+	"implode":        resolved.TypeFromName("string"),
+	"json_encode":    resolved.TypeFromName("string"),
+	"strval":         resolved.TypeFromName("string"),
+	"floatval":       resolved.TypeFromName("float"),
+	"boolval":        resolved.TypeFromName("bool"),
+	"is_array":       resolved.TypeFromName("bool"),
+	"is_string":      resolved.TypeFromName("bool"),
+	"is_int":         resolved.TypeFromName("bool"),
+	"is_null":        resolved.TypeFromName("bool"),
+	"isset":          resolved.TypeFromName("bool"),
+	"empty":          resolved.TypeFromName("bool"),
+	"in_array":       resolved.TypeFromName("bool"),
+	"file_exists":    resolved.TypeFromName("bool"),
+	"class_exists":   resolved.TypeFromName("bool"),
+}
+
 var ignoreTagPatterns = map[string]string{
 	"property.notFound": "class property ",
 	"method.notFound":   "class method ",
@@ -197,6 +241,8 @@ func (l *linter) check(x any) {
 	case *ValueExpr:
 	case *AssertExpr:
 		l.scope[x.Var] = x.Type
+	case *FuncCall:
+		l.check(x.Args)
 	case *UnsetExpr:
 		for _, v := range x.Vars {
 			delete(l.scope, v)
@@ -274,6 +320,13 @@ func (l *linter) findVarType(a *AssignExpr) (typ resolved.Type, checked bool) {
 		checked = true
 	case *AssignExpr:
 		typ, checked = l.findVarType(val)
+	case *FuncCall:
+		l.check(val.Args)
+		typ = phpBuiltinFuncs[val.Name]
+		if typ == nil {
+			typ = resolved.Mixed
+		}
+		checked = true
 	case *IndexExpr:
 		if elem, ok := resolved.ArrayElem(l.resolveExprType(val.X)); ok {
 			typ = elem
@@ -339,6 +392,12 @@ func (l *linter) resolveExprType(x any) resolved.Type {
 		return mixed
 	case *MemberAccess:
 		return l.checkMemberAccess(x)
+	case *FuncCall:
+		l.check(x.Args)
+		if t, ok := phpBuiltinFuncs[x.Name]; ok {
+			return t
+		}
+		return mixed
 	}
 	l.check(x)
 	return mixed
@@ -365,6 +424,11 @@ func (l *linter) checkMemberAccess(a *MemberAccess) resolved.Type {
 		x = l.checkMemberAccess(r)
 		if r.Args != nil {
 			l.check(r.Args)
+		}
+	case *FuncCall:
+		x = phpBuiltinFuncs[r.Name]
+		if x == nil {
+			x = mixed
 		}
 	case *IndexExpr:
 		t := l.resolveExprType(r.X)

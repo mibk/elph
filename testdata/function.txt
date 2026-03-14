@@ -1,10 +1,16 @@
 % check a.php
 a.php:5:2: $s is of type: string (DEBUG)
 a.php:9:1: $i is of type: mixed (DEBUG)
-# NOTE: Functions aren't supported for now.
 
 % check b.php
 b.php:8:4: $t is of type: mixed (DEBUG)
+
+% check d.php
+d.php:4:1: $keys is of type: array (DEBUG)
+d.php:7:1: $len is of type: int (DEBUG)
+d.php:10:1: $lower is of type: string (DEBUG)
+d.php:13:1: $ok is of type: bool (DEBUG)
+d.php:16:1: $x is of type: mixed (DEBUG)
 
 -- a.php --
 <?php
@@ -42,3 +48,20 @@ class Foo
 		})();
 	}
 }
+-- d.php --
+<?php
+
+$keys = array_keys([1, 2, 3]);
+#debugType $keys
+
+$len = strlen('hello');
+#debugType $len
+
+$lower = strtolower('HELLO');
+#debugType $lower
+
+$ok = in_array('a', []);
+#debugType $ok
+
+$x = some_unknown_func();
+#debugType $x

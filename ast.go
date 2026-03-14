@@ -158,6 +158,14 @@ type UnsetExpr struct {
 
 func (e *UnsetExpr) Pos() token.Pos { return e.Fn }
 
+type FuncCall struct {
+	NamePos token.Pos
+	Name    string
+	Args    *Block
+}
+
+func (e *FuncCall) Pos() token.Pos { return e.NamePos }
+
 // NarrowBlock is a block where a variable is temporarily narrowed
 // to a more specific type. The checker restores the original type
 // after the block.
