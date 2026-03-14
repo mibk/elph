@@ -76,6 +76,9 @@ f.php:10:1: $all is of type: array (DEBUG)
 % check g.php
 g.php:5:2: $m is of type: array (DEBUG)
 
+% check h.php
+h.php:5:2: $m is of type: array (DEBUG)
+
 -- f.php --
 <?php
 
@@ -90,6 +93,12 @@ $n = preg_match_all('/\w+/', $str, $all);
 <?php
 
 if (preg_match('/foo/', $s, $m)) {
+	#debugType $m
+}
+-- h.php --
+<?php
+
+if (!preg_match('/foo/', $s, $m)) {
 	#debugType $m
 }
 -- e.php --
