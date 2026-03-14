@@ -1178,29 +1178,34 @@ func (p *parser) tryParseInstanceofGuard(s *Stmt) {
 
 	v := p.tok
 	if !p.got(token.Var) {
-		p.parseBlock(token.Lparen, false)
+		b := p.parseBlock(token.Lparen, false)
+		s.Nodes = append(s.Nodes, b)
 		return
 	}
 	varName := v.Text
 	if p.got(token.Arrow) {
 		prop := p.tok
 		if !p.got(token.Ident) {
-			p.parseBlock(token.Lparen, false)
+			b := p.parseBlock(token.Lparen, false)
+			s.Nodes = append(s.Nodes, b)
 			return
 		}
 		varName = varName + "->" + prop.Text
 	}
 	if !p.got(token.Instanceof) {
-		p.parseBlock(token.Lparen, false)
+		b := p.parseBlock(token.Lparen, false)
+		s.Nodes = append(s.Nodes, b)
 		return
 	}
 	if p.tok.Type != token.Ident && p.tok.Type != token.Backslash {
-		p.parseBlock(token.Lparen, false)
+		b := p.parseBlock(token.Lparen, false)
+		s.Nodes = append(s.Nodes, b)
 		return
 	}
 	id := p.parseQualifiedName()
 	if id == "" || !p.got(token.Rparen) {
-		p.parseBlock(token.Lparen, false)
+		b := p.parseBlock(token.Lparen, false)
+		s.Nodes = append(s.Nodes, b)
 		return
 	}
 	id = p.fullyQualify(id)
