@@ -319,6 +319,9 @@ func (l *linter) resolveExprType(x any) resolved.Type {
 		if t := l.scope[x.Name]; t != nil {
 			return t
 		}
+		msg := fmt.Sprintf("unknown value of %s", x.Name)
+		fmt.Fprintf(l.stderr, "%s:%s: [WARN] %v\n", l.fileBeingChecked, x.Pos(), msg)
+		return mixed
 	case *MemberAccess:
 		return l.checkMemberAccess(x)
 	}
