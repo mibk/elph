@@ -958,7 +958,13 @@ func (p *parser) parseExpr() Expr {
 		}
 	}
 	if p.got(token.Lparen) {
+		objectCast := p.tok.Type == token.Ident && p.tok.Text == "object"
 		p.parseBlock(token.Lparen, false)
+		if objectCast {
+			pos := p.tok.Pos
+			p.parseExpr()
+			return &ValueExpr{ValuePos: pos, Type: resolved.StdClass}
+		}
 		return p.parseExpr()
 	}
 	if p.got(token.Lbrack) {
