@@ -116,23 +116,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	parsePath(stubs, ".", nil, warnOut)
+	parsePath(stubs, ".", nil, warnOut, nil)
 
 	toScan, ignored := cfg.paths()
 	root := new(rootFS)
 	for _, path := range toScan {
-		w := warnOut
-		analyzed := false
-		for _, a := range cfg.Analyze {
-			if strings.HasPrefix(path, a.Value) || strings.HasPrefix(a.Value, path) {
-				analyzed = true
-				break
-			}
-		}
-		if !analyzed {
-			w = io.Discard
-		}
-		parsePath(root, path, ignored, w)
+		parsePath(root, path, ignored, warnOut, cfg.Analyze)
 	}
 
 	arbiter, err := cfg.prepareArbiter()
@@ -172,7 +161,10 @@ func (rootFS) Open(name string) (fs.File, error) { return os.Open(name) }
 
 var parsedFiles = make(map[string]*File)
 
-func parsePath(fsys fs.FS, filename string, ignored []string, warnOut io.Writer) {
+// parsePath parses a file or directory tree. When analyze is nil,
+// warnOut is used for all files. Otherwise, warnOut is only used
+// for files whose path falls under one of the analyze entries.
+func parsePath(fsys fs.FS, filename string, ignored []string, warnOut io.Writer, analyze []Line) {
 	f, err := fsys.Open(filename)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -189,7 +181,7 @@ func parsePath(fsys fs.FS, filename string, ignored []string, warnOut io.Writer)
 	}
 
 	if fi.IsDir() {
-		parseDir(fsys, filename, ignored, warnOut)
+		parseDir(fsys, filename, ignored, warnOut, analyze)
 		return
 	}
 
@@ -199,21 +191,32 @@ func parsePath(fsys fs.FS, filename string, ignored []string, warnOut io.Writer)
 	}
 	f.Close()
 
-	file, err := Parse(bytes.NewReader(data), filename, false, warnOut)
+	w := warnOut
+	if analyze != nil {
+		w = io.Discard
+		for _, a := range analyze {
+			if strings.HasPrefix(filename, a.Value) {
+				w = warnOut
+				break
+			}
+		}
+	}
+
+	file, err := Parse(bytes.NewReader(data), filename, false, w)
 	if se, ok := err.(*SyntaxError); ok {
 		log.Fatalf("%s:%d:%d: %v", filename, se.Line, se.Column, se.Err)
 	} else if err != nil {
 		log.Fatal(err)
 	}
 	if file.Block == nil {
-		fmt.Fprintf(warnOut, "%s: [WARN] missing <?php open tag\n", filename)
+		fmt.Fprintf(w, "%s: [WARN] missing <?php open tag\n", filename)
 		return
 	}
 	file.Path = filename
 	parsedFiles[filename] = file
 }
 
-func parseDir(fsys fs.FS, filename string, ignored []string, warnOut io.Writer) {
+func parseDir(fsys fs.FS, filename string, ignored []string, warnOut io.Writer, analyze []Line) {
 	err := fs.WalkDir(fsys, filename, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			log.Fatal(err)
@@ -232,7 +235,7 @@ func parseDir(fsys fs.FS, filename string, ignored []string, warnOut io.Writer) 
 		case ".php":
 		}
 
-		parsePath(fsys, path, ignored, warnOut)
+		parsePath(fsys, path, ignored, warnOut, analyze)
 		return nil
 	})
 	if err != nil {
