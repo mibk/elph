@@ -934,6 +934,11 @@ func (p *parser) parseCatch() *Param {
 }
 
 func (p *parser) parseExpr() Expr {
+	if p.tok.Type == token.Backslash || p.tok.Type == token.Ident {
+		if v := p.tryParseStaticMemberAccess(); v != nil {
+			return v
+		}
+	}
 	e := p.parseVarExpr()
 	if p.got(token.Assign) {
 		var v Expr

@@ -10,6 +10,10 @@ a.php:33:7: class const Foo::b does not exist
 a.php:36:1: $m is of type: string (DEBUG)
 a.php:37:6: class property Foo::$c does not exist
 
+% check c.php
+c.php:16:4: $label is of type: mixed (DEBUG)
+c.php:19:4: $item is of type: string (DEBUG)
+
 % check b.php
 b.php:15:5: class property Bar::$counter does not exist
 
@@ -52,6 +56,31 @@ $foo::b;
 $m = Foo::$b;
 #debugType $m
 Foo::$c;
+-- c.php --
+<?php
+
+class Dict
+{
+	/** @var array<string, string> */
+	const LABELS = ['a' => 'Alpha', 'b' => 'Beta'];
+
+	/** @var string[] */
+	static array $items = ['x', 'y'];
+
+	static function getList(): array;
+
+	function run()
+	{
+		foreach (self::LABELS as $k => $label) {
+			#debugType $label
+		}
+		foreach (self::$items as $item) {
+			#debugType $item
+		}
+		$r = array_keys(self::LABELS);
+		$s = count(self::$items);
+	}
+}
 -- b.php --
 <?php
 
