@@ -963,7 +963,7 @@ func (p *parser) parseExpr() Expr {
 	if p.got(token.Lbrack) {
 		pos := p.tok.Pos
 		p.parseBlock(token.Lbrack, false)
-		return &TypeExpr{ValuePos: pos, Type: resolved.TypeFromName("array")}
+		return &TypeExpr{ValuePos: pos, Type: resolved.Array}
 	}
 	e := p.parseVarExpr()
 	if p.got(token.Assign) {
@@ -1108,7 +1108,7 @@ func (p *parser) parseMemberAccess(x Expr, static bool) Expr {
 	if p.got(token.Lparen) {
 		if p.got(token.Ellipsis) && p.got(token.Rparen) {
 			// TODO: Return concrete callback type?
-			return &TypeExpr{ValuePos: x.Pos(), Type: resolved.TypeFromName("callable")}
+			return &TypeExpr{ValuePos: x.Pos(), Type: resolved.Callable}
 		}
 		a.MethodCall = true
 		a.Args = p.parseBlock(token.Lparen, false)
