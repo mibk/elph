@@ -92,10 +92,12 @@ func (p *parser) fullyQualify(id string) string {
 	}
 	if ns, rest, ok := strings.Cut(id, `\`); ok {
 		if tr, ok := p.use[ns]; ok {
+			delete(p.usePos, ns)
 			return tr + `\` + rest
 		}
 	}
 	if tr, ok := p.use[id]; ok {
+		delete(p.usePos, id)
 		return tr
 	}
 	if p.namespace != "" {

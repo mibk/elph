@@ -26,6 +26,9 @@ func Check(file *File, a *Arbiter, warnOut io.Writer) {
 		ignoreLines:      file.IgnoreLines,
 	}
 	l.seedSuperglobals()
+	for _, use := range file.UnusedUse {
+		l.reportf(use.Pos, "unused use statement: %s", use.Alias)
+	}
 	l.check(file.Block)
 }
 

@@ -84,6 +84,9 @@ func Test(t *testing.T) {
 					}
 					l.fileBeingChecked = f.Path
 					l.ignoreLines = f.IgnoreLines
+					for _, use := range f.UnusedUse {
+						l.reportf(use.Pos, "unused use statement: %s", use.Alias)
+					}
 					l.check(f.Block)
 				}
 			}

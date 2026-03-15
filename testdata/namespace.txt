@@ -8,8 +8,13 @@ b.php:12:1: $bar is of type: Path\To\Module\Bar (DEBUG)
 c.php:6:1: $bar is of type: Path\To\Module\Bar (DEBUG)
 
 % check d.php
+d.php:4:2: unused use statement: AAA
 d.php:9:10: class Path\To\Grouped\BBB\Foo not found
 d.php:10:10: class Path\To\Grouped\CCC\Foo not found
+
+% check e.php
+e.php:3:5: unused use statement: Unused
+e.php:4:27: unused use statement: AlsoUnused
 
 -- a.php --
 <?php
@@ -66,3 +71,10 @@ use Path\To\Grouped\{
 
 $x = new BBB\Foo;
 $x = new DDD\Foo;
+-- e.php --
+<?php
+
+use Path\To\Module\Unused;
+use Path\To\Module\Bar as AlsoUnused;
+
+$bar = new \Path\To\Module\Bar;

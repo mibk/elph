@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 
 	"mibk.dev/elph/resolved"
@@ -32,6 +33,7 @@ type parser struct {
 
 	namespace     string
 	use           map[string]string
+	usePos        map[string]token.Pos
 	thisClass     string
 	nextClass     string
 	templateParam *resolved.TypeVar
@@ -48,6 +50,7 @@ func Parse(r io.Reader, filename string, php74Compat bool, warnOut io.Writer) (*
 func parsePHP(r io.Reader, filename string, php74Compat bool, warnOut io.Writer) (*File, error) {
 	p := &parser{scan: token.NewScanner(r, php74Compat), filename: filename, warnOut: warnOut}
 	p.use = make(map[string]string)
+	p.usePos = make(map[string]token.Pos)
 	p.ignoreLines = make(map[int]string)
 	p.next() // init
 	doc := p.parseFile()
@@ -55,6 +58,13 @@ func parsePHP(r io.Reader, filename string, php74Compat bool, warnOut io.Writer)
 		return nil, p.err
 	}
 	doc.IgnoreLines = p.ignoreLines
+	for alias, pos := range p.usePos {
+		doc.UnusedUse = append(doc.UnusedUse, UseStmt{Pos: pos, Alias: alias})
+	}
+	sort.Slice(doc.UnusedUse, func(i, j int) bool {
+		a, b := doc.UnusedUse[i].Pos, doc.UnusedUse[j].Pos
+		return a.Line < b.Line || (a.Line == b.Line && a.Column < b.Column)
+	})
 	return doc, nil
 }
 
@@ -223,6 +233,7 @@ func (p *parser) parseStmt(sep token.Type, inClassBody bool) (s *Stmt) {
 			}
 			for _, use := range p.parseUseStmt() {
 				p.use[use.Alias] = use.Namespace
+				p.usePos[use.Alias] = use.Pos
 			}
 		case token.Abstract, token.Final:
 			p.next()
@@ -398,6 +409,7 @@ func (p *parser) parsePHPDoc(doc token.Token) *phpdoc.Block {
 }
 
 func (p *parser) parseUseStmt() []UseStmt {
+	pos := p.tok.Pos
 	use := p.parseQualifiedName()
 	if p.got(token.Lbrace) {
 		return p.parseGroupedUseStmt(use)
@@ -407,26 +419,29 @@ func (p *parser) parseUseStmt() []UseStmt {
 		alias = alias[i+1:]
 	}
 	if p.got(token.As) {
+		pos = p.tok.Pos
 		alias = p.tok.Text
 		p.expect(token.Ident)
 	}
 	p.expect(token.Semicolon)
-	return []UseStmt{{Namespace: use, Alias: alias}}
+	return []UseStmt{{Pos: pos, Namespace: use, Alias: alias}}
 }
 
 func (p *parser) parseGroupedUseStmt(prefix string) []UseStmt {
 	var uses []UseStmt
 	for {
+		pos := p.tok.Pos
 		part := p.parseQualifiedName()
 		alias := part
 		if i := strings.LastIndexByte(alias, '\\'); i >= 0 {
 			alias = alias[i+1:]
 		}
 		if p.got(token.As) {
+			pos = p.tok.Pos
 			alias = p.tok.Text
 			p.expect(token.Ident)
 		}
-		uses = append(uses, UseStmt{Namespace: prefix + part, Alias: alias})
+		uses = append(uses, UseStmt{Pos: pos, Namespace: prefix + part, Alias: alias})
 		if p.got(token.Comma) {
 			continue
 		}

@@ -9,9 +9,11 @@ type File struct {
 	Path        string
 	Block       *Block
 	IgnoreLines map[int]string // line number → @phpstan-ignore tag
+	UnusedUse   []UseStmt
 }
 
 type UseStmt struct {
+	Pos       token.Pos
 	Namespace string
 	Alias     string
 }
