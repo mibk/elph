@@ -16,6 +16,8 @@ d.php:10:10: class Path\To\Grouped\CCC\Foo not found
 e.php:3:5: unused use statement: Unused
 e.php:4:27: unused use statement: AlsoUnused
 
+% check f.php
+
 -- a.php --
 <?php
 
@@ -78,3 +80,13 @@ use Path\To\Module\Unused;
 use Path\To\Module\Bar as AlsoUnused;
 
 $bar = new \Path\To\Module\Bar;
+-- f.php --
+<?php
+
+use Path\To\Module as Foo;
+
+class Contacts
+{
+	/** @var array<string, Foo\Bar> */
+	private $contacts = [];
+}

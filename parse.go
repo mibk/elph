@@ -1425,9 +1425,15 @@ func (p *parser) resolveType(thisClass string, typ phptype.Type) resolved.Type {
 		if len(typ.TypeParams) == 0 {
 			return base
 		}
+		// Resolve all type params (not just the first) so that
+		// use aliases referenced in later params are marked as used.
+		param := p.resolveType(thisClass, typ.TypeParams[0])
+		for _, tp := range typ.TypeParams[1:] {
+			p.resolveType(thisClass, tp)
+		}
 		return &resolved.Generic{
 			Base:  base,
-			Param: p.resolveType(thisClass, typ.TypeParams[0]),
+			Param: param,
 		}
 	case *phptype.Nullable:
 		return p.resolveType(thisClass, typ.Type)
