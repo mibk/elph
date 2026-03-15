@@ -1456,7 +1456,15 @@ func (p *parser) resolveType(thisClass string, typ phptype.Type) resolved.Type {
 		}
 		name = p.fullyQualify(name)
 		return resolved.TypeFromName(name)
-	case *phptype.ArrayShape, *phptype.ObjectShape:
+	case *phptype.ArrayShape:
+		for _, elem := range typ.Elems {
+			p.resolveType(thisClass, elem.Type)
+		}
+		return resolved.StdClass
+	case *phptype.ObjectShape:
+		for _, elem := range typ.Elems {
+			p.resolveType(thisClass, elem.Type)
+		}
 		return resolved.StdClass
 	case *phptype.This:
 		return resolved.Static

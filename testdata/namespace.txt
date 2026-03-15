@@ -18,6 +18,8 @@ e.php:4:27: unused use statement: AlsoUnused
 
 % check f.php
 
+% check g.php
+
 -- a.php --
 <?php
 
@@ -89,4 +91,18 @@ class Contacts
 {
 	/** @var array<string, Foo\Bar> */
 	private $contacts = [];
+}
+-- g.php --
+<?php
+
+use Path\To\Module as Foo;
+
+class Printer
+{
+	/**
+	 * @param array{id: int, name: string, company?: Foo\Bar} $vals
+	 */
+	public static function render(array $vals): void
+	{
+	}
 }
