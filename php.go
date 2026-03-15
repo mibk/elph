@@ -2,17 +2,17 @@ package main
 
 import "mibk.dev/elph/resolved"
 
-var phpSuperglobals = map[string]bool{
-	"$_GET":                 true,
-	"$_POST":                true,
-	"$_SERVER":              true,
-	"$_REQUEST":             true,
-	"$_SESSION":             true,
-	"$_COOKIE":              true,
-	"$_FILES":               true,
-	"$_ENV":                 true,
-	"$GLOBALS":              true,
-	"$http_response_header": true,
+var phpSuperglobals = []string{
+	"$_GET",
+	"$_POST",
+	"$_SERVER",
+	"$_REQUEST",
+	"$_SESSION",
+	"$_COOKIE",
+	"$_FILES",
+	"$_ENV",
+	"$GLOBALS",
+	"$http_response_header",
 }
 
 var phpBuiltinFuncs = map[string]resolved.Type{

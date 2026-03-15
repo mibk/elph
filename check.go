@@ -25,6 +25,7 @@ func Check(file *File, a *Arbiter, warnOut io.Writer) {
 		reported:         make(map[string]bool),
 		ignoreLines:      file.IgnoreLines,
 	}
+	l.seedSuperglobals()
 	l.check(file.Block)
 }
 
@@ -63,6 +64,12 @@ func (l *checker) reportf(pos token.Pos, format string, args ...any) {
 	if !l.arbiter.errorMatched(msg, detail) {
 		fmt.Fprintln(l.stdout, msg)
 		hasErrors = true
+	}
+}
+
+func (l *checker) seedSuperglobals() {
+	for _, name := range phpSuperglobals {
+		l.scope[name] = resolved.Array
 	}
 }
 
@@ -121,6 +128,7 @@ func (l *checker) check(x any) {
 				l.scope = backupScope
 			}()
 			l.scope["$this"] = resolved.TypeFromName(l.thisClass.Name)
+			l.seedSuperglobals()
 			l.pushScope = false
 		}
 		for _, p := range x.Params {
@@ -256,7 +264,7 @@ func (l *checker) findVarType(a *AssignExpr) (typ resolved.Type, checked bool) {
 	case *VarExpr:
 		if strings.HasPrefix(val.Name, "$") {
 			typ = l.scope[val.Name]
-			if typ == nil && !phpSuperglobals[val.Name] {
+			if typ == nil {
 				msg := fmt.Sprintf("unknown value of %s", val.Name)
 				fmt.Fprintf(l.stderr, "%s:%s: [WARN] %v\n", l.fileBeingChecked, a.Right.Pos(), msg)
 			}
@@ -336,10 +344,8 @@ func (l *checker) resolveExprType(x any) resolved.Type {
 		if t := l.scope[x.Name]; t != nil {
 			return t
 		}
-		if !phpSuperglobals[x.Name] {
-			msg := fmt.Sprintf("unknown value of %s", x.Name)
-			fmt.Fprintf(l.stderr, "%s:%s: [WARN] %v\n", l.fileBeingChecked, x.Pos(), msg)
-		}
+		msg := fmt.Sprintf("unknown value of %s", x.Name)
+		fmt.Fprintf(l.stderr, "%s:%s: [WARN] %v\n", l.fileBeingChecked, x.Pos(), msg)
 		return mixed
 	case *MemberAccess:
 		return l.checkMemberAccess(x)
