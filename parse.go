@@ -360,6 +360,14 @@ func (p *parser) parseStmt(sep token.Type, inClassBody bool) (s *Stmt) {
 				s.Nodes = append(s.Nodes, a)
 			}
 		case token.Var:
+			if b := p.parsePHPDoc(docComment); b != nil {
+				for _, line := range b.Lines {
+					if tag, ok := line.(*phpdoc.VarTag); ok {
+						p.resolveType(p.thisClass, tag.Type)
+						break
+					}
+				}
+			}
 			e := p.parseExpr()
 			s.Nodes = append(s.Nodes, e)
 		case token.New:

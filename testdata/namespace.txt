@@ -20,6 +20,8 @@ e.php:4:27: unused use statement: AlsoUnused
 
 % check g.php
 
+% check h.php
+
 -- a.php --
 <?php
 
@@ -104,5 +106,18 @@ class Printer
 	 */
 	public static function render(array $vals): void
 	{
+	}
+}
+-- h.php --
+<?php
+
+use Path\To\Module\Bar;
+
+class Service
+{
+	public function doSomething(): void
+	{
+		/** @var Bar */
+		$bar = getBar();
 	}
 }
