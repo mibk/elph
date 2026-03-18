@@ -54,13 +54,31 @@ class DateTimeImmutable implements DateTimeInterface
 {
 	static function createFromFormat(string $format, string $datetime): DateTimeImmutable|false;
 
+	static function createFromMutable(DateTime $object): DateTimeImmutable;
+
+	function createFromInterface(DateTimeInterface $object): DateTimeImmutable;
+
 	function modify(string $modifier): static;
 
 	function diff(DateTimeInterface $targetObject, bool $absolute = false): DateInterval;
 
 	function format(string $format): string;
 
-	function createFromInterface(DateTimeInterface $object): DateTimeImmutable;
+	function getOffset(): int;
+
+	function getTimestamp(): int;
+
+	function getTimezone(): DateTimeZone|false;
+
+	function getLastErrors(): array|false;
+
+	function setDate(int $year, int $month, int $day): DateTimeImmutable;
+
+	function setTime(int $hour, int $minute, int $second = 0, int $microsecond = 0): DateTimeImmutable;
+
+	function setTimestamp(int $timestamp): DateTimeImmutable;
+
+	function setTimezone(DateTimeZone $timezone): DateTimeImmutable;
 }
 
 class DateInterval
