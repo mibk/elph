@@ -1429,6 +1429,17 @@ func (p *parser) resolveType(thisClass string, typ phptype.Type) resolved.Type {
 	case *phptype.Array:
 		return &resolved.ArrayOf{Elem: p.resolveType(thisClass, typ.Elem)}
 	case *phptype.Generic:
+		// The PHPDoc parser produces ArrayShape as the base for array<K, V>
+		// syntax (the "array" keyword is consumed before generic params).
+		// Treat array<V> and array<K, V> as ArrayOf with the last param
+		// as the element type.
+		if _, ok := typ.Base.(*phptype.ArrayShape); ok {
+			for _, tp := range typ.TypeParams[:len(typ.TypeParams)-1] {
+				p.resolveType(thisClass, tp)
+			}
+			elem := p.resolveType(thisClass, typ.TypeParams[len(typ.TypeParams)-1])
+			return &resolved.ArrayOf{Elem: elem}
+		}
 		base := p.resolveType(thisClass, typ.Base)
 		if len(typ.TypeParams) == 0 {
 			return base
