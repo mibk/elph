@@ -82,6 +82,8 @@ type Property struct {
 	Static bool
 
 	DefaultValue *Stmt // or nil
+
+	fromTrait bool
 }
 
 type Method struct {
@@ -89,6 +91,8 @@ type Method struct {
 	Name    string
 	Returns resolved.Type
 	Static  bool
+
+	fromTrait bool
 }
 
 type Foreach struct {

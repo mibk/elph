@@ -5,6 +5,13 @@ a.php:12:1: $self is of type: Foo (DEBUG)
 % check b.php
 b.php:14:1: $name is of type: string (DEBUG)
 
+# Error for a non-existing return type in a trait method
+# must be reported against the trait file, not the using class.
+% check bad-trait.php
+bad-trait.php:7:18: method badMethod returns non-existing type Traits\NoSuchType
+
+% check uses-bad-trait.php
+
 -- a.php --
 <?php
 
@@ -44,4 +51,20 @@ trait Name
 	public $name;
 
 	public function identity(): self;
+}
+-- bad-trait.php --
+<?php
+
+namespace Traits;
+
+trait BadTrait
+{
+	public function badMethod(): NoSuchType;
+}
+-- uses-bad-trait.php --
+<?php
+
+class UsesIt
+{
+	use Traits\BadTrait;
 }

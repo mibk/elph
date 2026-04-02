@@ -87,6 +87,9 @@ func (l *checker) check(x any) {
 			l.reportf(d.Pos, "class %s already has %s %s", x.Name, d.Kind, d.Name)
 		}
 		for _, p := range x.Properties {
+			if p.fromTrait {
+				continue
+			}
 			if !l.knownType(p.Type) {
 				l.reportf(p.Pos, "property %s has non-existing type %s", p.Name, p.Type)
 				p.Type = resolved.Mixed // Do not report the error again.
@@ -96,6 +99,9 @@ func (l *checker) check(x any) {
 			}
 		}
 		for _, p := range x.Constants {
+			if p.fromTrait {
+				continue
+			}
 			if !l.knownType(p.Type) {
 				l.reportf(p.Pos, "constant %s has non-existing type %s", p.Name, p.Type)
 				p.Type = resolved.Mixed // Do not report the error again.
@@ -105,6 +111,9 @@ func (l *checker) check(x any) {
 			}
 		}
 		for _, m := range x.Methods {
+			if m.fromTrait {
+				continue
+			}
 			if !l.knownType(m.Returns) {
 				l.reportf(m.Pos, "method %s returns non-existing type %s", m.Name, m.Returns)
 				m.Returns = resolved.Mixed // Do not report the error again.
@@ -117,6 +126,24 @@ func (l *checker) check(x any) {
 	case *Trait:
 		for _, d := range x.Duplicates {
 			l.reportf(d.Pos, "trait %s already has %s %s", x.Name, d.Kind, d.Name)
+		}
+		for _, p := range x.Properties {
+			if !l.knownType(p.Type) {
+				l.reportf(p.Pos, "property %s has non-existing type %s", p.Name, p.Type)
+				p.Type = resolved.Mixed
+			}
+		}
+		for _, p := range x.Constants {
+			if !l.knownType(p.Type) {
+				l.reportf(p.Pos, "constant %s has non-existing type %s", p.Name, p.Type)
+				p.Type = resolved.Mixed
+			}
+		}
+		for _, m := range x.Methods {
+			if !l.knownType(m.Returns) {
+				l.reportf(m.Pos, "method %s returns non-existing type %s", m.Name, m.Returns)
+				m.Returns = resolved.Mixed
+			}
 		}
 		l.nextClass = &Class{Name: resolved.StdClass.Name} // Ignore
 		l.pushScope = true
@@ -483,13 +510,17 @@ func (l *checker) checkClassMember(pos token.Pos, originalClass, class string, m
 		initMap(&c.Properties)
 		for k, m := range t.Properties {
 			if c.Properties[k] == nil {
-				c.Properties[k] = m
+				m := *m
+				m.fromTrait = true
+				c.Properties[k] = &m
 			}
 		}
 		initMap(&c.Constants)
 		for k, m := range t.Constants {
 			if c.Constants[k] == nil {
-				c.Constants[k] = m
+				m := *m
+				m.fromTrait = true
+				c.Constants[k] = &m
 			}
 		}
 		initMap(&c.Methods)
@@ -498,6 +529,7 @@ func (l *checker) checkClassMember(pos token.Pos, originalClass, class string, m
 				continue
 			}
 			m := *m
+			m.fromTrait = true
 			if m.Returns.String() == t.Name {
 				// TODO: This is hacky, and ugly.
 				m.Returns = resolved.TypeFromName(c.Name)
