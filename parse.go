@@ -1440,6 +1440,13 @@ func (p *parser) resolveType(thisClass string, typ phptype.Type) resolved.Type {
 			elem := p.resolveType(thisClass, typ.TypeParams[len(typ.TypeParams)-1])
 			return &resolved.ArrayOf{Elem: elem}
 		}
+		// PHPStan pseudo-generic list<T> is equivalent to array<int, T>.
+		// The base parses as a Named, which would otherwise be resolved
+		// into the current namespace as a (non-existing) class.
+		if n, ok := typ.Base.(*phptype.Named); ok && len(n.Parts) == 1 && !n.Global && n.Parts[0] == "list" && len(typ.TypeParams) == 1 {
+			elem := p.resolveType(thisClass, typ.TypeParams[0])
+			return &resolved.ArrayOf{Elem: elem}
+		}
 		base := p.resolveType(thisClass, typ.Base)
 		if len(typ.TypeParams) == 0 {
 			return base

@@ -11,9 +11,10 @@ a.php:36:1: $m is of type: string (DEBUG)
 a.php:37:6: class property Foo::$c does not exist
 
 % check c.php
-c.php:19:4: $label is of type: string (DEBUG)
-c.php:22:4: $item is of type: string (DEBUG)
-c.php:25:4: $v is of type: int (DEBUG)
+c.php:22:4: $label is of type: string (DEBUG)
+c.php:25:4: $item is of type: string (DEBUG)
+c.php:28:4: $v is of type: int (DEBUG)
+c.php:31:4: $n is of type: string (DEBUG)
 
 % check b.php
 b.php:15:5: class property Bar::$counter does not exist
@@ -73,6 +74,9 @@ class Dict
 	/** @return array<string, int> */
 	static function getMap(): array;
 
+	/** @return list<string> */
+	static function getNames(): array;
+
 	function run()
 	{
 		foreach (self::LABELS as $k => $label) {
@@ -83,6 +87,9 @@ class Dict
 		}
 		foreach (self::getMap() as $v) {
 			#debugType $v
+		}
+		foreach (self::getNames() as $n) {
+			#debugType $n
 		}
 		$r = array_keys(self::LABELS);
 		$s = count(self::$items);
