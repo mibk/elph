@@ -53,6 +53,7 @@ type Class struct {
 	IsEnum        bool
 	BackedType    resolved.Type // nil for pure enums, resolved.Int or resolved.String for backed
 	Traits        []string
+	Body          *Block // method bodies; nil for interfaces with no bodies
 	memberSet
 
 	SourceFile string
@@ -60,6 +61,7 @@ type Class struct {
 
 type Trait struct {
 	Name string
+	Body *Block
 	memberSet
 
 	SourceFile string

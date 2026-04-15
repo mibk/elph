@@ -1,7 +1,6 @@
 package main
 
 import (
-	"cmp"
 	"fmt"
 	"io"
 	"os"
@@ -42,8 +41,6 @@ type checker struct {
 	ignoreLines      map[int]string
 
 	thisClass *Class
-	nextClass *Class
-	pushScope bool
 
 	hadError bool
 }
@@ -85,26 +82,17 @@ func (l *checker) check(x any) {
 		l.thisClass = x
 		l.checkMembers("class", x.Name, &x.memberSet)
 		l.thisClass = backup
-		l.nextClass = x
-		l.pushScope = true
+		if x.Body != nil {
+			l.checkClassBody(x, x.Body)
+		}
 	case *Trait:
 		l.checkMembers("trait", x.Name, &x.memberSet)
-		l.nextClass = &Class{Name: resolved.StdClass.Name} // Ignore
-		l.pushScope = true
-	case *Block:
-		if l.pushScope {
-			backupClass := l.thisClass
-			l.thisClass = l.nextClass
-			backupScope := l.scope
-			l.scope = make(map[string]resolved.Type)
-			defer func() {
-				l.thisClass = backupClass
-				l.scope = backupScope
-			}()
-			l.scope["$this"] = resolved.TypeFromName(l.thisClass.Name)
-			l.seedSuperglobals()
-			l.pushScope = false
+		if x.Body != nil {
+			// Trait bodies run with $this typed as stdClass — lenient,
+			// since we don't know the using class yet.
+			l.checkClassBody(&Class{Name: resolved.StdClass.Name}, x.Body)
 		}
+	case *Block:
 		for _, p := range x.Params {
 			l.scope[p.Name] = p.Type
 		}
@@ -190,6 +178,27 @@ func (l *checker) check(x any) {
 		} else {
 			l.scope[x.Var] = backup
 		}
+	}
+}
+
+// checkClassBody walks body with a fresh scope rooted in thisClass,
+// seeding $this and the superglobals. Used for class/trait/interface/enum
+// bodies; thisClass may be a synthetic placeholder for traits.
+func (l *checker) checkClassBody(thisClass *Class, body *Block) {
+	backupClass, backupScope := l.thisClass, l.scope
+	l.thisClass = thisClass
+	l.scope = make(map[string]resolved.Type)
+	l.scope["$this"] = resolved.TypeFromName(thisClass.Name)
+	l.seedSuperglobals()
+	defer func() {
+		l.thisClass = backupClass
+		l.scope = backupScope
+	}()
+	for _, p := range body.Params {
+		l.scope[p.Name] = p.Type
+	}
+	for _, stmt := range body.Stmts {
+		l.check(stmt)
 	}
 }
 
@@ -435,8 +444,11 @@ func (l *checker) checkMemberAccess(a *MemberAccess) resolved.Type {
 		}
 	}
 	if x == resolved.Self || x == resolved.Parent {
-		// TODO: This is definitely a hack. Fix it.
-		x = resolved.TypeFromName(cmp.Or(l.thisClass, l.nextClass).Name)
+		if l.thisClass == nil {
+			l.reportf(a.NamePos, "not in class context")
+			return mixed
+		}
+		x = resolved.TypeFromName(l.thisClass.Name)
 	} else if resolved.IsBuiltin(x) {
 		if x == resolved.Mixed || x == resolved.Object {
 			// All member access allowed on mixed.

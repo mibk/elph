@@ -250,8 +250,7 @@ func (p *parser) parseStmt(sep token.Type, inClassBody bool) (s *Stmt) {
 				backupTP := p.templateParam
 				p.templateParam = c.TemplateParam
 				p.withClass(c.Name, func() {
-					b := p.parseBlock(token.Lbrace, true)
-					s.Nodes = append(s.Nodes, b)
+					c.Body = p.parseBlock(token.Lbrace, true)
 				})
 
 				if b := p.parsePHPDoc(doc); b != nil {
@@ -264,8 +263,7 @@ func (p *parser) parseStmt(sep token.Type, inClassBody bool) (s *Stmt) {
 				s.Nodes = append(s.Nodes, t)
 				p.expect(token.Lbrace)
 				p.withClass(t.Name, func() {
-					b := p.parseBlock(token.Lbrace, true)
-					s.Nodes = append(s.Nodes, b)
+					t.Body = p.parseBlock(token.Lbrace, true)
 				})
 				return s
 			}
@@ -279,8 +277,7 @@ func (p *parser) parseStmt(sep token.Type, inClassBody bool) (s *Stmt) {
 				backupTP := p.templateParam
 				p.templateParam = c.TemplateParam
 				p.withClass(c.Name, func() {
-					b := p.parseBlock(token.Lbrace, true)
-					s.Nodes = append(s.Nodes, b)
+					c.Body = p.parseBlock(token.Lbrace, true)
 				})
 				p.templateParam = backupTP
 			}
@@ -293,8 +290,7 @@ func (p *parser) parseStmt(sep token.Type, inClassBody bool) (s *Stmt) {
 			if c := p.parseEnum(); c != nil {
 				s.Nodes = append(s.Nodes, c)
 				p.withClass(c.Name, func() {
-					b := p.parseBlock(token.Lbrace, true)
-					s.Nodes = append(s.Nodes, b)
+					c.Body = p.parseBlock(token.Lbrace, true)
 				})
 			}
 		case token.Static:
