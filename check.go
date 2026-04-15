@@ -183,7 +183,7 @@ func (l *checker) check(x any) {
 		backup := l.scope[x.Var]
 		l.scope[x.Var] = x.Type
 		l.check(x.Block)
-		if x.EarlyExit {
+		if x.Block.EarlyExit {
 			if backup != nil {
 				l.scope[x.Var] = resolved.SubtractType(backup, x.Type)
 			}

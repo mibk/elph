@@ -19,8 +19,9 @@ type UseStmt struct {
 }
 
 type Block struct {
-	Params []*Param
-	Stmts  []*Stmt
+	Params    []*Param
+	Stmts     []*Stmt
+	EarlyExit bool // last stmt is return/throw/break/continue
 }
 
 type Param struct {
@@ -37,7 +38,8 @@ type Debug struct {
 }
 
 type Stmt struct {
-	Nodes []any
+	Nodes     []any
+	EarlyExit bool // contains return/throw/break/continue
 }
 
 type Class struct {
@@ -183,10 +185,9 @@ func (e *FuncCall) Pos() token.Pos { return e.NamePos }
 // to a more specific type. The checker restores the original type
 // after the block.
 type NarrowBlock struct {
-	Var       string
-	Type      resolved.Type
-	Block     *Block
-	EarlyExit bool
+	Var   string
+	Type  resolved.Type
+	Block *Block
 }
 
 ////////////
