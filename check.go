@@ -12,10 +12,7 @@ import (
 	"mibk.dev/phpfmt/token"
 )
 
-// hasErrors is set to true when any error is reported.
-var hasErrors = false
-
-func Check(file *File, a *Arbiter, warnOut io.Writer) {
+func Check(file *File, a *Arbiter, warnOut io.Writer) bool {
 	l := checker{
 		stdout:           os.Stdout,
 		stderr:           warnOut,
@@ -30,6 +27,7 @@ func Check(file *File, a *Arbiter, warnOut io.Writer) {
 		l.reportf(use.Pos, "unused use statement: %s", use.Alias)
 	}
 	l.check(file.Block)
+	return l.hadError
 }
 
 type checker struct {
@@ -46,6 +44,8 @@ type checker struct {
 	thisClass *Class
 	nextClass *Class
 	pushScope bool
+
+	hadError bool
 }
 
 var ignoreTagPatterns = map[string]string{
@@ -66,7 +66,7 @@ func (l *checker) reportf(pos token.Pos, format string, args ...any) {
 	)
 	if !l.arbiter.errorMatched(msg, detail) {
 		fmt.Fprintln(l.stdout, msg)
-		hasErrors = true
+		l.hadError = true
 	}
 }
 
