@@ -35,11 +35,19 @@ type parser struct {
 	use           map[string]string
 	usePos        map[string]token.Pos
 	thisClass     string
-	nextClass     string
 	templateParam *resolved.TypeVar
 	params        []*Param
 	dynamicProps  bool
 	ignoreLines   map[int]string
+}
+
+// withClass runs fn with p.thisClass temporarily set to class.
+// Used to scope class/trait/interface/enum/anonymous-class body parsing.
+func (p *parser) withClass(class string, fn func()) {
+	backup := p.thisClass
+	p.thisClass = class
+	defer func() { p.thisClass = backup }()
+	fn()
 }
 
 func Parse(r io.Reader, filename string, php74Compat bool, warnOut io.Writer) (*File, error) {
@@ -149,10 +157,6 @@ func (p *parser) parseBlock(open token.Type, inClassBody bool) *Block {
 	case token.Lbrace:
 		b.Params = p.params
 		p.params = nil
-		backup := p.thisClass
-		p.thisClass = p.nextClass
-		defer func() { p.thisClass = backup }()
-
 		close = token.Rbrace
 	case token.Lparen:
 		close = token.Rparen
@@ -245,8 +249,10 @@ func (p *parser) parseStmt(sep token.Type, inClassBody bool) (s *Stmt) {
 				}
 				backupTP := p.templateParam
 				p.templateParam = c.TemplateParam
-				b := p.parseBlock(token.Lbrace, true)
-				s.Nodes = append(s.Nodes, b)
+				p.withClass(c.Name, func() {
+					b := p.parseBlock(token.Lbrace, true)
+					s.Nodes = append(s.Nodes, b)
+				})
 
 				if b := p.parsePHPDoc(doc); b != nil {
 					p.handleClassDoc(c, b, doc.Pos)
@@ -254,8 +260,14 @@ func (p *parser) parseStmt(sep token.Type, inClassBody bool) (s *Stmt) {
 				p.templateParam = backupTP
 			}
 		case token.Trait:
-			if c := p.parseTrait(docComment); c != nil {
-				s.Nodes = append(s.Nodes, c)
+			if t := p.parseTrait(docComment); t != nil {
+				s.Nodes = append(s.Nodes, t)
+				p.expect(token.Lbrace)
+				p.withClass(t.Name, func() {
+					b := p.parseBlock(token.Lbrace, true)
+					s.Nodes = append(s.Nodes, b)
+				})
+				return s
 			}
 		case token.Interface:
 			doc := docComment
@@ -266,8 +278,10 @@ func (p *parser) parseStmt(sep token.Type, inClassBody bool) (s *Stmt) {
 				}
 				backupTP := p.templateParam
 				p.templateParam = c.TemplateParam
-				b := p.parseBlock(token.Lbrace, true)
-				s.Nodes = append(s.Nodes, b)
+				p.withClass(c.Name, func() {
+					b := p.parseBlock(token.Lbrace, true)
+					s.Nodes = append(s.Nodes, b)
+				})
 				p.templateParam = backupTP
 			}
 		case token.Enum:
@@ -278,8 +292,10 @@ func (p *parser) parseStmt(sep token.Type, inClassBody bool) (s *Stmt) {
 			}
 			if c := p.parseEnum(); c != nil {
 				s.Nodes = append(s.Nodes, c)
-				b := p.parseBlock(token.Lbrace, true)
-				s.Nodes = append(s.Nodes, b)
+				p.withClass(c.Name, func() {
+					b := p.parseBlock(token.Lbrace, true)
+					s.Nodes = append(s.Nodes, b)
+				})
 			}
 		case token.Static:
 			p.next()
@@ -480,7 +496,6 @@ func (p *parser) parseClass() *Class {
 	c := &Class{Name: class, DynamicProps: p.dynamicProps, SourceFile: p.filename}
 	p.dynamicProps = false
 	universe[class] = c
-	p.nextClass = class
 
 	if p.got(token.Extends) {
 		e := p.parseQualifiedName()
@@ -590,7 +605,6 @@ func (p *parser) parseTrait(_ token.Token) *Trait {
 	}
 	t := &Trait{Name: class, SourceFile: p.filename}
 	universe[class] = t
-	p.nextClass = class
 
 	return t
 }
@@ -610,7 +624,6 @@ func (p *parser) parseInterface() *Class {
 	}
 	i := &Class{Name: class, SourceFile: p.filename}
 	universe[class] = i
-	p.nextClass = class
 
 	if p.got(token.Extends) {
 		for {
@@ -669,7 +682,6 @@ func (p *parser) parseEnum() *Class {
 		e.addProperty(&Property{Name: "value", Type: backedType})
 	}
 	universe[enum] = e
-	p.nextClass = enum
 
 	for p.got(token.Use) {
 		use := p.parseQualifiedName()
@@ -1036,7 +1048,6 @@ func (p *parser) parseNewInstance() Expr {
 		class = "AnonymousClass@" + fmt.Sprint(anonymousCount)
 		c := &Class{Name: class, SourceFile: p.filename}
 		universe[class] = c
-		p.nextClass = class
 
 		if p.got(token.Lparen) {
 			p.parseBlock(token.Lparen, false) // ignore args
@@ -1056,20 +1067,20 @@ func (p *parser) parseNewInstance() Expr {
 			}
 		}
 
-		backupNextClass := p.nextClass
 		p.expect(token.Lbrace)
-		for p.got(token.Use) {
-			use := p.parseQualifiedName()
-			use = p.fullyQualify(use)
-			c.Traits = append(c.Traits, use)
-			if p.got(token.Lbrace) {
-				p.parseBlock(token.Lbrace, false)
-			} else {
-				p.expect(token.Semicolon)
+		p.withClass(class, func() {
+			for p.got(token.Use) {
+				use := p.parseQualifiedName()
+				use = p.fullyQualify(use)
+				c.Traits = append(c.Traits, use)
+				if p.got(token.Lbrace) {
+					p.parseBlock(token.Lbrace, false)
+				} else {
+					p.expect(token.Semicolon)
+				}
 			}
-		}
-		p.parseBlock(token.Lbrace, true)
-		p.nextClass = backupNextClass
+			p.parseBlock(token.Lbrace, true)
+		})
 
 		return &NewInstance{Class: &TypeExpr{ValuePos: pos, Type: resolved.TypeFromName(class)}}
 	case p.got(token.Var):
