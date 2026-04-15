@@ -83,68 +83,12 @@ func (l *checker) check(x any) {
 	case *Class:
 		backup := l.thisClass
 		l.thisClass = x
-		for _, d := range x.Duplicates {
-			l.reportf(d.Pos, "class %s already has %s %s", x.Name, d.Kind, d.Name)
-		}
-		for _, p := range x.Properties {
-			if p.fromTrait {
-				continue
-			}
-			if !l.knownType(p.Type) {
-				l.reportf(p.Pos, "property %s has non-existing type %s", p.Name, p.Type)
-				p.Type = resolved.Mixed // Do not report the error again.
-			}
-			if p.DefaultValue != nil {
-				l.check(p.DefaultValue)
-			}
-		}
-		for _, p := range x.Constants {
-			if p.fromTrait {
-				continue
-			}
-			if !l.knownType(p.Type) {
-				l.reportf(p.Pos, "constant %s has non-existing type %s", p.Name, p.Type)
-				p.Type = resolved.Mixed // Do not report the error again.
-			}
-			if p.DefaultValue != nil {
-				l.check(p.DefaultValue)
-			}
-		}
-		for _, m := range x.Methods {
-			if m.fromTrait {
-				continue
-			}
-			if !l.knownType(m.Returns) {
-				l.reportf(m.Pos, "method %s returns non-existing type %s", m.Name, m.Returns)
-				m.Returns = resolved.Mixed // Do not report the error again.
-			}
-		}
-
+		l.checkMembers("class", x.Name, &x.memberSet)
 		l.thisClass = backup
 		l.nextClass = x
 		l.pushScope = true
 	case *Trait:
-		for _, d := range x.Duplicates {
-			l.reportf(d.Pos, "trait %s already has %s %s", x.Name, d.Kind, d.Name)
-		}
-		for _, p := range x.Properties {
-			if !l.knownType(p.Type) {
-				l.reportf(p.Pos, "property %s has non-existing type %s", p.Name, p.Type)
-				p.Type = resolved.Mixed
-			}
-		}
-		for _, p := range x.Constants {
-			if !l.knownType(p.Type) {
-				l.reportf(p.Pos, "constant %s has non-existing type %s", p.Name, p.Type)
-				p.Type = resolved.Mixed
-			}
-		}
-		for _, m := range x.Methods {
-			if !l.knownType(m.Returns) {
-				l.reportf(m.Pos, "method %s returns non-existing type %s", m.Name, m.Returns)
-				m.Returns = resolved.Mixed
-			}
-		}
+		l.checkMembers("trait", x.Name, &x.memberSet)
 		l.nextClass = &Class{Name: resolved.StdClass.Name} // Ignore
 		l.pushScope = true
 	case *Block:
@@ -245,6 +189,45 @@ func (l *checker) check(x any) {
 			}
 		} else {
 			l.scope[x.Var] = backup
+		}
+	}
+}
+
+func (l *checker) checkMembers(kind, name string, s *memberSet) {
+	for _, d := range s.Duplicates {
+		l.reportf(d.Pos, "%s %s already has %s %s", kind, name, d.Kind, d.Name)
+	}
+	for _, p := range s.Properties {
+		if p.fromTrait {
+			continue
+		}
+		if !l.knownType(p.Type) {
+			l.reportf(p.Pos, "property %s has non-existing type %s", p.Name, p.Type)
+			p.Type = resolved.Mixed // Do not report the error again.
+		}
+		if p.DefaultValue != nil {
+			l.check(p.DefaultValue)
+		}
+	}
+	for _, p := range s.Constants {
+		if p.fromTrait {
+			continue
+		}
+		if !l.knownType(p.Type) {
+			l.reportf(p.Pos, "constant %s has non-existing type %s", p.Name, p.Type)
+			p.Type = resolved.Mixed // Do not report the error again.
+		}
+		if p.DefaultValue != nil {
+			l.check(p.DefaultValue)
+		}
+	}
+	for _, m := range s.Methods {
+		if m.fromTrait {
+			continue
+		}
+		if !l.knownType(m.Returns) {
+			l.reportf(m.Pos, "method %s returns non-existing type %s", m.Name, m.Returns)
+			m.Returns = resolved.Mixed // Do not report the error again.
 		}
 	}
 }
@@ -494,10 +477,8 @@ func (l *checker) checkClassMember(pos token.Pos, originalClass, class string, m
 		}
 		// Let's check the trait as if it were a class.
 		c = &Class{
-			Name:       t.Name,
-			Properties: t.Properties,
-			Constants:  t.Constants,
-			Methods:    t.Methods,
+			Name:      t.Name,
+			memberSet: t.memberSet,
 		}
 	}
 

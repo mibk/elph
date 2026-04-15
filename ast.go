@@ -51,22 +51,23 @@ type Class struct {
 	IsEnum        bool
 	BackedType    resolved.Type // nil for pure enums, resolved.Int or resolved.String for backed
 	Traits        []string
-	Properties    map[string]*Property
-	Constants     map[string]*Property
-	Methods       map[string]*Method
-	Duplicates    []Duplicate
+	memberSet
 
 	SourceFile string
 }
 
 type Trait struct {
-	Name       string
+	Name string
+	memberSet
+
+	SourceFile string
+}
+
+type memberSet struct {
 	Properties map[string]*Property
 	Constants  map[string]*Property
 	Methods    map[string]*Method
 	Duplicates []Duplicate
-
-	SourceFile string
 }
 
 type Duplicate struct {
@@ -198,71 +199,43 @@ type typeDecl interface {
 }
 
 func (c *Class) sourceFile() string { return c.SourceFile }
-
-func (c *Class) addProperty(p *Property) {
-	initMap(&c.Properties)
-	if _, ok := c.Properties[p.Name]; ok {
-		c.Duplicates = append(c.Duplicates, Duplicate{Pos: p.Pos, Kind: "property", Name: p.Name})
-		return
-	}
-	c.Properties[p.Name] = p
-}
-
-func (c *Class) replaceProperty(p *Property) {
-	initMap(&c.Properties)
-	c.Properties[p.Name] = p
-}
-
-func (c *Class) addConstant(p *Property) {
-	initMap(&c.Constants)
-	if _, ok := c.Constants[p.Name]; ok {
-		c.Duplicates = append(c.Duplicates, Duplicate{Pos: p.Pos, Kind: "constant", Name: p.Name})
-		return
-	}
-	c.Constants[p.Name] = p
-}
-
-func (c *Class) addMethod(m *Method) {
-	initMap(&c.Methods)
-	if _, ok := c.Methods[m.Name]; ok {
-		c.Duplicates = append(c.Duplicates, Duplicate{Pos: m.Pos, Kind: "method", Name: m.Name})
-		return
-	}
-	c.Methods[m.Name] = m
-}
-
-func (c *Class) replaceMethod(m *Method) {
-	initMap(&c.Methods)
-	c.Methods[m.Name] = m
-}
-
 func (t *Trait) sourceFile() string { return t.SourceFile }
 
-func (t *Trait) addProperty(p *Property) {
-	initMap(&t.Properties)
-	if _, ok := t.Properties[p.Name]; ok {
-		t.Duplicates = append(t.Duplicates, Duplicate{Pos: p.Pos, Kind: "property", Name: p.Name})
+func (s *memberSet) addProperty(p *Property) {
+	initMap(&s.Properties)
+	if _, ok := s.Properties[p.Name]; ok {
+		s.Duplicates = append(s.Duplicates, Duplicate{Pos: p.Pos, Kind: "property", Name: p.Name})
 		return
 	}
-	t.Properties[p.Name] = p
+	s.Properties[p.Name] = p
 }
 
-func (t *Trait) addConstant(p *Property) {
-	initMap(&t.Constants)
-	if _, ok := t.Constants[p.Name]; ok {
-		t.Duplicates = append(t.Duplicates, Duplicate{Pos: p.Pos, Kind: "constant", Name: p.Name})
-		return
-	}
-	t.Constants[p.Name] = p
+func (s *memberSet) replaceProperty(p *Property) {
+	initMap(&s.Properties)
+	s.Properties[p.Name] = p
 }
 
-func (t *Trait) addMethod(m *Method) {
-	initMap(&t.Methods)
-	if _, ok := t.Methods[m.Name]; ok {
-		t.Duplicates = append(t.Duplicates, Duplicate{Pos: m.Pos, Kind: "method", Name: m.Name})
+func (s *memberSet) addConstant(p *Property) {
+	initMap(&s.Constants)
+	if _, ok := s.Constants[p.Name]; ok {
+		s.Duplicates = append(s.Duplicates, Duplicate{Pos: p.Pos, Kind: "constant", Name: p.Name})
 		return
 	}
-	t.Methods[m.Name] = m
+	s.Constants[p.Name] = p
+}
+
+func (s *memberSet) addMethod(m *Method) {
+	initMap(&s.Methods)
+	if _, ok := s.Methods[m.Name]; ok {
+		s.Duplicates = append(s.Duplicates, Duplicate{Pos: m.Pos, Kind: "method", Name: m.Name})
+		return
+	}
+	s.Methods[m.Name] = m
+}
+
+func (s *memberSet) replaceMethod(m *Method) {
+	initMap(&s.Methods)
+	s.Methods[m.Name] = m
 }
 
 func initMap[M map[K]V, K comparable, V any](m *M) {
