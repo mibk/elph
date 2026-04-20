@@ -42,6 +42,9 @@ h.php:20:2: $p is of type: Guards\Cat (DEBUG)
 % check union-member.php
 # No errors.
 
+% check union-missing.php
+union-missing.php:14:6: class property UnionMiss\A|UnionMiss\B::baz does not exist
+
 % check list.php
 list.php:11:2: $a is of type: string (DEBUG)
 list.php:12:2: $b is of type: string (DEBUG)
@@ -290,6 +293,23 @@ function test(Service $s) {
 	$r = $s->getResult();
 	$r->name;
 }
+-- union-missing.php --
+<?php
+namespace UnionMiss;
+
+class A { public string $foo; }
+class B { public string $bar; }
+
+class Svc {
+	/** @return A|B */
+	function get(): mixed {}
+}
+
+function test(Svc $s) {
+	$r = $s->get();
+	$r->baz;
+}
+
 -- list.php --
 <?php
 namespace ListAssign;

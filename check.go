@@ -420,6 +420,9 @@ func (l *checker) checkMemberAccess(a *MemberAccess) resolved.Type {
 	}
 
 	if u, ok := x.(*resolved.Union); ok {
+		kind := memberKind(a)
+		var failedDisplays []string
+		anyHandled := false
 		for _, m := range u.Types {
 			if resolved.IsBuiltin(m) {
 				continue
@@ -428,10 +431,31 @@ func (l *checker) checkMemberAccess(a *MemberAccess) resolved.Type {
 				continue
 			}
 			class, template := identFromType(m)
-			result := l.checkClassMember(a.NamePos, class, class, a.Name, a.MethodCall, a.Static, template)
-			if result != resolved.Mixed {
-				return result
+			result, found := l.checkClassMember(a.NamePos, class, class, a.Name, a.MethodCall, a.Static, template)
+			if found {
+				if result != resolved.Mixed {
+					return result
+				}
+				anyHandled = true
+				continue
 			}
+			displayClass := class
+			if template != nil && template != resolved.Mixed {
+				displayClass += "<" + template.String() + ">"
+			}
+			// Probe whether the user has already marked this class as
+			// having magic accessors via an Elphfile Ignore pattern. If so,
+			// treat this union branch as valid.
+			detail := fmt.Sprintf("class %s %s::%v does not exist", kind, displayClass, a.Name)
+			full := fmt.Sprintf("%s:%d:%d: %s", l.fileBeingChecked, a.NamePos.Line, a.NamePos.Column, detail)
+			if l.arbiter.errorMatched(full, detail) {
+				anyHandled = true
+				continue
+			}
+			failedDisplays = append(failedDisplays, displayClass)
+		}
+		if !anyHandled && len(failedDisplays) > 0 {
+			l.reportf(a.NamePos, "class %s %s::%v does not exist", kind, strings.Join(failedDisplays, "|"), a.Name)
 		}
 		return mixed
 	}
@@ -467,17 +491,44 @@ func (l *checker) checkMemberAccess(a *MemberAccess) resolved.Type {
 		return mixed
 	}
 	class, template := identFromType(x)
-	return l.checkClassMember(a.NamePos, class, class, a.Name, a.MethodCall, a.Static, template)
+	result, found := l.checkClassMember(a.NamePos, class, class, a.Name, a.MethodCall, a.Static, template)
+	if !found {
+		displayClass := class
+		if template != nil && template != resolved.Mixed {
+			displayClass += "<" + template.String() + ">"
+		}
+		l.reportf(a.NamePos, "class %s %s::%v does not exist", memberKind(a), displayClass, a.Name)
+	}
+	return result
 }
 
-func (l *checker) checkClassMember(pos token.Pos, originalClass, class string, member string, methodCall, static bool, template resolved.Type) resolved.Type {
+// memberKind returns the kind label used in "does not exist" errors for a
+// member access: "method", "const", or "property".
+func memberKind(a *MemberAccess) string {
+	if a.MethodCall {
+		return "method"
+	}
+	if a.Static && !strings.HasPrefix(a.Name, "$") {
+		return "const"
+	}
+	return "property"
+}
+
+// checkClassMember resolves a member access on a named class/trait. The
+// returned bool is true when the member was handled (found directly,
+// resolved through a parent, covered by DynamicProps, or the class was
+// unknown — in which case an unrelated error has already been reported).
+// It is false when the member is truly missing, so the caller decides how
+// to report it (single-class access reports immediately; union access
+// collects and emits a combined error).
+func (l *checker) checkClassMember(pos token.Pos, originalClass, class string, member string, methodCall, static bool, template resolved.Type) (resolved.Type, bool) {
 	mixed := resolved.Mixed
 	c, ok := universe[class].(*Class)
 	if !ok {
 		t, ok := universe[class].(*Trait)
 		if !ok {
 			if class == "stdClass" {
-				return resolved.StdClass
+				return resolved.StdClass, true
 			}
 			if key := class + "·" + l.fileBeingChecked; !l.reported[key] {
 				l.reportf(pos, "class %v not found", class)
@@ -485,7 +536,7 @@ func (l *checker) checkClassMember(pos token.Pos, originalClass, class string, m
 					l.reported[key] = true
 				}
 			}
-			return mixed
+			return mixed, true
 		}
 		// Let's check the trait as if it were a class.
 		c = &Class{
@@ -533,10 +584,8 @@ func (l *checker) checkClassMember(pos token.Pos, originalClass, class string, m
 	c.Traits = nil // Mark as processed.
 
 	var memberTyp resolved.Type
-	var memberKind string
 
 	if methodCall {
-		memberKind = "method"
 		if m := c.Methods[member]; m != nil {
 			l.checkStaticAccess(pos, member, m.Static, static, true)
 			memberTyp = m.Returns
@@ -550,18 +599,16 @@ func (l *checker) checkClassMember(pos token.Pos, originalClass, class string, m
 		}
 	} else if member, isVar := strings.CutPrefix(member, "$"); isVar && !static {
 		// This is stupid dynamic $foo->$bar call. Ignore it.
-		return mixed
+		return mixed, true
 	} else if !isVar && static {
 		if member == "class" {
 			// PHP magic constant.
-			return resolved.String
+			return resolved.String, true
 		}
-		memberKind = "const"
 		if c := c.Constants[member]; c != nil {
 			memberTyp = c.Type
 		}
 	} else {
-		memberKind = "property"
 		if p := c.Properties[member]; p != nil {
 			l.checkStaticAccess(pos, member, p.Static, static, false)
 			memberTyp = p.Type
@@ -601,7 +648,7 @@ func (l *checker) checkClassMember(pos token.Pos, originalClass, class string, m
 	if memberTyp == nil && c.Extends != "" {
 		parent := c.Extends
 		if parent == "stdClass" {
-			return resolved.StdClass
+			return resolved.StdClass, true
 		}
 		if template == nil {
 			template = c.Template
@@ -609,25 +656,20 @@ func (l *checker) checkClassMember(pos token.Pos, originalClass, class string, m
 		return l.checkClassMember(pos, originalClass, parent, member, methodCall, static, template)
 	}
 	if memberTyp == nil && c.DynamicProps {
-		return mixed
+		return mixed, true
 	}
 	if memberTyp == nil {
-		displayClass := originalClass
-		if template != nil && template != resolved.Mixed {
-			displayClass += "<" + template.String() + ">"
-		}
-		l.reportf(pos, "class %s %v::%v does not exist", memberKind, displayClass, member)
-		return mixed
+		return mixed, false
 	}
 	if memberTyp == resolved.Static {
 		// TODO: Doesn't feel like the right place for this.
 		typ := resolved.TypeFromName(originalClass)
 		if template != nil {
-			return &resolved.Generic{Base: typ, Param: template}
+			return &resolved.Generic{Base: typ, Param: template}, true
 		}
-		return typ
+		return typ, true
 	}
-	return memberTyp
+	return memberTyp, true
 }
 
 func findInterfaceConst(c *Class, member string) resolved.Type {
